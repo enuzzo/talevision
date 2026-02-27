@@ -1,0 +1,42 @@
+# Reference archive (never public)
+archive/
+
+# Secrets
+secrets.yaml
+
+# Media (large files, local only)
+media/*.mp4
+media/*.mkv
+media/*.avi
+media/*.mov
+
+# Runtime caches and frames
+cache/*
+!cache/.gitkeep
+*.log
+logs/
+talevision_frame.png
+current_frame.jpg
+
+# Claude Code local settings
+.claude/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+.venv/
+.env
+*.egg-info/
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp

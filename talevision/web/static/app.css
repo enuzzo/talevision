@@ -1,0 +1,322 @@
+/* TaleVision — dashboard-specific styles layered over ScryBar */
+
+/* Top navigation bar */
+.tv-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: var(--bg-deep, #0B1437);
+  border-bottom: 1px solid var(--border-default, rgba(255,255,255,0.08));
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.tv-topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tv-topbar__logo {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.tv-topbar__name {
+  font-family: var(--font-family, 'Montserrat', sans-serif);
+  font-weight: var(--fw-bold, 700);
+  font-size: var(--fs-heading-sm, 16px);
+  color: var(--text-primary, #fff);
+  letter-spacing: 0.04em;
+}
+
+.tv-topbar__status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tv-topbar__clock {
+  font-family: var(--font-mono, monospace);
+  font-size: var(--fs-body-sm, 13px);
+  color: var(--text-secondary, #A3AED0);
+}
+
+/* Mode pill badge */
+.tv-mode-pill {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: var(--fs-caption, 12px);
+  font-weight: var(--fw-semibold, 600);
+  background: var(--accent-primary, #7B61FF);
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.tv-mode-pill--slowmovie {
+  background: var(--accent-secondary, #00D4FF);
+  color: var(--bg-deep, #0B1437);
+}
+
+/* Main layout */
+.tv-main {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 28px 20px 60px;
+}
+
+.tv-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* Section */
+.tv-section {
+  background: var(--bg-surface, #111C44);
+  border-radius: 12px;
+  padding: 22px 24px;
+  border: 1px solid var(--border-default, rgba(255,255,255,0.06));
+}
+
+.tv-section__title {
+  font-size: var(--fs-body-sm, 13px);
+  font-weight: var(--fw-semibold, 600);
+  color: var(--text-tertiary, #707EAE);
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  margin: 0 0 16px;
+}
+
+/* Mode cards */
+.tv-mode-cards {
+  display: flex;
+  gap: 14px;
+}
+
+.tv-mode-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 20px 16px;
+  background: var(--bg-elevated, #1A2558);
+  border: 2px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.18s, background 0.18s;
+  color: var(--text-secondary, #A3AED0);
+}
+
+.tv-mode-card:hover {
+  background: var(--bg-elevated-hover, #1E2D66);
+  border-color: var(--accent-primary, #7B61FF);
+}
+
+.tv-mode-card.active {
+  border-color: var(--accent-primary, #7B61FF);
+  background: var(--bg-elevated-hover, #1E2D66);
+  color: var(--text-primary, #fff);
+}
+
+.tv-mode-card__icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.tv-mode-card__name {
+  font-weight: var(--fw-semibold, 600);
+  font-size: var(--fs-body-md, 14px);
+  color: var(--text-primary, #fff);
+}
+
+.tv-mode-card__desc {
+  font-size: var(--fs-caption, 12px);
+  color: var(--text-tertiary, #707EAE);
+}
+
+/* Status panel */
+.tv-status-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tv-status-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.tv-status-label {
+  flex: 0 0 100px;
+  font-size: var(--fs-caption, 12px);
+  font-weight: var(--fw-medium, 500);
+  color: var(--text-tertiary, #707EAE);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-top: 1px;
+}
+
+.tv-status-value {
+  flex: 1;
+  font-size: var(--fs-body-sm, 13px);
+  color: var(--text-secondary, #A3AED0);
+  word-break: break-word;
+}
+
+.tv-status-value--quote {
+  font-style: italic;
+  color: var(--text-primary, #fff);
+}
+
+/* Frame preview */
+.tv-preview {
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 800 / 480;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.tv-preview__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.tv-preview__placeholder {
+  color: var(--text-muted, #4A5568);
+  font-size: var(--fs-body-sm, 13px);
+  position: absolute;
+}
+
+.tv-preview-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+}
+
+/* Buttons */
+.tv-btn {
+  padding: 9px 20px;
+  border-radius: 8px;
+  font-family: var(--font-family, 'Montserrat', sans-serif);
+  font-size: var(--fs-body-sm, 13px);
+  font-weight: var(--fw-semibold, 600);
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s;
+}
+
+.tv-btn:hover { opacity: 0.85; }
+.tv-btn:active { opacity: 0.7; }
+
+.tv-btn--primary {
+  background: var(--accent-primary, #7B61FF);
+  color: #fff;
+}
+
+.tv-btn--secondary {
+  background: var(--bg-elevated, #1A2558);
+  color: var(--text-secondary, #A3AED0);
+  border: 1px solid var(--border-default, rgba(255,255,255,0.1));
+}
+
+/* Form elements */
+.tv-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tv-form-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tv-label {
+  font-size: var(--fs-body-sm, 13px);
+  color: var(--text-secondary, #A3AED0);
+  flex: 0 0 60px;
+}
+
+.tv-input, .tv-select {
+  background: var(--bg-input, #0B1437);
+  border: 1px solid var(--border-default, rgba(255,255,255,0.1));
+  border-radius: 6px;
+  color: var(--text-primary, #fff);
+  font-family: var(--font-family, 'Montserrat', sans-serif);
+  font-size: var(--fs-body-sm, 13px);
+  padding: 7px 12px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.tv-input:focus, .tv-select:focus {
+  border-color: var(--accent-primary, #7B61FF);
+}
+
+.tv-checkbox {
+  accent-color: var(--accent-primary, #7B61FF);
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+}
+
+/* Day checkboxes */
+.tv-day-checks {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tv-day-check {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-body-sm, 13px);
+  color: var(--text-secondary, #A3AED0);
+  cursor: pointer;
+}
+
+/* Row utility */
+.tv-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Saved message */
+.tv-saved-msg {
+  font-size: var(--fs-body-sm, 13px);
+  color: var(--success, #4FD1C5);
+}
+
+/* Spinner animation on refresh button */
+.tv-btn.spinning #refresh-label::before {
+  content: "⟳ ";
+  display: inline-block;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .tv-mode-cards { flex-direction: column; }
+  .tv-topbar { flex-wrap: wrap; gap: 8px; }
+}

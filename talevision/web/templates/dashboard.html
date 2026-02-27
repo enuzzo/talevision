@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}TaleVision — Dashboard{% endblock %}
+
+{% block content %}
+<div class="tv-dashboard">
+
+  <!-- Mode Selector -->
+  <section class="tv-section">
+    <h2 class="tv-section__title">Mode</h2>
+    <div class="tv-mode-cards">
+      <button class="tv-mode-card" id="card-litclock" data-mode="litclock" onclick="switchMode('litclock')">
+        <div class="tv-mode-card__icon">🕐</div>
+        <div class="tv-mode-card__name">LitClock</div>
+        <div class="tv-mode-card__desc">Literary time quotes</div>
+      </button>
+      <button class="tv-mode-card" id="card-slowmovie" data-mode="slowmovie" onclick="switchMode('slowmovie')">
+        <div class="tv-mode-card__icon">🎬</div>
+        <div class="tv-mode-card__name">SlowMovie</div>
+        <div class="tv-mode-card__desc">Slow cinema frames</div>
+      </button>
+    </div>
+  </section>
+
+  <!-- Status Panel -->
+  <section class="tv-section">
+    <h2 class="tv-section__title">Status</h2>
+    <div class="tv-status-panel">
+      <div class="tv-status-row">
+        <span class="tv-status-label">Suspended</span>
+        <span id="status-suspended" class="tv-status-value">—</span>
+      </div>
+      <div class="tv-status-row">
+        <span class="tv-status-label">Last update</span>
+        <span id="status-last-update" class="tv-status-value">—</span>
+      </div>
+      <div class="tv-status-row">
+        <span class="tv-status-label">Next wake</span>
+        <span id="status-next-wake" class="tv-status-value">—</span>
+      </div>
+      <div class="tv-status-row" id="status-quote-row">
+        <span class="tv-status-label">Quote</span>
+        <span id="status-quote" class="tv-status-value tv-status-value--quote">—</span>
+      </div>
+      <div class="tv-status-row" id="status-video-row">
+        <span class="tv-status-label">Video</span>
+        <span id="status-video" class="tv-status-value">—</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Frame Preview -->
+  <section class="tv-section">
+    <h2 class="tv-section__title">Preview</h2>
+    <div class="tv-preview">
+      <img id="preview-img" src="/api/frame" alt="Current frame" class="tv-preview__img" onerror="this.style.display='none'">
+      <div id="preview-placeholder" class="tv-preview__placeholder">No frame yet</div>
+    </div>
+    <div class="tv-preview-actions">
+      <button class="tv-btn tv-btn--primary" id="refresh-btn" onclick="forceRefresh()">
+        <span id="refresh-label">⟳ Refresh now</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- Language Selector (LitClock only) -->
+  <section class="tv-section" id="section-language">
+    <h2 class="tv-section__title">Language</h2>
+    <div class="tv-row">
+      <select id="lang-select" class="tv-select" onchange="setLanguage(this.value)">
+        <option value="">Loading…</option>
+      </select>
+    </div>
+  </section>
+
+  <!-- Suspend Schedule -->
+  <section class="tv-section">
+    <h2 class="tv-section__title">Suspend Schedule</h2>
+    <form class="tv-form" onsubmit="saveSuspend(event)">
+      <div class="tv-form-row">
+        <label class="tv-label" for="suspend-enabled">
+          <input type="checkbox" id="suspend-enabled" class="tv-checkbox"> Enabled
+        </label>
+      </div>
+      <div class="tv-form-row">
+        <label class="tv-label" for="suspend-start">Start</label>
+        <input type="time" id="suspend-start" class="tv-input" value="23:00">
+      </div>
+      <div class="tv-form-row">
+        <label class="tv-label" for="suspend-end">End</label>
+        <input type="time" id="suspend-end" class="tv-input" value="07:00">
+      </div>
+      <div class="tv-form-row">
+        <span class="tv-label">Days</span>
+        <div class="tv-day-checks">
+          {% for i, day in [(0,'Mon'),(1,'Tue'),(2,'Wed'),(3,'Thu'),(4,'Fri'),(5,'Sat'),(6,'Sun')] %}
+          <label class="tv-day-check">
+            <input type="checkbox" name="suspend-day" value="{{ i }}" checked> {{ day }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <button type="submit" class="tv-btn tv-btn--secondary">Save schedule</button>
+      <span id="suspend-saved" class="tv-saved-msg" style="display:none">Saved ✓</span>
+    </form>
+  </section>
+
+</div>
+{% endblock %}

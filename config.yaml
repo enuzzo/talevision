@@ -1,0 +1,110 @@
+app:
+  default_mode: litclock   # litclock | slowmovie
+
+display:
+  width: 800
+  height: 480
+  saturation: 0.6
+
+web:
+  host: "0.0.0.0"
+  port: 5000
+  debug: false
+
+logging:
+  level: INFO
+  file: null               # e.g. /var/log/talevision.log
+  max_bytes: 10485760
+  backup_count: 3
+
+suspend:
+  enabled: true
+  start: "23:00"
+  end: "07:00"
+  days: [0,1,2,3,4,5,6]   # 0=Mon … 6=Sun; empty = all days
+  message: "TaleVision — Netmilk Studio"
+  logo_path: "assets/icons/logo.png"
+
+litclock:
+  refresh_rate: 60
+  data_dir: "assets/lang"
+  language: "it"
+  use_italic_for_em: true
+  invert_colors: false
+  vertical_centering_adjustment: 40
+  header:
+    show: true
+    babel_locale: "it"
+    babel_format: "HH:mm '–' EEEE d MMMM y"
+    separator_line: true
+    separator_line_thickness: 2
+    separator_line_spacing: 10
+    header_bottom_spacing: 20
+  text_block_padding: 10
+  intra_line_spacing: 6
+  block_separator_spacing: 30
+  fonts:
+    dir: "assets/fonts"
+    header:
+      file: "Signika-Bold.ttf"
+      size: 32
+    quote:
+      file: "Taviraj-Regular.ttf"
+      size: 28
+      max_width: 700
+    quote_italic:
+      file: "Taviraj-Italic.ttf"
+      size: 28
+      max_width: 700
+    author:
+      file: "Taviraj-Italic.ttf"
+      size: 22
+      max_width: 700
+    title:
+      file: "Taviraj-Regular.ttf"
+      size: 22
+      max_width: 700
+    fallback:
+      file: "Taviraj-Regular.ttf"
+      size: 26
+      max_width: 700
+
+slowmovie:
+  refresh_interval: 90
+  media_dir: "media"
+  video_file: "random"
+  cache_file: "cache/video_info_cache.json"
+  frame_selection:
+    skip_start_seconds: 120
+    skip_end_seconds: 240
+  image:
+    fit_mode: cover
+    brightness: 1.1
+    contrast: 1.2
+    color: 1.3
+    gamma: 1.3
+    use_autocontrast: false
+  overlay:
+    show_info: true
+    qr_enabled: true
+    qr_content: "imdb_search"
+    qr_size: 70
+    font_size: 22
+    bottom_margin: 35
+  fonts:
+    dir: "assets/fonts"
+    bold: "Signika-Bold.ttf"
+    light: "Signika-Light.ttf"
+
+buttons:
+  enabled: true
+  gpio_map:
+    a: 5
+    b: 6
+    c: 16
+    d: 24
+  actions:
+    a: switch_mode
+    b: force_refresh
+    c: toggle_suspend
+    d: null
