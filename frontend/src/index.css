@@ -1,54 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   html {
-    background-color: #0a0a0c;
-    color: #ede9df;
+    background-color: #070D2D;
+    color: #FFFFFF;
   }
 
   body {
     margin: 0;
-    font-family: 'DM Mono', monospace;
+    font-family: 'Space Mono', monospace;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Animated scanlines — very subtle amber CRT drift */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    pointer-events: none;
-    background: repeating-linear-gradient(
-      to bottom,
-      transparent 0px,
-      transparent 3px,
-      rgba(200, 146, 58, 0.015) 3px,
-      rgba(200, 146, 58, 0.015) 4px
-    );
-    background-size: 100% 4px;
-    animation: scanlines 10s linear infinite;
+  * {
+    box-sizing: border-box;
   }
 
-  /* Grain overlay on top of scanlines */
-  body::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: 9998;
-    pointer-events: none;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
-    background-repeat: repeat;
-    background-size: 128px 128px;
-    opacity: 0.55;
-  }
-
-  @keyframes scanlines {
-    0%   { background-position: 0 0; }
-    100% { background-position: 0 4px; }
+  ::selection {
+    background: rgba(117, 81, 255, 0.35);
+    color: #FFFFFF;
   }
 
   @keyframes scanSweep {
@@ -67,94 +43,115 @@
     50%       { opacity: 0.25; transform: scale(0.6); }
   }
 
-  * {
-    box-sizing: border-box;
-  }
-
   ::-webkit-scrollbar {
     width: 4px;
   }
   ::-webkit-scrollbar-track {
-    background: #0a0a0c;
+    background: #070D2D;
   }
   ::-webkit-scrollbar-thumb {
-    background: #2a2a2e;
-    border-radius: 2px;
+    background: #1A2558;
+    border-radius: 4px;
   }
 }
 
 @layer components {
   .label {
-    @apply font-mono text-[10px] uppercase tracking-[0.18em] text-secondary;
+    @apply font-mono text-[11px] uppercase tracking-[0.08em] text-tertiary;
+    font-weight: 600;
   }
 
   .value {
     @apply font-mono text-sm text-primary;
   }
 
-  .section-rule {
-    @apply border-t border-border my-6;
-  }
-
-  /* Radix Switch overrides */
+  /* Radix Switch — ScryBar toggle */
   [data-radix-switch-root] {
-    width: 36px !important;
-    height: 20px !important;
-    background-color: #242428 !important;
-    border-radius: 999px !important;
-    border: 1px solid #3a3a42 !important;
-    transition: background-color 150ms ease !important;
+    width: 44px !important;
+    height: 24px !important;
+    background-color: #1A2558 !important;
+    border-radius: 9999px !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) !important;
     cursor: pointer !important;
     flex-shrink: 0 !important;
   }
 
   [data-radix-switch-root][data-state='checked'] {
-    background-color: #c8923a !important;
-    border-color: #c8923a !important;
+    background-color: #7551FF !important;
+    border-color: #7551FF !important;
   }
 
   [data-radix-switch-thumb] {
     display: block !important;
-    width: 14px !important;
-    height: 14px !important;
-    background-color: #ede9df !important;
-    border-radius: 999px !important;
-    transition: transform 150ms ease !important;
+    width: 18px !important;
+    height: 18px !important;
+    background-color: #FFFFFF !important;
+    border-radius: 9999px !important;
+    transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1) !important;
     transform: translateX(3px) !important;
     will-change: transform !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
   }
 
   [data-radix-switch-thumb][data-state='checked'] {
-    transform: translateX(19px) !important;
+    transform: translateX(23px) !important;
   }
 
-  /* Radix Select overrides */
+  /* Radix Select — ScryBar dropdown */
   [data-radix-select-trigger] {
-    @apply font-mono text-sm text-primary bg-surface border border-border px-3 py-2 rounded-none w-full flex items-center justify-between gap-2 cursor-pointer outline-none;
-    transition: border-color 150ms ease;
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    color: #FFFFFF;
+    background: #0B1437;
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 0 16px;
+    height: 44px;
+    border-radius: 8px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
   }
   [data-radix-select-trigger]:hover {
-    border-color: #c8923a;
+    border-color: #7551FF;
   }
   [data-radix-select-trigger]:focus {
-    border-color: #c8923a;
-    box-shadow: 0 0 0 1px #c8923a22;
+    border-color: #7551FF;
+    box-shadow: 0 0 0 3px rgba(117, 81, 255, 0.15);
   }
 
   [data-radix-select-content] {
-    @apply bg-surface border border-border overflow-hidden z-50;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    background: #1A2558;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    z-index: 100;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
   }
 
   [data-radix-select-item] {
-    @apply font-mono text-sm text-primary px-3 py-2 cursor-pointer outline-none;
-    transition: background 100ms ease;
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    color: #FFFFFF;
+    padding: 0 16px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    outline: none;
+    transition: background 150ms cubic-bezier(0.4, 0, 0.2, 1);
   }
   [data-radix-select-item]:hover,
   [data-radix-select-item][data-highlighted] {
-    @apply bg-dim text-accent;
+    background: #1E2D66;
+    color: #7551FF;
   }
   [data-radix-select-item][data-state='checked'] {
-    @apply text-accent;
+    color: #7551FF;
   }
 }

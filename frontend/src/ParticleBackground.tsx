@@ -12,9 +12,9 @@ interface Particle {
 }
 
 const COLORS = [
-  'rgba(200, 146, 58,',   // amber
-  'rgba(237, 233, 223,',  // warm white
-  'rgba(180, 130, 50,',   // darker amber
+  'rgba(117, 81, 255,',   // accent violet
+  'rgba(57, 184, 255,',   // cyan
+  'rgba(134, 140, 255,',  // soft violet
 ]
 
 function makeParticle(w: number, h: number): Particle {
