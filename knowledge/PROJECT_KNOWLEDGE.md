@@ -116,9 +116,11 @@ python generate_sidecars.py --dry-run   # preview only
 - Build on Mac: `cd frontend && npm run build` → output goes directly to `talevision/web/static/dist/`.
 - Served by Flask: `views.py` uses `send_file(dist/index.html)` if built; falls back to Jinja template.
 - Data: TanStack React Query v5, polls `/api/status` every 12s (2s when waiting for frame render).
-- `ParticleBackground.tsx`: canvas RAF loop, 80 amber/warm-white particles, mouse repulsion within 110px.
+- `ParticleBackground.tsx`: canvas RAF loop, 80 violet/cyan particles, mouse repulsion within 110px.
 - Frame waiting state: when mode switch or force-refresh is triggered, shows `RenderingOverlay` (scan line + rings + brackets) until `status.last_update` advances past the trigger timestamp. 120s safety timeout.
-- Fonts loaded from Google Fonts (Syne + DM Mono). No local font files needed for the web UI.
+- Fonts loaded from Google Fonts (Montserrat + Space Mono). No local font files needed for the web UI.
+- **Design system**: ScryBar Design System v1.4 (default theme). Deep navy backgrounds (#070D2D/#0B1437/#111C44), violet accent (#7551FF), cyan secondary (#39B8FF). Montserrat for display headings, Space Mono for monospace. Rounded corners (8px/12px/16px). Reference: `assets/netmilk_design_system/`.
+- **Footer**: Netmilk Studio SVG logo centered, loaded from `https://netmi.lk/wp-content/uploads/2024/10/netmilk.svg`.
 - **Do not gitignore `talevision/web/static/dist/`** — exception is set in `.gitignore`. The built bundle must be in the repo so the Pi can serve it after `git pull`.
 
 ## Web Server
@@ -137,13 +139,26 @@ except ImportError:
 
 waitress is included in `requirements.txt` (`waitress==3.0.2`). Always install it on Pi.
 
+## Playlist / Rotation System
+
+- `Orchestrator` supports a **playlist**: an ordered list of enabled modes that cycle automatically.
+- `set_playlist(modes, rotation_interval)`: set which modes to cycle and at what interval.
+- **Single mode** (playlist length 1): uses per-mode interval as before. Per-mode interval controls visible in dashboard.
+- **Rotation** (playlist length 2+): after each render, waits `rotation_interval` seconds, then advances to next mode in playlist order. Per-mode interval controls hidden in dashboard (rotation interval takes over).
+- `rotation_interval` default: 300s (5 min). Range: 30–3600s.
+- Persisted to `user_prefs.json` alongside interval overrides: `{intervals: {...}, playlist: [...], rotation_interval: N}`.
+- API: `POST /api/playlist` with `{modes: ["litclock", "slowmovie"], rotation_interval: 300}`.
+- `GET /api/status` returns `playlist`, `playlist_index`, `rotation_interval` fields.
+- Dashboard `PlaylistEditor`: checkboxes to enable/disable modes, up/down arrows to reorder, rotation interval input when 2+ modes enabled.
+- 4 modes in registry: `litclock` (active), `slowmovie` (active), `teletext` (coming soon), `ansi` (coming soon). Coming-soon modes shown in UI but disabled.
+
 ## Per-mode Interval Overrides
 
 - `Orchestrator.set_mode_interval(mode, seconds)` / `reset_mode_interval(mode)`: override/restore per-mode refresh intervals at runtime.
 - Overrides persisted to `user_prefs.json` in the project root (gitignored).
 - API: `GET /api/interval`, `POST /api/interval` `{mode, seconds}`, `DELETE /api/interval/<mode>`.
 - `get_status()` response includes `intervals` dict with `effective`, `default`, `overridden` per mode.
-- Dashboard shows per-mode minute input with "Set" / "reset" buttons.
+- Dashboard shows per-mode minute input with "Set" / "reset" buttons (only visible in single-mode, hidden during rotation).
 
 ## Orchestrator Loop Logging
 
@@ -156,8 +171,8 @@ LOOP-step log messages in `orchestrator.py` are at **DEBUG** level (changed from
 - `next_wake_time()` returns the datetime when suspension ends (used by dashboard).
 - Thread-safe `update()` method called from API handler.
 - Suspend screen is rendered once on entry and held; `_suspended_displayed` flag prevents re-rendering.
-- **BBS/NFO suspend screen** (`talevision/render/suspend_screen.py`): renders to the e-ink display when suspended. Black background, DejaVuSansMono font, box-drawing chars (`╔═╗║╚╝╠╣`), amber header "T · A · L · E · V · I · S · I · O · N", active hours/days row (`[MON] [TUE]...`), resume time. `inner_w=60` to fit all 7 days with single-space separators. The orchestrator intercepts the loop before `active.render()` and calls this instead.
-- **Dashboard UX inversion**: UI shows "active hours" (ON/OFF), API stores suspend window (start=sleep, end=wake). Mapping: `UI activeFrom → API end`, `UI activeTo → API start`.
+- **BBS/NFO suspend screen** (`talevision/render/suspend_screen.py`): renders to the e-ink display when suspended. Black background, DejaVuSansMono font, box-drawing chars (`╔═╗║╚╝╠╣`), amber header "T · A · L · E · V · I · S · I · O · N", suspend hours/days row (`[MON] [TUE]...`), resume time. `inner_w=60` to fit all 7 days with single-space separators. Labels read "SUSPEND HOURS" and "SUSPEND DAYS" (values are the raw config suspend window). The orchestrator intercepts the loop before `active.render()` and calls this instead.
+- **Dashboard UX inversion**: UI shows "active hours" (ON/OFF), API stores suspend window (start=sleep, end=wake). Mapping: `UI activeFrom → API end`, `UI activeTo → API start`. The suspend screen shows the raw suspend window values with "SUSPEND" labels for consistency.
 
 ## InterruptibleTimer
 
@@ -170,8 +185,9 @@ LOOP-step log messages in `orchestrator.py` are at **DEBUG** level (changed from
 - **LitClock mode**: renders a literary quote for the current minute; 6 languages switchable at runtime. Refresh: 300 s (5 min).
 - **SlowMovie mode**: extracts a random film frame every 90 s with PIL enhancement and info overlay. TMDB QR (white-on-black rounded box, bottom-right). Auto-generates sidecar `.json` on first activation.
 - **Suspend schedule**: overnight window (e.g. 23:00–07:00), wraps midnight; day-of-week filtering; BBS/NFO style screen on e-ink.
-- **Web dashboard**: React SPA (Vite + Tailwind) at `http://<DEVICE_IP>:<PORT>`; cinematic dark theme; cinematic rendering overlay on mode switch; polling accelerates to 2s while waiting for new frame.
-- **Per-mode refresh intervals**: overridable from dashboard, persisted to `user_prefs.json`.
+- **Playlist rotation**: orchestrator cycles through enabled modes in order with a unified rotation interval (default 5 min). Single-mode uses per-mode interval. Configurable from dashboard.
+- **Web dashboard**: React SPA (Vite + Tailwind) at `http://<DEVICE_IP>:<PORT>`; ScryBar Design System (deep navy + violet accent); PlaylistEditor with reorder; rendering overlay on mode switch; polling accelerates to 2s while waiting for new frame. Netmilk logo in footer.
+- **Per-mode refresh intervals**: overridable from dashboard, persisted to `user_prefs.json` (visible in single-mode only).
 - **Physical buttons**: GPIO 5/6/16/24 (A/B/C/D on Inky Impression); remappable in `config.yaml`.
 - **Off-Pi fallback**: no Inky → saves `talevision_frame.png`; no GPIO → one warning, silent from then on.
 
