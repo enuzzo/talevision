@@ -359,9 +359,25 @@ class SlowMovieMode(DisplayMode):
                     qr_img = qr.make_image(fill_color="black", back_color="white",
                                            image_factory=PilImage).resize(
                         (qr_size, qr_size), Image.Resampling.NEAREST)
-                    x0q = img_w - qr_size - qr_margin
-                    y0q = img_h - qr_size - b_margin
-                    overlay_layer.paste(qr_img, (x0q, y0q))
+                    # Convert to white-on-transparent so it sits cleanly inside the dark box
+                    qr_rgba = qr_img.convert("RGBA")
+                    r, g, b, a = qr_rgba.split()
+                    new_r = r.point(lambda v: 255 if v < 128 else 0)
+                    new_g = g.point(lambda v: 255 if v < 128 else 0)
+                    new_b = b.point(lambda v: 255 if v < 128 else 0)
+                    new_a = r.point(lambda v: 255 if v < 128 else 0)
+                    qr_rgba = Image.merge("RGBA", (new_r, new_g, new_b, new_a))
+                    # Box styled like the info box: same radius, same semi-transparent dark fill
+                    pad = 10
+                    box_side = qr_size + 2 * pad
+                    x0q = img_w - box_side - qr_margin
+                    y0q = img_h - box_side - b_margin
+                    draw.rounded_rectangle(
+                        [(x0q, y0q), (x0q + box_side, y0q + box_side)],
+                        radius=radius,
+                        fill=(0, 0, 0, 190),
+                    )
+                    overlay_layer.paste(qr_rgba, (x0q + pad, y0q + pad), mask=qr_rgba)
                 except Exception as exc:
                     log.error(f"QR generation error: {exc}")
 

@@ -87,7 +87,7 @@ slowmovie:
   overlay:
     show_info: true
     qr_enabled: true
-    qr_content: "imdb_search"
+    qr_content: "tmdb_search"
     qr_size: 70
     font_size: 22
     bottom_margin: 35
