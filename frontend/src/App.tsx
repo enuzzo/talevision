@@ -38,6 +38,16 @@ const MODE_LABEL: Record<Mode, string> = {
   slowmovie: 'SlowMovie',
 }
 
+const MODE_ICON: Record<Mode, string> = {
+  litclock: '🕐',
+  slowmovie: '🎬',
+}
+
+const MODE_COLOR: Record<Mode, string> = {
+  litclock: '#4a7fa5',
+  slowmovie: '#c8923a',
+}
+
 // ─── Live Clock ─────────────────────────────────────────────────────────────
 
 function useClock() {
@@ -114,26 +124,24 @@ function ModeSelector({
     <div className="flex items-center gap-8">
       {MODES.map(m => {
         const active = current === m
+        const color = MODE_COLOR[m]
         return (
           <button
             key={m}
             onClick={() => !active && onSwitch(m)}
             disabled={switching}
             className={cx(
-              'relative font-display text-xl font-semibold pb-1 transition-colors duration-200 outline-none',
+              'relative flex items-center gap-2 font-display text-xl font-semibold pb-1 transition-colors duration-200 outline-none',
               'disabled:cursor-wait',
-              active
-                ? 'text-primary cursor-default'
-                : 'text-secondary hover:text-primary/70 cursor-pointer',
+              active ? 'cursor-default' : 'text-secondary hover:text-primary/70 cursor-pointer',
             )}
+            style={{ color: active ? color : undefined }}
           >
+            <span className="text-base">{MODE_ICON[m]}</span>
             {MODE_LABEL[m]}
-            {/* Amber underline for active mode */}
             <span
-              className={cx(
-                'absolute bottom-0 left-0 h-px bg-accent transition-all duration-300',
-                active ? 'w-full' : 'w-0',
-              )}
+              className="absolute bottom-0 left-0 h-px transition-all duration-300"
+              style={{ width: active ? '100%' : '0%', backgroundColor: color }}
             />
           </button>
         )
@@ -202,9 +210,9 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
         </Switch.Root>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
         <div>
-          <div className="label mb-1">On from (24h)</div>
+          <div className="label mb-1">▶ On from (24h)</div>
           <input
             type="time"
             value={activeFrom}
@@ -212,8 +220,9 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
             className="w-full bg-surface border border-border text-primary font-mono text-sm px-3 py-2 outline-none focus:border-accent transition-colors"
           />
         </div>
+        <span className="label pb-2 text-accent">→</span>
         <div>
-          <div className="label mb-1">Off at (24h)</div>
+          <div className="label mb-1">⏹ Off at (24h)</div>
           <input
             type="time"
             value={activeTo}
@@ -377,12 +386,17 @@ export default function App() {
                   'bg-success',
                 )}
               />
-              <span className={cx(
-                'label',
-                isSuspended && 'text-secondary',
-                isError && 'text-danger',
-              )}>
-                {isError ? 'offline' : isSuspended ? 'suspended' : currentMode}
+              <span
+                className="label"
+                style={{
+                  color: isError ? '#9a4a4a' :
+                         isSuspended ? '#6b6b73' :
+                         MODES.includes(currentMode as Mode) ? MODE_COLOR[currentMode as Mode] : undefined,
+                }}
+              >
+                {isError ? 'offline' :
+                 isSuspended ? '⏸ suspended' :
+                 `${MODE_ICON[currentMode as Mode] ?? ''} ${currentMode}`}
               </span>
             </div>
           </div>
@@ -445,8 +459,8 @@ export default function App() {
               <StatusRow
                 label="Suspended"
                 value={
-                  <span className={isSuspended ? 'text-secondary' : 'text-primary'}>
-                    {isSuspended ? 'Yes' : 'No'}
+                  <span style={{ color: isSuspended ? '#c8923a' : '#4a9a6a' }}>
+                    {isSuspended ? '⏸ yes' : '▶ no'}
                   </span>
                 }
               />
@@ -462,13 +476,13 @@ export default function App() {
               )}
               {status?.video && (
                 <StatusRow
-                  label="Film"
-                  value={<span className="font-display text-base font-semibold">{status.video}</span>}
+                  label="🎬 Film"
+                  value={<span className="font-display text-base font-semibold" style={{ color: MODE_COLOR.slowmovie }}>{status.video}</span>}
                 />
               )}
               {status?.quote && (
                 <StatusRow
-                  label="Quote"
+                  label="💬 Quote"
                   value={
                     <span className="text-xs text-secondary leading-relaxed text-right">
                       {status.quote.length > 80 ? status.quote.slice(0, 80) + '…' : status.quote}
