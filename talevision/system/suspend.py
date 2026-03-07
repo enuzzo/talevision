@@ -1,7 +1,9 @@
 """Suspend schedule logic.
 
 Handles overnight windows correctly (e.g. 23:00–07:00).
-Day filtering: only suspend if weekday in days list (empty = all days).
+Day semantics: `days` = days the device is fully OFF (suspend days).
+Days NOT in the list are "active days" — suspend applies only during
+the time window. Empty list = time window applies to all days.
 """
 import datetime
 import logging
@@ -21,7 +23,7 @@ class SuspendScheduler:
         self._enabled = config.enabled
         self._start_str = config.start
         self._end_str = config.end
-        self._days: List[int] = list(config.days) if config.days else list(range(7))
+        self._days: List[int] = list(config.days) if config.days else []
         self._start = self._parse_time(config.start)
         self._end = self._parse_time(config.end)
 
@@ -33,21 +35,23 @@ class SuspendScheduler:
             log.error(f"Invalid suspend time format: '{s}'. Defaulting to midnight.")
             return datetime.time(0, 0)
 
-    def _is_suspended_unlocked(self, dt: datetime.datetime) -> bool:
-        """Like is_suspended() but assumes lock is already held by caller."""
-        if not self._enabled:
-            return False
-        if self._days and dt.weekday() not in self._days:
-            return False
-        t = dt.time()
+    def _in_time_window(self, t: datetime.time) -> bool:
         start, end = self._start, self._end
         if start <= end:
             return start <= t < end
         else:
             return t >= start or t < end
 
+    def _is_suspended_unlocked(self, dt: datetime.datetime) -> bool:
+        if not self._enabled:
+            return False
+        weekday = dt.weekday()
+        if self._days and weekday in self._days:
+            return True
+        return self._in_time_window(dt.time())
+
     def is_suspended(self, dt: Optional[datetime.datetime] = None) -> bool:
-        """Return True if dt falls within suspend window on an active day."""
+        """Return True if suspended: full-suspend day OR within time window."""
         with self._lock:
             dt = dt or datetime.datetime.now()
             return self._is_suspended_unlocked(dt)
@@ -58,7 +62,7 @@ class SuspendScheduler:
             if not self._enabled:
                 return None
             dt = dt or datetime.datetime.now()
-            if not self._is_suspended_unlocked(dt):  # uses unlocked version — no deadlock
+            if not self._is_suspended_unlocked(dt):
                 return None
             end = self._end
             candidate = dt.replace(
@@ -69,6 +73,11 @@ class SuspendScheduler:
             )
             if candidate <= dt:
                 candidate += datetime.timedelta(days=1)
+            if self._days:
+                for _ in range(7):
+                    if candidate.weekday() not in self._days:
+                        break
+                    candidate += datetime.timedelta(days=1)
             return candidate
 
     def get_config(self) -> dict:
@@ -89,5 +98,5 @@ class SuspendScheduler:
             self._end_str = end
             self._start = self._parse_time(start)
             self._end = self._parse_time(end)
-            self._days = list(days) if days else list(range(7))
+            self._days = list(days) if days else []
         log.info(f"Suspend schedule updated: enabled={enabled}, {start}–{end}, days={days}")
