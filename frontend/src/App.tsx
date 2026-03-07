@@ -231,14 +231,25 @@ function StatusRow({ label, value }: { label: string; value: React.ReactNode }) 
 
 function SuspendForm({ initial }: { initial?: SuspendConfig }) {
   const qc = useQueryClient()
-  const [enabled, setEnabled] = useState(initial?.enabled ?? false)
+  const [enabled, setEnabled] = useState(false)
   // UI shows "active hours": when the device is ON.
   // The API stores suspend hours (inverse), so we swap start↔end at the boundary.
   // UI activeFrom = API end (suspension ends = device wakes)
   // UI activeTo   = API start (suspension starts = device sleeps)
-  const [activeFrom, setActiveFrom] = useState(initial?.end ?? '09:00')
-  const [activeTo, setActiveTo] = useState(initial?.start ?? '18:00')
-  const [days, setDays] = useState<number[]>(initial?.days ?? [0, 1, 2, 3, 4, 5, 6])
+  const [activeFrom, setActiveFrom] = useState('09:00')
+  const [activeTo, setActiveTo] = useState('18:00')
+  const [days, setDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6])
+
+  // Sync from server exactly once, as soon as status arrives
+  const syncedRef = useRef(false)
+  useEffect(() => {
+    if (!initial || syncedRef.current) return
+    setEnabled(initial.enabled)
+    setActiveFrom(initial.end ?? '09:00')
+    setActiveTo(initial.start ?? '18:00')
+    setDays(initial.days ?? [0, 1, 2, 3, 4, 5, 6])
+    syncedRef.current = true
+  }, [initial])
   const [saved, setSaved] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout>>()
 
@@ -353,6 +364,11 @@ function IntervalRow({
 }) {
   const qc = useQueryClient()
   const [minutes, setMinutes] = useState(Math.round(data.effective / 60))
+
+  // Keep input in sync if the effective value changes externally (e.g. after reset)
+  useEffect(() => {
+    setMinutes(Math.round(data.effective / 60))
+  }, [data.effective])
 
   const setMut = useMutation({
     mutationFn: () => api.setInterval(modeName, minutes * 60),
