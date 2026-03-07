@@ -205,9 +205,9 @@ class Orchestrator:
                 log.info("Force refresh requested")
 
             elif action == "toggle_suspend":
-                cfg = self._config.suspend
-                new_enabled = not self._scheduler.is_suspended()
-                self._scheduler.update(cfg.start, cfg.end, list(cfg.days), new_enabled)
+                current = self._scheduler.get_config()
+                new_enabled = not current["enabled"]
+                self._scheduler.update(current["start"], current["end"], current["days"], new_enabled)
                 log.info(f"Suspend toggled: enabled={new_enabled}")
 
             elif action == "set_language":
