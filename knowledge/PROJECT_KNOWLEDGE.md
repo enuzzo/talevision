@@ -107,6 +107,20 @@ python generate_sidecars.py --dry-run   # preview only
 - Requires `tmdb_api_key` in `secrets.yaml`; supports `--dry-run`.
 - Example sidecar: `media/Koyaanisqatsi - 1982__slowmovie.json` → title "Koyaanisqatsi", year "1983", director "Godfrey Reggio".
 
+**Auto-generation on SlowMovie activation:** `talevision/media/sidecars.py` (no `rich` dependency) is called from `SlowMovie.on_activate()` in a daemon thread. Scans `media/` for videos without `.json`, calls TMDB silently. Module-level lock prevents concurrent runs. Silent no-op if no API key.
+
+## Web Frontend (React SPA)
+
+- Built with **Vite + React 18 + TypeScript + Tailwind CSS 3 + Radix UI primitives**.
+- Source: `frontend/src/`. Build output: `talevision/web/static/dist/` (committed to repo).
+- Build on Mac: `cd frontend && npm run build` → output goes directly to `talevision/web/static/dist/`.
+- Served by Flask: `views.py` uses `send_file(dist/index.html)` if built; falls back to Jinja template.
+- Data: TanStack React Query v5, polls `/api/status` every 12s (2s when waiting for frame render).
+- `ParticleBackground.tsx`: canvas RAF loop, 80 amber/warm-white particles, mouse repulsion within 110px.
+- Frame waiting state: when mode switch or force-refresh is triggered, shows `RenderingOverlay` (scan line + rings + brackets) until `status.last_update` advances past the trigger timestamp. 120s safety timeout.
+- Fonts loaded from Google Fonts (Syne + DM Mono). No local font files needed for the web UI.
+- **Do not gitignore `talevision/web/static/dist/`** — exception is set in `.gitignore`. The built bundle must be in the repo so the Pi can serve it after `git pull`.
+
 ## Web Server
 
 `main.py` prefers **waitress** over Flask dev server:
@@ -123,6 +137,14 @@ except ImportError:
 
 waitress is included in `requirements.txt` (`waitress==3.0.2`). Always install it on Pi.
 
+## Per-mode Interval Overrides
+
+- `Orchestrator.set_mode_interval(mode, seconds)` / `reset_mode_interval(mode)`: override/restore per-mode refresh intervals at runtime.
+- Overrides persisted to `user_prefs.json` in the project root (gitignored).
+- API: `GET /api/interval`, `POST /api/interval` `{mode, seconds}`, `DELETE /api/interval/<mode>`.
+- `get_status()` response includes `intervals` dict with `effective`, `default`, `overridden` per mode.
+- Dashboard shows per-mode minute input with "Set" / "reset" buttons.
+
 ## Orchestrator Loop Logging
 
 LOOP-step log messages in `orchestrator.py` are at **DEBUG** level (changed from INFO). Normal operation produces no INFO noise from the loop — only meaningful state transitions (mode switch, suspend toggle, errors) remain at INFO.
@@ -134,6 +156,8 @@ LOOP-step log messages in `orchestrator.py` are at **DEBUG** level (changed from
 - `next_wake_time()` returns the datetime when suspension ends (used by dashboard).
 - Thread-safe `update()` method called from API handler.
 - Suspend screen is rendered once on entry and held; `_suspended_displayed` flag prevents re-rendering.
+- **BBS/NFO suspend screen** (`talevision/render/suspend_screen.py`): renders to the e-ink display when suspended. Black background, DejaVuSansMono font, box-drawing chars (`╔═╗║╚╝╠╣`), amber header "T · A · L · E · V · I · S · I · O · N", active hours/days row (`[MON] [TUE]...`), resume time. `inner_w=60` to fit all 7 days with single-space separators. The orchestrator intercepts the loop before `active.render()` and calls this instead.
+- **Dashboard UX inversion**: UI shows "active hours" (ON/OFF), API stores suspend window (start=sleep, end=wake). Mapping: `UI activeFrom → API end`, `UI activeTo → API start`.
 
 ## InterruptibleTimer
 
@@ -143,10 +167,11 @@ LOOP-step log messages in `orchestrator.py` are at **DEBUG** level (changed from
 
 ## Current Product Behaviors
 
-- **LitClock mode**: renders a literary quote for the current minute; 6 languages switchable at runtime.
-- **SlowMovie mode**: extracts a random film frame every 90 s with PIL enhancement and info overlay.
-- **Suspend schedule**: overnight window (e.g. 23:00–07:00), wraps midnight correctly; day-of-week filtering supported.
-- **Web dashboard**: Flask 3 + waitress at `http://<DEVICE_IP>:<PORT>`; all controls via JSON API, no page reloads.
+- **LitClock mode**: renders a literary quote for the current minute; 6 languages switchable at runtime. Refresh: 300 s (5 min).
+- **SlowMovie mode**: extracts a random film frame every 90 s with PIL enhancement and info overlay. TMDB QR (white-on-black rounded box, bottom-right). Auto-generates sidecar `.json` on first activation.
+- **Suspend schedule**: overnight window (e.g. 23:00–07:00), wraps midnight; day-of-week filtering; BBS/NFO style screen on e-ink.
+- **Web dashboard**: React SPA (Vite + Tailwind) at `http://<DEVICE_IP>:<PORT>`; cinematic dark theme; cinematic rendering overlay on mode switch; polling accelerates to 2s while waiting for new frame.
+- **Per-mode refresh intervals**: overridable from dashboard, persisted to `user_prefs.json`.
 - **Physical buttons**: GPIO 5/6/16/24 (A/B/C/D on Inky Impression); remappable in `config.yaml`.
 - **Off-Pi fallback**: no Inky → saves `talevision_frame.png`; no GPIO → one warning, silent from then on.
 
@@ -155,14 +180,18 @@ LOOP-step log messages in `orchestrator.py` are at **DEBUG** level (changed from
 - **Pillow on armv6l**: `pip install Pillow` may fail (no wheel); use `sudo apt install python3-pil` on Pi.
 - **ffmpeg**: `ffmpeg-python` is a Python wrapper only — the system binary (`/usr/bin/ffmpeg`) must be installed via `apt install ffmpeg`.
 - **Inky SPI**: must be enabled via `raspi-config → Interface Options → SPI` before Inky will work; `scripts/install.sh` handles this.
-- **GPIO group**: run as `pi` user or add to `gpio` group (`sudo usermod -aG gpio pi`); otherwise button polling silently no-ops.
-- **Panel refresh**: e-ink takes ~30 s to update; software intervals (60 s / 90 s) are longer by design — this is not a bug.
+- **GPIO group**: run as the deploy user or add to `gpio` group; otherwise button polling silently no-ops.
+- **Panel refresh**: e-ink takes ~30 s to update; software intervals (300 s / 90 s) are longer by design — this is not a bug.
 - **SPI chip select conflict (CRITICAL)**: on Trixie, Inky SPI fails with default `dtparam=spi=on`. Add `dtoverlay=spi0-0cs` on the line after `dtparam=spi=on` in `/boot/firmware/config.txt`, then reboot. Without this, display never initializes.
 - **IP detection on Pi Zero W**: `socket.getaddrinfo()` does not return LAN/Tailscale IPs; `main.py` uses `subprocess.check_output(["hostname", "-I"])` instead.
 - **Orchestrator status cache**: `get_status()` reads from `_status_cache` dict protected by a separate `_status_lock`, never the render lock — prevents Flask threads from blocking during long SPI writes (~56 s).
 - **waitress required**: without waitress, Flask dev server runs instead — acceptable on Pi but not ideal.
 - **`archive/`**: reference implementations, gitignored, read-only — never modify, never commit.
-- **`litclock.refresh_rate`**: currently set to `300` in config.yaml (5 min), not 60 s as documented in README/DECISIONS. Verify intent before changing.
+- **`litclock.refresh_rate`**: set to `300` in config.yaml (5 min) — intentional, not 60 s.
+- **LitClock detail baseline**: author (italic) / separator / title (regular) must all use `anchor="ls"` (stroke/baseline) with the same `baseline_y`. Using `anchor="lb"` (bottom of bounding box) causes misalignment when italic and regular bounding-box heights differ.
+- **`last_update` timestamp**: `status.last_update` is a Unix float (seconds). In JS: multiply by 1000 before `new Date()`. `Date.now()` (ms) comparison for frame-ready detection works correctly after this conversion.
+- **DejaVuSansMono.ttf**: required by `suspend_screen.py` for box-drawing characters. Must be present in `assets/fonts/` — copy from Pi (`/usr/share/fonts/truetype/dejavu/`) or install on Pi via `apt install fonts-dejavu`.
+- **`dist/` in gitignore**: `.gitignore` has `dist/` globally but `!talevision/web/static/dist/` exception. Without the exception the built React bundle is gitignored and the Pi can't serve it after `git pull`.
 
 ## Systemd Service
 
@@ -175,7 +204,7 @@ sudo systemctl enable talevision
 sudo systemctl start talevision
 ```
 
-Assumes venv at `/home/pi/talevision/venv` and repo at `/home/pi/talevision`.
+`User=`, `WorkingDirectory=`, and `ExecStart=` in the service file must match the actual deploy user and venv path. The file currently uses the deploying user's home directory — update if deploying as a different user.
 
 ## Pre-Push Checklist
 
@@ -188,15 +217,13 @@ Assumes venv at `/home/pi/talevision/venv` and repo at `/home/pi/talevision`.
 
 ## Known Open TODOs
 
-- WebUI mode cards don't reflect active state on page load — needs `/api/status` poll to set initial active card.
-- WebUI preview shows "No frame yet" on first load — JS only loads frame after status poll.
 - `generate_sidecars.py` lives in repo root; should move to `scripts/`.
 - SlowMovie picks the same video until removed — no rotation between multiple films yet.
+- Web dashboard has no HTTP basic auth — LAN-only deployment assumed.
 
 ## Open Questions
 
 - Should the web dashboard have optional HTTP basic auth?
-- `litclock.refresh_rate` is 300 s in config.yaml but README/DECISIONS document 60 s — which is correct?
 
 ## Public Logging Rule
 

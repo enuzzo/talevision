@@ -70,13 +70,19 @@ def render_suspend_screen(
     now = datetime.datetime.now()
 
     # ── build content lines ────────────────────────────────────────────
-    inner_w = 54  # chars, fits ~800px with 14px mono font
+    inner_w = 60  # chars — wide enough for all 7 days with single-space separators
 
-    # Active days row
-    day_str = "  ".join(
+    # Active days row (single space between brackets so all 7 fit within inner_w)
+    day_str = " ".join(
         f"[{DAYS_ABBR[i]}]" if i in days else f" {DAYS_ABBR[i]} "
         for i in range(7)
     )
+
+    # Active hours line with dynamic dash fill
+    _h_prefix = f"  ACTIVE HOURS   {start}  "
+    _h_suffix = f"  {end}"
+    _dashes = "─" * max(inner_w - len(_h_prefix) - len(_h_suffix), 4)
+    hours_line = _h_prefix + _dashes + _h_suffix
 
     # Resume time
     if next_wake:
@@ -96,7 +102,7 @@ def render_suspend_screen(
     box_lines = [
         _top(inner_w),
         _box_line("", inner_w),
-        _box_line(f"  ACTIVE HOURS   {start}  ────────────────  {end}", inner_w),
+        _box_line(hours_line, inner_w),
         _box_line(f"  ACTIVE DAYS    {day_str}", inner_w),
         _box_line("", inner_w),
         _separator(inner_w),

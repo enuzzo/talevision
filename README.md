@@ -17,9 +17,9 @@
 
 **TaleVision** is a Raspberry Pi Zero W that doesn't know if it's a clock or a cinema, and has decided that's fine.
 
-As **LitClock**, it reads the current minute and surfaces a literary quote — from Calvino, Woolf, Borges, Saramago, a few hundred others — that contains those exact digits somewhere in the sentence. Every 60 seconds. In six languages. Typeset in Taviraj, centred, with an em-dash and the author's name below.
+As **LitClock**, it reads the current minute and surfaces a literary quote — from Calvino, Woolf, Borges, Saramago, a few hundred others — that contains those exact digits somewhere in the sentence. Every 5 minutes. In six languages. Typeset in Taviraj, centred, with an em-dash and the author's name below.
 
-As **SlowMovie**, it extracts a random frame from a film in your media folder, runs it through a PIL enhancement pipeline, fits it to the panel, and holds it for 90 seconds. There is an overlay with title, director, timecode. There is a QR code linking to IMDb. There is absolutely no hurry.
+As **SlowMovie**, it extracts a random frame from a film in your media folder, runs it through a PIL enhancement pipeline, fits it to the panel, and holds it for 90 seconds. There is an overlay with title, director, timecode. There is a QR code linking to TMDB. There is absolutely no hurry.
 
 Both modes share one 800×480 seven-colour e-ink panel, one Pi Zero W, one Flask dashboard, and one quiet conviction: the best thing a screen can do is earn its update.
 
@@ -79,7 +79,9 @@ Every 90 seconds: select a film from `media/`, pick a random frame somewhere in 
 
 **Contain fit:** thumbnail + paste on black canvas — letterboxed. Films keep their bars. This is also correct. Choose based on the film.
 
-**Overlay:** an RGBA composite layer, `alpha_composite()` at the end. A rounded rectangle (`radius=8`, `fill=(0,0,0,190)`) sits in the bottom-left with the film title (bold), year (light), director, and timecode. A QR code in the bottom-right links to the IMDb search for that title. If a `.json` sidecar file exists next to the `.mp4` with `title`, `director`, and `year` keys, those populate the overlay. Without one, the filename stem is used. Both outcomes are dignified.
+**Overlay:** an RGBA composite layer, `alpha_composite()` at the end. A rounded rectangle (`radius=8`, `fill=(0,0,0,190)`) sits in the bottom-left with the film title (bold), year (light), director, and timecode. A QR code in a white-on-black rounded box in the bottom-right links to TMDB search for that title. If a `.json` sidecar file exists next to the `.mp4` with `title`, `director`, and `year` keys, those populate the overlay. Without one, the filename stem is used. Both outcomes are dignified.
+
+**Auto-generated sidecars:** on first activation of SlowMovie, the system scans `media/` for videos without a `.json` sidecar and generates them automatically via TMDB (requires `tmdb_api_key` in `secrets.yaml`). No manual step needed. `generate_sidecars.py` in the project root is still available for bulk pre-generation or dry-runs.
 
 ---
 
@@ -171,14 +173,15 @@ Dashboard at `http://<pi-ip>:5000`.
 |---|---|---|
 | `app.default_mode` | `litclock` | Which mode boots first |
 | `litclock.language` | `it` | Quote language (`it` · `en` · `de` · `es` · `fr` · `pt`) |
-| `litclock.refresh_rate` | `60` | Seconds between LitClock updates |
+| `litclock.refresh_rate` | `300` | Seconds between LitClock updates (5 min) |
 | `litclock.vertical_centering_adjustment` | `40` | Pixels nudged upward from mathematical centre |
 | `litclock.use_italic_for_em` | `true` | Switch to italic font when `<em>` appears in quote |
 | `litclock.invert_colors` | `false` | White text on black background |
 | `slowmovie.refresh_interval` | `90` | Seconds between SlowMovie frames |
 | `slowmovie.video_file` | `random` | Specific filename or `random` |
 | `slowmovie.image.fit_mode` | `cover` | `cover` (crop to fill) or `contain` (letterbox) |
-| `slowmovie.overlay.qr_enabled` | `true` | IMDb QR code in frame corner |
+| `slowmovie.overlay.qr_enabled` | `true` | TMDB QR code in frame corner |
+| `slowmovie.overlay.qr_content` | `tmdb_search` | QR link pattern (`tmdb_search` or `imdb_search`) |
 | `display.saturation` | `0.6` | Inky colour saturation (0.0 – 1.0) |
 | `suspend.start` / `.end` | `23:00` / `07:00` | Sleep window — overnight ranges handled correctly |
 | `suspend.days` | `[0..6]` | Which weekdays to suspend (0=Mon, 6=Sun; all = every day) |
@@ -188,43 +191,43 @@ Dashboard at `http://<pi-ip>:5000`.
 
 ## Web Dashboard
 
-`http://<pi-ip>:5000` — a dark ScryBar-themed control panel. No page reloads. All interactions via `fetch()` JSON.
+`http://<pi-ip>:5000` — a dark, cinematic control panel built in React (Vite + Tailwind CSS + Radix UI). No page reloads. Animated particle background. Amber/dark palette.
+
+**Frame preview** — when you switch mode or force-refresh, the preview immediately shows a cinematic "Rendering" overlay (sweeping scan line, pulsing rings, corner brackets) and polls status every 2 s. As soon as the Pi finishes rendering, the overlay clears and the new frame fades in automatically. No manual reload needed.
+
+**Layout:**
 
 ```
 ┌─────────────────────────────────────────────────┐
-│  ⬛ TaleVision               22:17  [LITCLOCK]  │  ← sticky topbar
+│  ● TaleVision              22:17  🕐 litclock   │  ← sticky topbar
 ├─────────────────────────────────────────────────┤
-│  Mode                                            │
-│  ┌─────────────────┐  ┌─────────────────┐        │
-│  │  🕐  LitClock   │  │  🎬  SlowMovie  │        │  ← active card highlighted
-│  │  [ ACTIVE ]     │  │                 │        │
-│  └─────────────────┘  └─────────────────┘        │
+│  [ last rendered frame, 800×480 ]               │  ← auto-updates on render complete
+│  🕐 LitClock  🎬 SlowMovie       [ ⟳ Refresh ] │  ← mode switch + force refresh
 ├─────────────────────────────────────────────────┤
-│  Status     Suspended: ✅ No                     │
-│             Last update: 22:17:04                │
-│             Quote: "Erano le venti e…"          │
+│  Status              │  Active schedule         │
+│  Mode / Suspended    │  ▶ On from  ⏹ Off at    │
+│  Last render / Film  │  Active days  [Save]     │
 ├─────────────────────────────────────────────────┤
-│  Preview    [ last rendered frame, 800×480 ]    │  ← polls /api/frame every 30s
-│             [ ⟳ Refresh now ]                   │
+│  Refresh intervals: 🕐 litclock [___] min [Set] │
+│                     🎬 slowmovie [___] min [Set]│
 ├─────────────────────────────────────────────────┤
-│  Language   [ it ▾ ]                            │  ← LitClock only, auto-hidden
-├─────────────────────────────────────────────────┤
-│  Suspend    ☑ Enabled   23:00 → 07:00           │
-│             [Mon][Tue][Wed][Thu][Fri][Sat][Sun]  │
-│             [ Save schedule ]                    │
+│  Language  [ it ▾ ]   ← LitClock only           │
 └─────────────────────────────────────────────────┘
 ```
 
 | Endpoint | Method | Body | Does |
 |---|---|---|---|
-| `/api/status` | GET | — | Current mode, suspension state, mode detail |
+| `/api/status` | GET | — | Mode, suspension state, intervals, last frame timestamp |
 | `/api/mode` | POST | `{"mode": "litclock"}` | Switch mode |
 | `/api/refresh` | POST | — | Force immediate render cycle |
 | `/api/language` | POST | `{"lang": "en"}` | Change LitClock language |
 | `/api/languages` | GET | — | List detected language files |
-| `/api/suspend` | POST | `{"enabled": bool, "start": "HH:MM", ...}` | Update schedule |
+| `/api/suspend` | POST | `{"enabled": bool, "start": "HH:MM", "end": "HH:MM", "days": [...]}` | Update schedule |
 | `/api/frame` | GET | — | Last rendered frame (PNG or JPG) |
 | `/api/frame/<mode>` | GET | — | Frame for a specific mode |
+| `/api/interval` | GET | — | Per-mode interval overrides |
+| `/api/interval` | POST | `{"mode": "litclock", "seconds": 300}` | Set interval override |
+| `/api/interval/<mode>` | DELETE | — | Reset to config default |
 
 ---
 
@@ -245,11 +248,15 @@ All four remappable in `config.yaml` under `buttons.actions`. On non-Pi hardware
 
 ## Suspend Schedule
 
-Between `suspend.start` and `suspend.end`, TaleVision renders a static screen with the studio logo and a message, stops all further updates, and waits. The panel holds the image with zero power draw. The Pi idles.
+Between `suspend.start` and `suspend.end`, TaleVision stops rendering and waits. The panel holds the last image with zero power draw. The Pi idles.
 
-Overnight windows (`23:00 → 07:00`) are handled correctly: if `start > end`, the suspended period wraps midnight. Day-of-week filtering is supported: `suspend.days` restricts suspension to specific weekdays. An empty list means every day.
+On entering suspension, it renders a **BBS/NFO style screen** — black background, box-drawing characters, amber header, active hours, day-of-week markers (`[MON]` for active, ` MON ` for inactive), and the next wake time. Minimal, typeset, readable in the dark.
+
+Overnight windows (`23:00 → 07:00`) are handled correctly: if `start > end`, the suspended period wraps midnight. Day-of-week filtering is supported. An empty list means every day.
 
 The suspend screen is rendered once on entry and held. The Pi does not wake on a timer to refresh a screen that says it is sleeping.
+
+The dashboard shows this as **active hours** (when the device is ON), not as a suspend window — the times are inverted at the API boundary for a more intuitive UX.
 
 ---
 
@@ -261,43 +268,56 @@ talevision/
 ├── config.yaml                  All configuration (committed)
 ├── secrets.yaml                 Local secrets (gitignored, never committed)
 ├── secrets.yaml.example         Template with placeholders (committed)
+├── generate_sidecars.py         Dev utility: bulk TMDB sidecar generation for media/
 ├── talevision/
 │   ├── config/
 │   │   ├── schema.py            AppConfig + all sub-dataclasses
 │   │   └── loader.py            load_config(), load_secrets(), detect_available_languages()
 │   ├── modes/
 │   │   ├── base.py              DisplayMode ABC + ModeState
-│   │   ├── litclock.py          LitClock — exact typography from reference implementation
-│   │   └── slowmovie.py         SlowMovie — PIL chain + RGBA overlay + QR
+│   │   ├── litclock.py          LitClock — Taviraj typography, 6 languages
+│   │   └── slowmovie.py         SlowMovie — PIL chain + RGBA overlay + TMDB QR
 │   ├── render/
 │   │   ├── typography.py        FontManager, wrap_text_block, get_text_dimensions
-│   │   ├── layout.py            draw_header, draw_centered_text_block, draw_suspend_screen
+│   │   ├── layout.py            draw_header, draw_centered_text_block
+│   │   ├── suspend_screen.py    BBS/NFO style e-ink suspend screen (DejaVuSansMono)
 │   │   ├── canvas.py            InkyCanvas (hardware) + PNG simulation fallback
 │   │   └── frame_cache.py       SHA256 video cache + ffmpeg frame extraction
+│   ├── media/
+│   │   └── sidecars.py          Auto-sidecar generation from TMDB (called on SlowMovie activate)
 │   ├── system/
-│   │   ├── orchestrator.py      Main loop — action queue, thread coordination, frame save
+│   │   ├── orchestrator.py      Main loop — action queue, interval overrides, frame save
 │   │   ├── suspend.py           Overnight window scheduling + thread-safe update
 │   │   ├── timer.py             Interruptible sleep (force-refresh aware)
 │   │   ├── buttons.py           GPIO polling — graceful no-op on non-Pi
 │   │   └── logging_setup.py     Rich terminal + rotating file handler
 │   └── web/
 │       ├── app.py               Flask factory
-│       ├── api.py               /api/* blueprint
-│       ├── views.py             Dashboard route
-│       ├── templates/           Jinja2: base.html + dashboard.html
-│       └── static/              scrybar.css + app.css + app.js
+│       ├── api.py               /api/* blueprint (mode, refresh, language, suspend, interval)
+│       ├── views.py             Serves React SPA (dist/index.html) or Jinja fallback
+│       ├── templates/           Jinja2 fallback dashboard (no build required)
+│       └── static/dist/         Built React SPA — committed, served directly by Flask
+├── frontend/
+│   ├── src/
+│   │   ├── App.tsx              Main dashboard: mode switch, frame preview, status, controls
+│   │   ├── ParticleBackground.tsx  Amber particle canvas with mouse repulsion
+│   │   ├── api.ts               Typed API client
+│   │   ├── types.ts             Shared TypeScript types
+│   │   └── index.css            Tailwind base + scanline/grain overlays + keyframes
+│   ├── package.json             Vite + React + Tailwind + Radix UI + TanStack Query
+│   └── vite.config.ts           Outputs to talevision/web/static/dist/
 ├── assets/
-│   ├── fonts/                   Signika + Taviraj (22 weights)
+│   ├── fonts/                   Signika + Taviraj (22 weights) + DejaVuSansMono
 │   ├── lang/                    quotes-{de,en,es,fr,it,pt}.csv + fallback.csv
 │   └── icons/                   logo.png
-├── media/                       Your .mp4 files (gitignored — bring your own films)
+├── media/                       Your .mp4 files + sidecar .json (gitignored for .mp4)
 ├── cache/                       Runtime cache: video info JSON + rendered frames (gitignored)
-├── scripts/
-│   ├── install.sh               Full Pi setup: apt + venv + SPI + systemd
-│   ├── setup_venv.sh            venv + pip only
-│   └── install_service.sh       systemd unit deploy
-├── talevision.service           systemd unit
-└── .codex/                      Agent memory system (MEMORY.md, SESSION_LOG.md)
+├── deploy/
+│   └── talevision.service       systemd unit for Pi autostart
+└── scripts/
+    ├── install.sh               Full Pi setup: apt + venv + SPI + systemd
+    ├── setup_venv.sh            venv + pip only
+    └── install_service.sh       systemd unit deploy
 ```
 
 ---
@@ -325,7 +345,7 @@ pip-audit -r requirements.txt
 
 **Testing without Pi hardware works.** `--render-only` saves a PNG. The Inky library falls back silently. The GPIO handler logs one line and goes quiet. The full render pipeline runs on macOS without modification. This is by design.
 
-**SPI must be enabled before Inky will work.** `scripts/install.sh` handles this and appends `dtparam=spi=on` to `/boot/config.txt`. A reboot is required after. The script says so. This is correct.
+**SPI must be enabled before Inky will work.** `scripts/install.sh` handles this. On Raspbian Trixie, also add `dtoverlay=spi0-0cs` on the line after `dtparam=spi=on` in `/boot/firmware/config.txt` and reboot — without this, the display never initializes (a Trixie-specific SPI chip-select issue).
 
 **`pip install Pillow` will likely fail on armv6l.** PyPI does not ship armv6l wheels. Use `sudo apt install python3-pil` and let the system package win. The system package is fine. This is documented, expected, and not something we are going to fix because we cannot fix it.
 
