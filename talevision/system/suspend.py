@@ -33,23 +33,24 @@ class SuspendScheduler:
             log.error(f"Invalid suspend time format: '{s}'. Defaulting to midnight.")
             return datetime.time(0, 0)
 
+    def _is_suspended_unlocked(self, dt: datetime.datetime) -> bool:
+        """Like is_suspended() but assumes lock is already held by caller."""
+        if not self._enabled:
+            return False
+        if self._days and dt.weekday() not in self._days:
+            return False
+        t = dt.time()
+        start, end = self._start, self._end
+        if start <= end:
+            return start <= t < end
+        else:
+            return t >= start or t < end
+
     def is_suspended(self, dt: Optional[datetime.datetime] = None) -> bool:
         """Return True if dt falls within suspend window on an active day."""
         with self._lock:
-            if not self._enabled:
-                return False
             dt = dt or datetime.datetime.now()
-            # Day filter (empty = all days)
-            if self._days and dt.weekday() not in self._days:
-                return False
-            t = dt.time()
-            start = self._start
-            end = self._end
-            # Overnight window: e.g. 23:00–07:00
-            if start <= end:
-                return start <= t < end
-            else:
-                return t >= start or t < end
+            return self._is_suspended_unlocked(dt)
 
     def next_wake_time(self, dt: Optional[datetime.datetime] = None) -> Optional[datetime.datetime]:
         """Return next datetime when suspension ends, or None if not suspended."""
@@ -57,9 +58,8 @@ class SuspendScheduler:
             if not self._enabled:
                 return None
             dt = dt or datetime.datetime.now()
-            if not self.is_suspended(dt):
+            if not self._is_suspended_unlocked(dt):  # uses unlocked version — no deadlock
                 return None
-            # Wake is at _end time on the appropriate day
             end = self._end
             candidate = dt.replace(
                 hour=end.hour,
@@ -71,13 +71,7 @@ class SuspendScheduler:
                 candidate += datetime.timedelta(days=1)
             return candidate
 
-    def update(
-        self,
-        start: str,
-        end: str,
-        days: List[int],
-        enabled: bool,
-    ) -> None:
+    def update(self, start: str, end: str, days: List[int], enabled: bool) -> None:
         """Thread-safe config update (called from API handler)."""
         with self._lock:
             self._enabled = enabled

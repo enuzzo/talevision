@@ -9,11 +9,49 @@ Usage:
 """
 import argparse
 import logging
-import sys
+import socket
+import subprocess
 import threading
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
+
+
+def _get_all_ips() -> list[str]:
+    """Return all non-loopback IPv4 addresses via hostname -I (most reliable on Pi)."""
+    try:
+        out = subprocess.check_output(["hostname", "-I"], text=True).strip()
+        return [ip for ip in out.split() if ":" not in ip and not ip.startswith("127.")]
+    except Exception:
+        pass
+    # Fallback: socket
+    try:
+        ips = []
+        for info in socket.getaddrinfo(socket.gethostname(), None):
+            addr = info[4][0]
+            if addr and not addr.startswith("127.") and ":" not in addr and addr not in ips:
+                ips.append(addr)
+        return ips
+    except Exception:
+        return []
+
+
+def _log_network_info(log, port: int) -> None:
+    """Log hostname, LAN IPs and Tailscale IP in a readable block."""
+    hostname = socket.gethostname()
+    all_ips = _get_all_ips()
+    lan_ips = [ip for ip in all_ips if not ip.startswith("100.")]
+    tailscale_ip = next((ip for ip in all_ips if ip.startswith("100.")), None)
+
+    log.info("─" * 54)
+    log.info(f"  hostname   →  http://{hostname}.local:{port}")
+    for ip in lan_ips:
+        log.info(f"  LAN        →  http://{ip}:{port}")
+    if tailscale_ip:
+        log.info(f"  Tailscale  →  http://{tailscale_ip}:{port}")
+    else:
+        log.info("  Tailscale  →  not detected")
+    log.info("─" * 54)
 
 
 def parse_args():
@@ -24,21 +62,34 @@ def parse_args():
     return p.parse_args()
 
 
+def _make_web_runner(flask_app, port: int):
+    """Return a callable that starts the best available WSGI server."""
+    def run():
+        try:
+            from waitress import serve
+            serve(flask_app, host="0.0.0.0", port=port, threads=4,
+                  connection_limit=20, cleanup_interval=10)
+        except ImportError:
+            # Fallback to Flask dev server (not recommended for production)
+            flask_app.run(host="0.0.0.0", port=port, debug=False,
+                         use_reloader=False, threaded=True)
+    return run
+
+
 def main():
     args = parse_args()
     config_path = Path(args.config)
     secrets_path = BASE_DIR / "secrets.yaml"
 
-    # -- Config --
+    # ── Config ────────────────────────────────────────────────────────────────
     from talevision.config.loader import load_config, load_secrets
     config = load_config(config_path)
     _secrets = load_secrets(secrets_path)  # noqa: F841 — reserved for future auth
 
-    # Override mode from CLI
     if args.mode:
         config.app.default_mode = args.mode
 
-    # -- Logging --
+    # ── Logging ───────────────────────────────────────────────────────────────
     from talevision.system.logging_setup import configure_logging
     log_cfg = config.logging
     configure_logging(
@@ -53,11 +104,11 @@ def main():
     log.info(f"Config: {config_path}")
     log.info(f"Default mode: {config.app.default_mode}")
 
-    # -- Display canvas --
+    # ── Display canvas ────────────────────────────────────────────────────────
     from talevision.render.canvas import InkyCanvas
     canvas = InkyCanvas(config.display, sim_output_path=BASE_DIR / "talevision_frame.png")
 
-    # -- Display modes --
+    # ── Display modes ─────────────────────────────────────────────────────────
     from talevision.modes.litclock import LitClockMode
     from talevision.modes.slowmovie import SlowMovieMode
 
@@ -66,7 +117,7 @@ def main():
         "slowmovie": SlowMovieMode(config, base_dir=BASE_DIR),
     }
 
-    # -- Render-only mode (dev/CI) --
+    # ── Render-only mode (dev/CI) ─────────────────────────────────────────────
     if args.render_only:
         mode_name = config.app.default_mode
         mode = modes[mode_name]
@@ -77,11 +128,11 @@ def main():
         log.info(f"Frame saved to: {out_path}")
         return
 
-    # -- Suspend scheduler --
+    # ── Suspend scheduler ─────────────────────────────────────────────────────
     from talevision.system.suspend import SuspendScheduler
     scheduler = SuspendScheduler(config.suspend)
 
-    # -- Button handler --
+    # ── Button handler ────────────────────────────────────────────────────────
     from talevision.system.buttons import InkyButtonHandler
     buttons_cfg = config.buttons
     button_handler = None
@@ -95,7 +146,7 @@ def main():
             action_callback=_on_button,
         )
 
-    # -- Orchestrator --
+    # ── Orchestrator ──────────────────────────────────────────────────────────
     from talevision.system.orchestrator import Orchestrator
     orchestrator = Orchestrator(
         config=config,
@@ -106,26 +157,21 @@ def main():
         base_dir=BASE_DIR,
     )
 
-    # -- Flask web server (daemon thread) --
+    # ── Web server (daemon thread) ────────────────────────────────────────────
     from talevision.web.app import create_app
     flask_app = create_app(orchestrator, config, base_dir=BASE_DIR)
-    web_cfg = config.web
+    port = config.web.port
 
     web_thread = threading.Thread(
-        target=lambda: flask_app.run(
-            host=web_cfg.host,
-            port=web_cfg.port,
-            debug=False,
-            use_reloader=False,
-            threaded=True,
-        ),
+        target=_make_web_runner(flask_app, port),
         daemon=True,
-        name="flask-web",
+        name="web",
     )
     web_thread.start()
-    log.info(f"Web dashboard running at http://{web_cfg.host}:{web_cfg.port}")
 
-    # -- Main loop (blocks forever) --
+    _log_network_info(log, port)
+
+    # ── Main loop (blocks forever) ────────────────────────────────────────────
     try:
         orchestrator.run()
     except KeyboardInterrupt:

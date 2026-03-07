@@ -32,10 +32,6 @@ except ImportError:
 
 
 def _apply_gamma(image: Image.Image, gamma: float) -> Image.Image:
-    """Apply gamma correction via PIL LUT.
-
-    Preserves exact logic from sm.py _apply_gamma().
-    """
     if gamma == 1.0:
         return image
     inv_gamma = 1.0 / gamma
@@ -62,7 +58,6 @@ def _apply_gamma(image: Image.Image, gamma: float) -> Image.Image:
 
 
 def _format_time(seconds: float) -> str:
-    """Convert seconds to HH:MM:SS string."""
     if not isinstance(seconds, (int, float)) or seconds < 0:
         return "N/A"
     try:
@@ -74,10 +69,21 @@ def _format_time(seconds: float) -> str:
         return "N/A"
 
 
+def _format_size(path: Path) -> str:
+    try:
+        mb = path.stat().st_size / 1_048_576
+        return f"{mb:.0f} MB"
+    except Exception:
+        return "?"
+
+
 class SlowMovieMode(DisplayMode):
     """SlowMovie mode: plays a film at ~1 frame per refresh cycle.
 
     Rendering logic exactly matches archive/slowmovie/sm.py.
+    Frame selection is random but uses cached video info (SHA256-keyed)
+    to avoid re-probing files on every render cycle.
+    The current video is remembered in-memory; only re-selected if removed.
     """
 
     def __init__(self, config: AppConfig, base_dir: Path = Path(".")):
@@ -100,6 +106,13 @@ class SlowMovieMode(DisplayMode):
         self._last_state: Dict = {}
         self._resolution = (self._display_cfg.width, self._display_cfg.height)
 
+        # Persistent video selection — avoids re-selecting every render
+        self._current_video: Optional[Path] = None
+        self._current_video_info: Optional[Dict] = None
+
+        # Scan media folder at startup
+        self._scan_media()
+
     @property
     def name(self) -> str:
         return "slowmovie"
@@ -107,6 +120,31 @@ class SlowMovieMode(DisplayMode):
     @property
     def refresh_interval(self) -> int:
         return self._cfg.refresh_interval
+
+    def on_activate(self) -> None:
+        log.info("SlowMovie activated")
+        available = self._get_available_videos()
+        if available:
+            log.info(f"  {len(available)} video(s) ready in media/")
+        else:
+            log.warning("  No videos found in media/ — add .mp4/.mkv/.avi/.mov files")
+
+    def on_deactivate(self) -> None:
+        log.info("SlowMovie deactivated")
+
+    def _scan_media(self) -> None:
+        """Scan media folder at startup and log what's available."""
+        available = self._get_available_videos()
+        if not available:
+            log.info("SlowMovie: media/ folder is empty — no videos to play")
+            return
+
+        log.info("─" * 52)
+        log.info(f"  SlowMovie — {len(available)} video(s) found:")
+        for i, v in enumerate(available, 1):
+            size = _format_size(v)
+            log.info(f"  {i:2}. {v.name}  [{size}]")
+        log.info("─" * 52)
 
     def _load_fonts(self) -> None:
         font_dir = self._base_dir / self._cfg.fonts.dir
@@ -122,35 +160,63 @@ class SlowMovieMode(DisplayMode):
             else:
                 log.warning(f"SlowMovie font not found: {path}")
 
-    def _select_video(self) -> Optional[Path]:
-        """Select video file according to config.video_file setting."""
+    def _get_available_videos(self) -> list[Path]:
         media_dir = self._base_dir / self._cfg.media_dir
         if not media_dir.is_dir():
-            log.error(f"Media directory not found: {media_dir}")
             try:
                 media_dir.mkdir(parents=True, exist_ok=True)
             except OSError as exc:
                 log.error(f"Cannot create media dir: {exc}")
-            return None
-
-        video_choice = self._cfg.video_file
-        if video_choice.lower() != "random":
-            candidate = media_dir / video_choice
-            if candidate.is_file():
-                return candidate
-            log.warning(f"Configured video '{video_choice}' not found; selecting random")
-
+            return []
         extensions = ("*.mp4", "*.avi", "*.mkv", "*.mov")
-        available = [f for ext in extensions for f in media_dir.glob(ext) if f.is_file()]
+        return sorted([f for ext in extensions for f in media_dir.glob(ext) if f.is_file()])
+
+    def _select_video(self) -> Optional[Path]:
+        """Select video, reusing current if still valid."""
+        available = self._get_available_videos()
         if not available:
-            log.error(f"No video files found in {media_dir}")
+            log.error("No video files found in media/")
             return None
-        selected = random.choice(available)
-        log.info(f"Selected video: {selected.name}")
-        return selected
+
+        if self._current_video is None or self._current_video not in available:
+            video_choice = self._cfg.video_file
+            if video_choice.lower() != "random":
+                candidate = self._base_dir / self._cfg.media_dir / video_choice
+                if candidate.is_file():
+                    self._current_video = candidate
+                else:
+                    log.warning(f"Configured video '{video_choice}' not found; picking random")
+                    self._current_video = random.choice(available)
+            else:
+                self._current_video = random.choice(available)
+
+            self._current_video_info = None
+            log.info(f"Video selected: {self._current_video.name}  [{_format_size(self._current_video)}]")
+
+        return self._current_video
+
+    def _get_video_info(self, video_path: Path) -> Optional[Dict]:
+        """Get video info from cache. Runs ffprobe only on first encounter."""
+        if self._current_video_info is not None:
+            return self._current_video_info
+
+        log.info(f"Reading video info for: {video_path.name} ...")
+        video_info, cache_hit = self._cache.get(video_path)
+        if video_info is None:
+            log.error(f"Cannot read video info: {video_path.name}")
+            return None
+
+        self._current_video_info = video_info
+        source = "cache" if cache_hit else "ffprobe (now cached)"
+        log.info(
+            f"Video info [{source}]: {video_path.name} — "
+            f"{video_info.get('total_frames', '?')} frames · "
+            f"{video_info.get('fps', '?')} fps · "
+            f"duration {_format_time(video_info.get('duration', 0))}"
+        )
+        return self._current_video_info
 
     def _load_metadata(self, video_path: Path) -> Dict:
-        """Load sidecar .json metadata file if it exists."""
         meta_path = video_path.with_suffix(".json")
         if meta_path.is_file():
             try:
@@ -161,42 +227,27 @@ class SlowMovieMode(DisplayMode):
         return {}
 
     def _process_image(self, image_path: Path) -> Optional[Image.Image]:
-        """Load frame, apply PIL adjustments, fit to display resolution.
-
-        Preserves exact order and logic from sm.py _process_image().
-        """
-        log.info(f"Processing image: {image_path.name}")
         try:
             img = Image.open(image_path)
             orig_size = img.size
-            log.debug(f"Loaded frame {orig_size[0]}x{orig_size[1]}")
 
             adj = self._cfg.image
-            brightness = adj.brightness
-            contrast = adj.contrast
-            color = adj.color
-            gamma = adj.gamma
-            use_autocontrast = adj.use_autocontrast
-
-            # PIL adjustments chain (exact order from sm.py)
-            if brightness != 1.0:
-                img = ImageEnhance.Brightness(img).enhance(brightness)
-            if gamma != 1.0:
-                img = _apply_gamma(img, gamma)
-            if contrast != 1.0:
-                img = ImageEnhance.Contrast(img).enhance(contrast)
-            if use_autocontrast:
+            if adj.brightness != 1.0:
+                img = ImageEnhance.Brightness(img).enhance(adj.brightness)
+            if adj.gamma != 1.0:
+                img = _apply_gamma(img, adj.gamma)
+            if adj.contrast != 1.0:
+                img = ImageEnhance.Contrast(img).enhance(adj.contrast)
+            if adj.use_autocontrast:
                 img = ImageOps.autocontrast(img.convert("RGB"))
-            if color != 1.0:
-                img = ImageEnhance.Color(img.convert("RGB")).enhance(color)
+            if adj.color != 1.0:
+                img = ImageEnhance.Color(img.convert("RGB")).enhance(adj.color)
 
-            # Fit to display resolution
-            fit_mode = adj.fit_mode
             img_rgb = img.convert("RGB") if img.mode != "RGB" else img
 
-            if fit_mode == "cover":
+            if adj.fit_mode == "cover":
                 resized = ImageOps.fit(img_rgb, self._resolution, method=Image.Resampling.LANCZOS)
-            else:  # contain
+            else:
                 img_copy = img_rgb.copy()
                 img_copy.thumbnail(self._resolution, Image.Resampling.LANCZOS)
                 canvas = Image.new("RGB", self._resolution, (0, 0, 0))
@@ -205,10 +256,7 @@ class SlowMovieMode(DisplayMode):
                 canvas.paste(img_copy, (cx, cy))
                 resized = canvas
 
-            log.info(
-                f"Image processed: {orig_size[0]}x{orig_size[1]} → "
-                f"{self._resolution[0]}x{self._resolution[1]} ({fit_mode})"
-            )
+            log.debug(f"Frame processed: {orig_size[0]}x{orig_size[1]} → {self._resolution[0]}x{self._resolution[1]}")
             return resized
 
         except FileNotFoundError:
@@ -226,17 +274,8 @@ class SlowMovieMode(DisplayMode):
             log.error(f"get_text_size error for '{text[:20]}': {exc}")
             return 100, 20
 
-    def _draw_overlay(
-        self,
-        image: Image.Image,
-        metadata: Dict,
-        frame_time: str,
-        default_title: str,
-    ) -> Image.Image:
-        """Draw RGBA overlay with info box and QR code.
-
-        Preserves exact logic from sm.py _draw_overlay().
-        """
+    def _draw_overlay(self, image: Image.Image, metadata: Dict,
+                      frame_time: str, default_title: str) -> Image.Image:
         overlay_cfg = self._cfg.overlay
         show_info = overlay_cfg.show_info
         qr_enabled = overlay_cfg.qr_enabled and QRCODE_AVAILABLE
@@ -304,7 +343,6 @@ class SlowMovieMode(DisplayMode):
             qr_type = overlay_cfg.qr_content
             qr_size = overlay_cfg.qr_size
             qr_margin = 20
-
             title_search = metadata.get("title", default_title)
             qr_data = ""
             if qr_type == "imdb_search":
@@ -314,23 +352,16 @@ class SlowMovieMode(DisplayMode):
 
             if qr_data:
                 try:
-                    qr = qrcode.QRCode(
-                        version=1,
-                        error_correction=qrcode.constants.ERROR_CORRECT_L,
-                        box_size=10,
-                        border=2,
-                    )
+                    qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L,
+                                       box_size=10, border=2)
                     qr.add_data(qr_data)
                     qr.make(fit=True)
-                    qr_img = qr.make_image(
-                        fill_color="black",
-                        back_color="white",
-                        image_factory=PilImage,
-                    ).resize((qr_size, qr_size), Image.Resampling.NEAREST)
+                    qr_img = qr.make_image(fill_color="black", back_color="white",
+                                           image_factory=PilImage).resize(
+                        (qr_size, qr_size), Image.Resampling.NEAREST)
                     x0q = img_w - qr_size - qr_margin
                     y0q = img_h - qr_size - b_margin
                     overlay_layer.paste(qr_img, (x0q, y0q))
-                    log.debug(f"QR code placed at ({x0q}, {y0q})")
                 except Exception as exc:
                     log.error(f"QR generation error: {exc}")
 
@@ -338,7 +369,6 @@ class SlowMovieMode(DisplayMode):
         return final.convert("RGB")
 
     def render(self, is_suspended: bool = False) -> Image.Image:
-        """Render next SlowMovie frame or suspend screen."""
         from talevision.render.layout import draw_suspend_screen
         if is_suspended:
             return draw_suspend_screen(
@@ -351,13 +381,17 @@ class SlowMovieMode(DisplayMode):
         return self._run_cycle()
 
     def _run_cycle(self) -> Image.Image:
-        """Select video, extract frame, process, overlay. Returns RGB image."""
+        """Select video and extract a random frame using cached video info."""
+        log.info("SlowMovie: starting render cycle")
+
         video_path = self._select_video()
         if video_path is None:
             return self._error_image("No video files in media/")
 
-        video_info, _ = self._cache.get(video_path)
+        video_info = self._get_video_info(video_path)
         if video_info is None:
+            self._current_video = None
+            self._current_video_info = None
             return self._error_image(f"Cannot read video info: {video_path.name}")
 
         duration = video_info["duration"]
@@ -368,16 +402,14 @@ class SlowMovieMode(DisplayMode):
             return self._error_image(f"Too few frames in {video_path.name}")
 
         sel = self._cfg.frame_selection
-        skip_start = sel.skip_start_seconds
-        skip_end = sel.skip_end_seconds
-        min_time = float(skip_start)
-        max_time = duration - float(skip_end)
+        min_time = float(sel.skip_start_seconds)
+        max_time = duration - float(sel.skip_end_seconds)
 
         if fps > 0:
             min_frame = int(min_time * fps)
             max_frame = int(max_time * fps) - 1
             if max_time <= min_time or min_frame >= max_frame:
-                log.warning("Skip seconds invalid for this video duration; using full range")
+                log.warning("Skip range invalid for this video; using full range")
                 min_frame, max_frame = 0, total_frames - 1
         else:
             min_frame, max_frame = 0, total_frames - 1
@@ -392,23 +424,32 @@ class SlowMovieMode(DisplayMode):
         frame_time_str = _format_time(frame_time_sec)
         timecode_ms = int(frame_time_sec * 1000)
 
+        log.info(
+            f"Extracting frame {random_frame}/{total_frames} "
+            f"at {frame_time_str} from '{video_path.name}' ..."
+        )
+
         metadata = self._load_metadata(video_path)
         default_title = video_path.stem
 
         if not extract_frame_ffmpeg(video_path, timecode_ms, self._frame_path):
             return self._error_image(f"Frame extraction failed: {video_path.name}")
 
+        log.info("Frame extracted — processing image ...")
         processed = self._process_image(self._frame_path)
         if processed is None:
             return self._error_image("Image processing failed")
 
         final = self._draw_overlay(processed, metadata, frame_time_str, default_title)
 
+        title = metadata.get("title", default_title)
+        log.info(f"SlowMovie render complete: '{title}' @ {frame_time_str}")
+
         self._last_state = {
             "video": video_path.name,
             "frame": random_frame,
             "frame_time": frame_time_str,
-            "title": metadata.get("title", default_title),
+            "title": title,
             "director": metadata.get("director", ""),
             "year": metadata.get("year", ""),
         }
@@ -416,8 +457,7 @@ class SlowMovieMode(DisplayMode):
         return final
 
     def _error_image(self, msg: str) -> Image.Image:
-        """Return a plain error image."""
-        log.error(msg)
+        log.error(f"SlowMovie error: {msg}")
         img = Image.new("RGB", self._resolution, (30, 30, 30))
         draw = ImageDraw.Draw(img)
         font = ImageFont.load_default()

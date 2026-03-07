@@ -1,5 +1,5 @@
 app:
-  default_mode: litclock   # litclock | slowmovie
+  default_mode: slowmovie   # litclock | slowmovie
 
 display:
   width: 800
@@ -26,7 +26,7 @@ suspend:
   logo_path: "assets/icons/logo.png"
 
 litclock:
-  refresh_rate: 60
+  refresh_rate: 300
   data_dir: "assets/lang"
   language: "it"
   use_italic_for_em: true
