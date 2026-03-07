@@ -4,9 +4,9 @@ After=network.target
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=/home/pi/talevision
-ExecStart=/home/pi/talevision/venv/bin/python main.py
+User=enuzzo
+WorkingDirectory=/home/enuzzo/talevision
+ExecStart=/home/enuzzo/talevision/venv/bin/python main.py
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal
