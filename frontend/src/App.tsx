@@ -80,7 +80,7 @@ function FramePreview({ refreshKey }: { refreshKey: number }) {
 
       {errored && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-          <span className="font-display text-3xl italic text-secondary/40 font-light">no signal</span>
+          <span className="font-display text-3xl text-secondary/40 font-bold tracking-widest uppercase">no signal</span>
           <span className="label">frame not available</span>
         </div>
       )}
@@ -120,7 +120,7 @@ function ModeSelector({
             onClick={() => !active && onSwitch(m)}
             disabled={switching}
             className={cx(
-              'relative font-display text-xl font-light pb-1 transition-colors duration-200 outline-none',
+              'relative font-display text-xl font-semibold pb-1 transition-colors duration-200 outline-none',
               'disabled:cursor-wait',
               active
                 ? 'text-primary cursor-default'
@@ -355,7 +355,7 @@ export default function App() {
         <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="w-2 h-2 rounded-full bg-accent" />
-            <span className="font-display text-lg font-light tracking-wide">TaleVision</span>
+            <span className="font-display text-lg font-bold tracking-wide">TaleVision</span>
           </div>
           <div className="flex items-center gap-5">
             <span className="font-mono text-sm text-secondary tabular-nums">{clock}</span>
@@ -431,7 +431,7 @@ export default function App() {
             <div>
               <StatusRow
                 label="Mode"
-                value={<span className="font-display italic text-base font-light">{currentMode}</span>}
+                value={<span className="font-display text-base font-semibold uppercase tracking-wider">{currentMode}</span>}
               />
               <StatusRow
                 label="Suspended"
@@ -454,7 +454,7 @@ export default function App() {
               {status?.video && (
                 <StatusRow
                   label="Film"
-                  value={<span className="font-display italic text-base font-light">{status.video}</span>}
+                  value={<span className="font-display text-base font-semibold">{status.video}</span>}
                 />
               )}
               {status?.quote && (
