@@ -161,14 +161,23 @@ function StatusRow({ label, value }: { label: string; value: React.ReactNode }) 
 function SuspendForm({ initial }: { initial?: SuspendConfig }) {
   const qc = useQueryClient()
   const [enabled, setEnabled] = useState(initial?.enabled ?? false)
-  const [start, setStart] = useState(initial?.start ?? '23:00')
-  const [end, setEnd] = useState(initial?.end ?? '07:00')
+  // UI shows "active hours": when the device is ON.
+  // The API stores suspend hours (inverse), so we swap start↔end at the boundary.
+  // UI activeFrom = API end (suspension ends = device wakes)
+  // UI activeTo   = API start (suspension starts = device sleeps)
+  const [activeFrom, setActiveFrom] = useState(initial?.end ?? '09:00')
+  const [activeTo, setActiveTo] = useState(initial?.start ?? '18:00')
   const [days, setDays] = useState<number[]>(initial?.days ?? [0, 1, 2, 3, 4, 5, 6])
   const [saved, setSaved] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout>>()
 
   const mut = useMutation({
-    mutationFn: () => api.suspend({ enabled, start, end, days }),
+    mutationFn: () => api.suspend({
+      enabled,
+      start: activeTo,    // device goes to sleep at active end
+      end: activeFrom,    // device wakes at active start
+      days,
+    }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['status'] })
       setSaved(true)
@@ -195,27 +204,27 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <div className="label mb-1">Start</div>
+          <div className="label mb-1">On from (24h)</div>
           <input
             type="time"
-            value={start}
-            onChange={e => setStart(e.target.value)}
+            value={activeFrom}
+            onChange={e => setActiveFrom(e.target.value)}
             className="w-full bg-surface border border-border text-primary font-mono text-sm px-3 py-2 outline-none focus:border-accent transition-colors"
           />
         </div>
         <div>
-          <div className="label mb-1">End</div>
+          <div className="label mb-1">Off at (24h)</div>
           <input
             type="time"
-            value={end}
-            onChange={e => setEnd(e.target.value)}
+            value={activeTo}
+            onChange={e => setActiveTo(e.target.value)}
             className="w-full bg-surface border border-border text-primary font-mono text-sm px-3 py-2 outline-none focus:border-accent transition-colors"
           />
         </div>
       </div>
 
       <div>
-        <div className="label mb-2">Days</div>
+        <div className="label mb-2">Active days</div>
         <div className="flex gap-1.5">
           {DAYS.map((d, i) => (
             <button
@@ -472,7 +481,7 @@ export default function App() {
 
           {/* Suspend Schedule */}
           <div>
-            <div className="label mb-4">Suspend Schedule</div>
+            <div className="label mb-4">Active schedule</div>
             <SuspendForm initial={status?.suspend} />
           </div>
 
