@@ -34,6 +34,7 @@ function makeParticle(w: number, h: number): Particle {
 
 export default function ParticleBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const mouseRef = useRef({ x: -9999, y: -9999 })
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -47,28 +48,49 @@ export default function ParticleBackground() {
     const resize = () => {
       canvas.width = window.innerWidth
       canvas.height = window.innerHeight
-      // repopulate on resize
-      particles = Array.from({ length: 55 }, () =>
+      particles = Array.from({ length: 80 }, () =>
         makeParticle(canvas.width, canvas.height)
       )
     }
 
+    const onMouseMove = (e: MouseEvent) => {
+      mouseRef.current = { x: e.clientX, y: e.clientY }
+    }
+    const onMouseLeave = () => {
+      mouseRef.current = { x: -9999, y: -9999 }
+    }
+
     resize()
     window.addEventListener('resize', resize)
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseleave', onMouseLeave)
 
     const tick = () => {
       const { width: w, height: h } = canvas
       ctx.clearRect(0, 0, w, h)
+
+      const mx = mouseRef.current.x
+      const my = mouseRef.current.y
 
       for (const p of particles) {
         p.x += p.vx
         p.y += p.vy
         p.opacity += p.opacityDelta
 
+        // Mouse repulsion — gentle position nudge
+        const dx = p.x - mx
+        const dy = p.y - my
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        if (dist < 110 && dist > 0) {
+          const strength = (110 - dist) / 110 * 0.35
+          p.x += (dx / dist) * strength
+          p.y += (dy / dist) * strength
+        }
+
         // Clamp opacity and reverse direction at bounds
-        if (p.opacity > 0.25 || p.opacity < 0.03) {
+        if (p.opacity > 0.45 || p.opacity < 0.08) {
           p.opacityDelta *= -1
-          p.opacity = Math.max(0.03, Math.min(0.25, p.opacity))
+          p.opacity = Math.max(0.08, Math.min(0.45, p.opacity))
         }
 
         // Wrap around edges
@@ -90,6 +112,8 @@ export default function ParticleBackground() {
 
     return () => {
       window.removeEventListener('resize', resize)
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseleave', onMouseLeave)
       cancelAnimationFrame(animId)
     }
   }, [])

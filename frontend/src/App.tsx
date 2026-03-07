@@ -71,9 +71,61 @@ function useClock() {
   return time
 }
 
+// ─── Rendering Overlay ───────────────────────────────────────────────────────
+
+function RenderingOverlay({ mode }: { mode: string }) {
+  const [tick, setTick] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => (t + 1) % 4), 500)
+    return () => clearInterval(id)
+  }, [])
+  const dots = '.'.repeat(tick)
+  const color = MODES.includes(mode as Mode) ? MODE_COLOR[mode as Mode] : '#c8923a'
+  const icon = MODE_ICON[mode as Mode] ?? ''
+
+  return (
+    <div className="absolute inset-0 z-20 bg-black flex items-center justify-center overflow-hidden">
+      {/* Sweeping scan line */}
+      <div
+        className="absolute left-0 right-0 h-px pointer-events-none"
+        style={{
+          background: `linear-gradient(to right, transparent, ${color}90, transparent)`,
+          boxShadow: `0 0 18px 6px ${color}30`,
+          animation: 'scanSweep 2.6s linear infinite',
+        }}
+      />
+      {/* Corner brackets */}
+      {(['top-5 left-5 border-t-2 border-l-2', 'top-5 right-5 border-t-2 border-r-2',
+         'bottom-5 left-5 border-b-2 border-l-2', 'bottom-5 right-5 border-b-2 border-r-2'] as const
+      ).map((cls, i) => (
+        <div key={i} className={`absolute w-7 h-7 ${cls}`} style={{ borderColor: `${color}65` }} />
+      ))}
+      {/* Center */}
+      <div className="flex flex-col items-center gap-5">
+        <div className="relative w-14 h-14 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full border"
+            style={{ borderColor: `${color}45`, animation: 'ringPulse 2s ease-out infinite' }} />
+          <div className="absolute inset-2 rounded-full border"
+            style={{ borderColor: `${color}25`, animation: 'ringPulse 2s ease-out infinite 0.55s' }} />
+          <div className="w-2 h-2 rounded-full"
+            style={{ backgroundColor: color, animation: 'dotBlink 1.2s ease-in-out infinite' }} />
+        </div>
+        <div className="text-center">
+          <div className="font-display text-xs font-semibold tracking-[0.6em] uppercase" style={{ color }}>
+            Rendering
+          </div>
+          <div className="font-mono text-[10px] tracking-[0.25em] text-secondary/50 mt-1">
+            {icon} {mode}{dots}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Frame Preview ───────────────────────────────────────────────────────────
 
-function FramePreview({ refreshKey }: { refreshKey: number }) {
+function FramePreview({ refreshKey, waiting, waitingMode }: { refreshKey: number; waiting: boolean; waitingMode: string }) {
   const [loaded, setLoaded] = useState(false)
   const [errored, setErrored] = useState(false)
   const src = `/api/frame?t=${refreshKey}`
@@ -88,30 +140,34 @@ function FramePreview({ refreshKey }: { refreshKey: number }) {
       {/* Matte frame lines */}
       <div className="absolute inset-[6px] border border-border/40 pointer-events-none z-10" />
 
-      {!loaded && !errored && (
+      {waiting && <RenderingOverlay mode={waitingMode} />}
+
+      {!waiting && !loaded && !errored && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
           <div className="w-px h-8 bg-accent/30 animate-pulse-amber" />
           <span className="label tracking-[0.3em]">loading frame</span>
         </div>
       )}
 
-      {errored && (
+      {!waiting && errored && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
           <span className="font-display text-3xl text-secondary/40 font-bold tracking-widest uppercase">no signal</span>
           <span className="label">frame not available</span>
         </div>
       )}
 
-      <img
-        src={src}
-        alt="Current frame"
-        className={cx(
-          'absolute inset-0 w-full h-full object-contain transition-opacity duration-500',
-          loaded ? 'opacity-100' : 'opacity-0',
-        )}
-        onLoad={() => setLoaded(true)}
-        onError={() => { setLoaded(false); setErrored(true) }}
-      />
+      {!waiting && (
+        <img
+          src={src}
+          alt="Current frame"
+          className={cx(
+            'absolute inset-0 w-full h-full object-contain transition-opacity duration-500',
+            loaded ? 'opacity-100' : 'opacity-0',
+          )}
+          onLoad={() => setLoaded(true)}
+          onError={() => { setLoaded(false); setErrored(true) }}
+        />
+      )}
     </div>
   )
 }
@@ -415,33 +471,47 @@ export default function App() {
   const qc = useQueryClient()
   const [refreshKey, setRefreshKey] = useState(Date.now())
   const [optimisticMode, setOptimisticMode] = useState<string | null>(null)
+  const [waitingSince, setWaitingSince] = useState<number | null>(null)
+  const waiting = waitingSince !== null
 
   const { data: status, isError } = useQuery({
     queryKey: ['status'],
     queryFn: api.status,
-    refetchInterval: 12_000,
+    refetchInterval: waiting ? 2000 : 12_000,
   })
+
+  // Detect when Pi finishes rendering the new frame
+  useEffect(() => {
+    if (!waiting || !waitingSince || !status?.last_update) return
+    const lu = typeof status.last_update === 'number'
+      ? status.last_update * 1000
+      : parseFloat(String(status.last_update))
+    if (!isNaN(lu) && lu > waitingSince) {
+      setWaitingSince(null)
+      setRefreshKey(Date.now())
+    }
+  }, [status?.last_update, waiting, waitingSince])
+
+  // Safety timeout: stop waiting after 120s regardless
+  useEffect(() => {
+    if (!waiting) return
+    const id = setTimeout(() => { setWaitingSince(null); setRefreshKey(Date.now()) }, 120_000)
+    return () => clearTimeout(id)
+  }, [waiting])
 
   const currentMode = optimisticMode ?? status?.mode ?? '—'
 
   const modeMut = useMutation({
     mutationFn: (m: Mode) => api.setMode(m),
-    onMutate: (m) => setOptimisticMode(m),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['status'] })
-      // Reload preview after mode switch + render time
-      setTimeout(() => setRefreshKey(Date.now()), 4000)
-    },
+    onMutate: (m) => { setOptimisticMode(m); setWaitingSince(Date.now()) },
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['status'] }) },
     onSettled: () => setOptimisticMode(null),
   })
 
   const refreshMut = useMutation({
     mutationFn: api.refresh,
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['status'] })
-      // Pi Zero W needs a few seconds to render
-      setTimeout(() => setRefreshKey(Date.now()), 5000)
-    },
+    onMutate: () => setWaitingSince(Date.now()),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['status'] }) },
   })
 
   const handleRefresh = useCallback(() => refreshMut.mutate(), [refreshMut])
@@ -492,7 +562,7 @@ export default function App() {
 
         {/* Frame Preview */}
         <section>
-          <FramePreview refreshKey={refreshKey} />
+          <FramePreview refreshKey={refreshKey} waiting={waiting} waitingMode={currentMode} />
         </section>
 
         {/* Mode + Refresh row */}
