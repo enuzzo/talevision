@@ -167,12 +167,15 @@ LOOP-step log messages in `orchestrator.py` are at **DEBUG** level (changed from
 ## Suspend Scheduler
 
 - `SuspendScheduler` handles overnight windows correctly (e.g., 23:00–07:00): if `start > end`, wraps midnight.
-- Day-of-week filtering: `days` list (0=Mon, 6=Sun); empty list = all days.
-- `next_wake_time()` returns the datetime when suspension ends (used by dashboard).
+- **Day semantics**: `days` list = days the device is fully OFF (suspend days). Days NOT in the list are "active days" — suspend applies only during the time window on those days. Empty list = time window applies to all days (no full-suspend days).
+- **Full-suspend days**: if today's weekday is in `days`, device is suspended ALL 24 hours — no time check.
+- **Active days**: if today's weekday is NOT in `days`, device follows the time window (suspended during window, active outside).
+- **Example**: active 09–18 Mon-Fri, Sat+Sun off → device OFF from Fri 18:00 to Mon 09:00 continuously.
+- `next_wake_time()` returns the datetime when suspension ends. Skips forward past full-suspend days to find the first active day where the wake time (end) applies.
 - Thread-safe `update()` method called from API handler.
 - Suspend screen is rendered once on entry and held; `_suspended_displayed` flag prevents re-rendering.
 - **BBS/NFO suspend screen** (`talevision/render/suspend_screen.py`): renders to the e-ink display when suspended. Black background, DejaVuSansMono font, box-drawing chars (`╔═╗║╚╝╠╣`), amber header "T · A · L · E · V · I · S · I · O · N", suspend hours/days row (`[MON] [TUE]...`), resume time. `inner_w=60` to fit all 7 days with single-space separators. Labels read "SUSPEND HOURS" and "SUSPEND DAYS" (values are the raw config suspend window). The orchestrator intercepts the loop before `active.render()` and calls this instead.
-- **Dashboard UX inversion**: UI shows "active hours" (ON/OFF), API stores suspend window (start=sleep, end=wake). Mapping: `UI activeFrom → API end`, `UI activeTo → API start`. The suspend screen shows the raw suspend window values with "SUSPEND" labels for consistency.
+- **Dashboard UX inversion (double)**: UI shows "active hours" and "active days" — both inverted at the API boundary. Hours: `UI activeFrom → API end`, `UI activeTo → API start`. Days: UI sends active days, frontend inverts to suspend days before POST (`[0,1,2,3,4,5,6].filter(d => !activeDays.includes(d))`). On load, suspend days from API are inverted back to active days for display.
 
 ## InterruptibleTimer
 

@@ -48,6 +48,12 @@ Entry format:
 - Decision: Retheme dashboard with ScryBar default: deep navy palette (#070D2D), violet accent (#7551FF), cyan secondary (#39B8FF), Montserrat + Space Mono, rounded corners (8px/12px/16px). Netmilk SVG logo in footer.
 - Impact/Tradeoffs: Consistent brand identity across Netmilk products. Google Fonts dependency (Montserrat, Space Mono) — acceptable since dashboard requires internet for initial font load (cached after).
 
+## 2026-03-07 - Suspend Day Semantics: Full-OFF Days + Time Window on Active Days
+
+- Context: Original scheduler treated `days` as "days when the suspend time window applies". Days not in the list were never suspended — making it impossible to fully suspend weekends while keeping weekdays on a schedule.
+- Decision: `days` now means "days the device is fully OFF (24h suspend)". Days NOT in the list are "active days" where the time window applies. UI shows "active days" (inverted at API boundary, same as hours). `next_wake_time()` skips past full-suspend days to find the first active day.
+- Impact/Tradeoffs: Breaking semantic change in `days` field. Both hours AND days are now inverted at the UI boundary. Existing `config.yaml` `days: [0,1,2,3,4,5,6]` means "all days fully suspended" — empty list means "time window on all days". Users with saved `user_prefs.json` may need to re-save their schedule from the dashboard.
+
 ## 2026-03-07 - Suspend Screen Labels: "SUSPEND" not "ACTIVE"
 
 - Context: Suspend screen showed "ACTIVE HOURS 23──07" which is confusing — 23→07 is the suspend window, not the active window.
