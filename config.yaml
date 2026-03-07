@@ -38,11 +38,11 @@ litclock:
     babel_format: "HH:mm '–' EEEE d MMMM y"
     separator_line: true
     separator_line_thickness: 2
-    separator_line_spacing: 10
+    separator_line_spacing: 18
     header_bottom_spacing: 20
   text_block_padding: 10
   intra_line_spacing: 6
-  block_separator_spacing: 30
+  block_separator_spacing: 50
   fonts:
     dir: "assets/fonts"
     header:

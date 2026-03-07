@@ -302,15 +302,20 @@ class LitClockMode(DisplayMode):
             w_tit, _ = get_text_dimensions(tit_t, tit_f, draw) if tit_t else (0, 0)
             total_det_w = w_auth + w_sep + w_tit
 
+            _, h_auth = get_text_dimensions(auth_t, auth_f, draw) if auth_t else (0, 0)
+            _, h_sep = get_text_dimensions(sep_t, tit_f, draw) if sep_t else (0, 0)
+            _, h_tit = get_text_dimensions(tit_t, tit_f, draw) if tit_t else (0, 0)
+            baseline_y = curr_y + max(h_auth, h_sep, h_tit)
+
             curr_x = (width - total_det_w) // 2
             if auth_t:
-                draw.text((curr_x, curr_y), auth_t, fill=text_c, font=auth_f, anchor="lt")
+                draw.text((curr_x, baseline_y), auth_t, fill=text_c, font=auth_f, anchor="lb")
                 curr_x += w_auth
             if sep_t:
-                draw.text((curr_x, curr_y), sep_t, fill=text_c, font=tit_f, anchor="lt")
+                draw.text((curr_x, baseline_y), sep_t, fill=text_c, font=tit_f, anchor="lb")
                 curr_x += w_sep
             if tit_t:
-                draw.text((curr_x, curr_y), tit_t, fill=text_c, font=tit_f, anchor="lt")
+                draw.text((curr_x, baseline_y), tit_t, fill=text_c, font=tit_f, anchor="lb")
         else:
             if detail_font and detail_lines:
                 draw_centered_text_block(
