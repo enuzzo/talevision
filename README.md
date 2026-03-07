@@ -106,10 +106,10 @@ The display refreshes slowly on purpose. E-ink panels take ~30 seconds and hold 
                         │                                     │
          button press   │  _action_queue ◄── Flask API thread │
          ─────────────► │                                     │
-                        │  ┌─────────┐      ┌─────────────┐  │
-                        │  │LitClock │  or  │  SlowMovie  │  │
-                        │  │  Mode   │      │    Mode     │  │
-                        │  └────┬────┘      └──────┬──────┘  │
+                        │  ┌─────────┐       ┌─────────────┐  │
+                        │  │LitClock │  or   │  SlowMovie  │  │
+                        │  │  Mode   │       │    Mode     │  │
+                        │  └────┬────┘       └──────┬──────┘  │
                         │       │ render()          │         │
                         │       └────────┬──────────┘         │
                         │                ▼                    │
@@ -349,3 +349,4 @@ Use it, fork it, replace the quote database with your own obsessions, point Slow
 *One Pi Zero W. One wall. One question answered.*
 
 </div>
+
