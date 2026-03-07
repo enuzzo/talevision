@@ -302,20 +302,23 @@ class LitClockMode(DisplayMode):
             w_tit, _ = get_text_dimensions(tit_t, tit_f, draw) if tit_t else (0, 0)
             total_det_w = w_auth + w_sep + w_tit
 
-            _, h_auth = get_text_dimensions(auth_t, auth_f, draw) if auth_t else (0, 0)
-            _, h_sep = get_text_dimensions(sep_t, tit_f, draw) if sep_t else (0, 0)
-            _, h_tit = get_text_dimensions(tit_t, tit_f, draw) if tit_t else (0, 0)
-            baseline_y = curr_y + max(h_auth, h_sep, h_tit)
+            # Use typographic baseline ("ls") so italic and regular variants align correctly.
+            # Compute where the baseline must be so the top of the reference text lands at curr_y.
+            _ref_t = tit_t or sep_t or auth_t
+            _ref_f = tit_f if (tit_t or sep_t) else auth_f
+            _ref_bb = draw.textbbox((0, 0), _ref_t, font=_ref_f, anchor="ls")
+            # _ref_bb[1] is the offset from stroke-baseline to the top of the glyph (negative)
+            baseline_y = curr_y - _ref_bb[1]
 
             curr_x = (width - total_det_w) // 2
             if auth_t:
-                draw.text((curr_x, baseline_y), auth_t, fill=text_c, font=auth_f, anchor="lb")
+                draw.text((curr_x, baseline_y), auth_t, fill=text_c, font=auth_f, anchor="ls")
                 curr_x += w_auth
             if sep_t:
-                draw.text((curr_x, baseline_y), sep_t, fill=text_c, font=tit_f, anchor="lb")
+                draw.text((curr_x, baseline_y), sep_t, fill=text_c, font=tit_f, anchor="ls")
                 curr_x += w_sep
             if tit_t:
-                draw.text((curr_x, baseline_y), tit_t, fill=text_c, font=tit_f, anchor="lb")
+                draw.text((curr_x, baseline_y), tit_t, fill=text_c, font=tit_f, anchor="ls")
         else:
             if detail_font and detail_lines:
                 draw_centered_text_block(
