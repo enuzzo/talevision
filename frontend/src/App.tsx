@@ -423,7 +423,8 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
     setEnabled(initial.enabled)
     setActiveFrom(initial.end ?? '09:00')
     setActiveTo(initial.start ?? '18:00')
-    setDays(initial.days ?? [0, 1, 2, 3, 4, 5, 6])
+    const suspendDays = initial.days ?? []
+    setDays([0,1,2,3,4,5,6].filter(d => !suspendDays.includes(d)))
     syncedRef.current = true
   }, [initial])
   const [saved, setSaved] = useState(false)
@@ -434,7 +435,7 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
       enabled,
       start: activeTo,
       end: activeFrom,
-      days,
+      days: [0,1,2,3,4,5,6].filter(d => !days.includes(d)),
     }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['status'] })
