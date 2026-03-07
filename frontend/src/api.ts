@@ -35,4 +35,14 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     }).then(r => json<{ ok: boolean }>(r)),
+
+  setInterval: (mode: string, seconds: number) =>
+    fetch('/api/interval', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode, seconds }),
+    }).then(r => json<{ ok: boolean }>(r)),
+
+  resetInterval: (mode: string) =>
+    fetch(`/api/interval/${mode}`, { method: 'DELETE' }).then(r => json<{ ok: boolean }>(r)),
 }

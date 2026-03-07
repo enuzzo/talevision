@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as Switch from '@radix-ui/react-switch'
 import * as Select from '@radix-ui/react-select'
 import { api } from './api'
-import type { SuspendConfig } from './types'
+import type { SuspendConfig, ModeInterval } from './types'
 
 // ─── Utilities ──────────────────────────────────────────────────────────────
 
@@ -268,6 +268,82 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
   )
 }
 
+// ─── Interval Controls ───────────────────────────────────────────────────────
+
+function fmtInterval(s: number): string {
+  if (s < 60) return `${s}s`
+  const m = Math.floor(s / 60)
+  const rem = s % 60
+  return rem === 0 ? `${m} min` : `${m}m ${rem}s`
+}
+
+function IntervalRow({
+  modeName,
+  data,
+  color,
+  icon,
+}: {
+  modeName: string
+  data: ModeInterval
+  color: string
+  icon: string
+}) {
+  const qc = useQueryClient()
+  const [minutes, setMinutes] = useState(Math.round(data.effective / 60))
+
+  const setMut = useMutation({
+    mutationFn: () => api.setInterval(modeName, minutes * 60),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['status'] }),
+  })
+
+  const resetMut = useMutation({
+    mutationFn: () => api.resetInterval(modeName),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['status'] })
+      setMinutes(Math.round(data.default / 60))
+    },
+  })
+
+  return (
+    <div className="flex items-center gap-3 py-2 border-b border-border/50 last:border-0">
+      <span className="text-sm" style={{ color }}>{icon}</span>
+      <span className="label flex-shrink-0 w-20" style={{ color }}>{modeName}</span>
+      <input
+        type="number"
+        min={1}
+        max={1440}
+        value={minutes}
+        onChange={e => setMinutes(Math.max(1, parseInt(e.target.value) || 1))}
+        className="w-16 bg-surface border border-border text-primary font-mono text-sm px-2 py-1 outline-none focus:border-accent transition-colors text-center"
+      />
+      <span className="label">min</span>
+      <button
+        onClick={() => setMut.mutate()}
+        disabled={setMut.isPending}
+        className="font-mono text-xs uppercase tracking-widest px-3 py-1 border border-border text-secondary hover:border-accent hover:text-accent transition-all duration-150 disabled:opacity-50"
+      >
+        {setMut.isPending ? '…' : 'Set'}
+      </button>
+      {data.overridden && (
+        <button
+          onClick={() => resetMut.mutate()}
+          disabled={resetMut.isPending}
+          className="label text-danger/70 hover:text-danger transition-colors"
+          title={`Reset to default (${fmtInterval(data.default)})`}
+        >
+          reset
+        </button>
+      )}
+      <span className="label ml-auto text-right">
+        {data.overridden
+          ? <span style={{ color }}>● {fmtInterval(data.effective)}</span>
+          : <span className="text-muted">{fmtInterval(data.effective)}</span>
+        }
+      </span>
+    </div>
+  )
+}
+
 // ─── Language Selector ───────────────────────────────────────────────────────
 
 function LanguageSelector({ current }: { current?: string }) {
@@ -500,6 +576,25 @@ export default function App() {
           </div>
 
         </section>
+
+        {/* Refresh intervals */}
+        {status?.intervals && Object.keys(status.intervals).length > 0 && (
+          <section>
+            <div className="border-t border-border mb-6" />
+            <div className="label mb-4">Refresh intervals</div>
+            <div>
+              {MODES.filter(m => status.intervals![m]).map(m => (
+                <IntervalRow
+                  key={m}
+                  modeName={m}
+                  data={status.intervals![m]}
+                  color={MODE_COLOR[m]}
+                  icon={MODE_ICON[m]}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Language selector — only for litclock */}
         {currentMode === 'litclock' && (

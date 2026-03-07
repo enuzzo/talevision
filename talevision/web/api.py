@@ -103,6 +103,43 @@ def update_suspend():
         return jsonify({"error": str(exc)}), 500
 
 
+@api_bp.get("/interval")
+def get_intervals():
+    """GET /api/interval — effective refresh intervals for all modes."""
+    try:
+        return jsonify(_orchestrator().get_status().get("intervals", {}))
+    except Exception as exc:
+        log.error(f"Get intervals error: {exc}")
+        return jsonify({"error": str(exc)}), 500
+
+
+@api_bp.post("/interval")
+def set_interval():
+    """POST /api/interval — {"mode": "litclock", "seconds": 120}"""
+    body = request.get_json(silent=True) or {}
+    mode = body.get("mode", "")
+    seconds = body.get("seconds")
+    if not mode or seconds is None:
+        return jsonify({"error": "Missing 'mode' or 'seconds'"}), 400
+    try:
+        _orchestrator().set_mode_interval(mode, int(seconds))
+        return jsonify({"ok": True})
+    except Exception as exc:
+        log.error(f"Set interval error: {exc}")
+        return jsonify({"error": str(exc)}), 500
+
+
+@api_bp.delete("/interval/<mode>")
+def reset_interval(mode: str):
+    """DELETE /api/interval/<mode> — reset to config.yaml default."""
+    try:
+        _orchestrator().reset_mode_interval(mode)
+        return jsonify({"ok": True})
+    except Exception as exc:
+        log.error(f"Reset interval error: {exc}")
+        return jsonify({"error": str(exc)}), 500
+
+
 @api_bp.get("/frame")
 def get_frame():
     """GET /api/frame — serve last rendered frame for current mode."""

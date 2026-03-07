@@ -1,8 +1,9 @@
 # Reference archive (never public)
 archive/
 
-# Secrets
+# Secrets and local user preferences
 secrets.yaml
+user_prefs.json
 
 # Media (large files, local only)
 media/*.mp4

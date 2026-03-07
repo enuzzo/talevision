@@ -5,6 +5,12 @@ export interface SuspendConfig {
   days: number[]
 }
 
+export interface ModeInterval {
+  effective: number
+  default: number
+  overridden: boolean
+}
+
 export interface Status {
   mode: string
   suspended: boolean
@@ -13,4 +19,5 @@ export interface Status {
   video?: string | null
   quote?: string | null
   suspend?: SuspendConfig
+  intervals?: Record<string, ModeInterval>
 }

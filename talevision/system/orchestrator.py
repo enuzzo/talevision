@@ -1,4 +1,5 @@
 """Orchestrator — main application loop and thread-safe mode controller."""
+import json
 import logging
 import queue
 import threading
@@ -62,13 +63,26 @@ class Orchestrator:
         }
         self._suspended_displayed: bool = False
 
+        self._interval_overrides: Dict[str, int] = {}
+        self._prefs_path = base_dir / "user_prefs.json"
+        self._load_prefs()
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
 
     def get_status(self) -> dict:
         with self._status_lock:
-            return dict(self._status_cache)
+            status = dict(self._status_cache)
+        status["intervals"] = {
+            name: {
+                "effective": self._effective_interval(name, mode.refresh_interval),
+                "default": mode.refresh_interval,
+                "overridden": name in self._interval_overrides,
+            }
+            for name, mode in self._modes.items()
+        }
+        return status
 
     def get_frame_path(self, mode: Optional[str] = None) -> Optional[Path]:
         with self._status_lock:
@@ -100,6 +114,18 @@ class Orchestrator:
     def set_suspend_schedule(self, start: str, end: str, days: list, enabled: bool) -> None:
         self._scheduler.update(start, end, days, enabled)
 
+    def set_mode_interval(self, mode_name: str, seconds: int) -> None:
+        if mode_name not in self._modes:
+            raise ValueError(f"Unknown mode: {mode_name}")
+        self._interval_overrides[mode_name] = max(10, min(seconds, 86400))
+        self._save_prefs()
+        self._timer.interrupt()
+
+    def reset_mode_interval(self, mode_name: str) -> None:
+        self._interval_overrides.pop(mode_name, None)
+        self._save_prefs()
+        self._timer.interrupt()
+
     def handle_button_action(self, action: str) -> None:
         if action == "switch_mode":
             with self._lock:
@@ -115,6 +141,24 @@ class Orchestrator:
     # ------------------------------------------------------------------
     # Internal
     # ------------------------------------------------------------------
+
+    def _effective_interval(self, mode_name: str, default: int) -> int:
+        return self._interval_overrides.get(mode_name, default)
+
+    def _load_prefs(self) -> None:
+        try:
+            if self._prefs_path.exists():
+                data = json.loads(self._prefs_path.read_text())
+                self._interval_overrides = {k: int(v) for k, v in data.get("intervals", {}).items()}
+                log.debug(f"Loaded user prefs: intervals={self._interval_overrides}")
+        except Exception as exc:
+            log.warning(f"Could not load user_prefs.json: {exc}")
+
+    def _save_prefs(self) -> None:
+        try:
+            self._prefs_path.write_text(json.dumps({"intervals": self._interval_overrides}, indent=2))
+        except Exception as exc:
+            log.warning(f"Could not save user_prefs.json: {exc}")
 
     def _update_status_cache(self, mode_name: str, last_render_time: float,
                               last_error: Optional[str], state_extra: dict) -> None:
@@ -209,7 +253,7 @@ class Orchestrator:
 
                 if is_suspended and self._suspended_displayed:
                     log.debug("LOOP ── suspended, sleeping")
-                    self._timer.wait(active.refresh_interval)
+                    self._timer.wait(self._effective_interval(active_name, active.refresh_interval))
                     continue
 
                 log.debug(f"LOOP ── render() starting ...")
@@ -235,7 +279,7 @@ class Orchestrator:
                 self._update_status_cache(active_name, now, last_error, state_extra)
                 log.debug("LOOP ── status cache updated.")
 
-                interval = active.refresh_interval
+                interval = self._effective_interval(active_name, active.refresh_interval)
                 log.debug(f"LOOP ── sleeping {interval}s ...")
                 interrupted = self._timer.wait(interval)
                 log.debug(f"LOOP ── awake. interrupted={interrupted}, queue={self._action_queue.qsize()}")
