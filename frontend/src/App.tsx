@@ -4,6 +4,7 @@ import * as Switch from '@radix-ui/react-switch'
 import * as Select from '@radix-ui/react-select'
 import { api } from './api'
 import type { SuspendConfig, ModeInterval } from './types'
+import ParticleBackground from './ParticleBackground'
 
 // ─── Utilities ──────────────────────────────────────────────────────────────
 
@@ -449,9 +450,10 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-bg text-primary font-mono animate-fade-in">
+      <ParticleBackground />
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 bg-bg/95 backdrop-blur-sm border-b border-border">
+      <header className="sticky top-0 z-40 bg-bg/95 backdrop-blur-sm border-b border-border relative">
         <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="w-2 h-2 rounded-full bg-accent" />
@@ -486,7 +488,7 @@ export default function App() {
       </header>
 
       {/* ── Main content ───────────────────────────────────────────────── */}
-      <main className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+      <main className="max-w-4xl mx-auto px-6 py-8 space-y-8 relative z-10">
 
         {/* Frame Preview */}
         <section>

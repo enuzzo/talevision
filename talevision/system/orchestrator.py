@@ -214,6 +214,26 @@ class Orchestrator:
                 if litclock_mode and hasattr(litclock_mode, "set_language"):
                     litclock_mode.set_language(payload)
 
+    def _render_suspend_screen(self) -> Image.Image:
+        from talevision.render.suspend_screen import render_suspend_screen
+        cfg = self._config.suspend
+        next_wake = self._scheduler.next_wake_time()
+        size = (self._canvas.width, self._canvas.height)
+        try:
+            return render_suspend_screen(
+                start=cfg.start,
+                end=cfg.end,
+                days=list(cfg.days),
+                enabled=cfg.enabled,
+                next_wake=next_wake,
+                canvas_size=size,
+                base_dir=self._base_dir,
+            )
+        except Exception as exc:
+            log.error(f"Suspend screen render error: {exc}")
+            img = Image.new("RGB", size, (0, 0, 0))
+            return img
+
     def _save_frame(self, image: Image.Image, mode_name: str) -> None:
         p = self._frame_paths.get(mode_name)
         if not p:
@@ -253,6 +273,15 @@ class Orchestrator:
 
                 if is_suspended and self._suspended_displayed:
                     log.debug("LOOP ── suspended, sleeping")
+                    self._timer.wait(self._effective_interval(active_name, active.refresh_interval))
+                    continue
+
+                if is_suspended and not self._suspended_displayed:
+                    frame = self._render_suspend_screen()
+                    self._canvas.show(frame)
+                    self._suspended_displayed = True
+                    self._save_frame(frame, active_name)
+                    self._update_status_cache(active_name, time.time(), None, {})
                     self._timer.wait(self._effective_interval(active_name, active.refresh_interval))
                     continue
 
