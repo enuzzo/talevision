@@ -64,6 +64,9 @@ class Orchestrator:
         self._suspended_displayed: bool = False
 
         self._interval_overrides: Dict[str, int] = {}
+        self._playlist: list = [self._current_mode_name]
+        self._playlist_index: int = 0
+        self._rotation_interval: int = 300
         self._prefs_path = base_dir / "user_prefs.json"
         self._load_prefs()
 
@@ -83,6 +86,9 @@ class Orchestrator:
             for name, mode in self._modes.items()
         }
         status["suspend"] = self._scheduler.get_config()
+        status["playlist"] = list(self._playlist)
+        status["playlist_index"] = self._playlist_index
+        status["rotation_interval"] = self._rotation_interval
         return status
 
     def get_frame_path(self, mode: Optional[str] = None) -> Optional[Path]:
@@ -114,6 +120,19 @@ class Orchestrator:
 
     def set_suspend_schedule(self, start: str, end: str, days: list, enabled: bool) -> None:
         self._scheduler.update(start, end, days, enabled)
+
+    def set_playlist(self, modes: list, rotation_interval: int = 300) -> None:
+        valid = [m for m in modes if m in self._modes]
+        if not valid:
+            valid = [self._current_mode_name]
+        self._playlist = valid
+        self._rotation_interval = max(30, min(rotation_interval, 3600))
+        self._playlist_index = 0
+        if valid[0] != self._current_mode_name:
+            self._action_queue.put(("switch_mode", valid[0]))
+            self._timer.interrupt()
+        self._save_prefs()
+        log.info(f"Playlist set: {self._playlist}, rotation={self._rotation_interval}s")
 
     def set_mode_interval(self, mode_name: str, seconds: int) -> None:
         if mode_name not in self._modes:
@@ -151,13 +170,24 @@ class Orchestrator:
             if self._prefs_path.exists():
                 data = json.loads(self._prefs_path.read_text())
                 self._interval_overrides = {k: int(v) for k, v in data.get("intervals", {}).items()}
-                log.debug(f"Loaded user prefs: intervals={self._interval_overrides}")
+                saved_playlist = data.get("playlist", [])
+                valid = [m for m in saved_playlist if m in self._modes]
+                if valid:
+                    self._playlist = valid
+                    self._current_mode_name = valid[0]
+                self._rotation_interval = data.get("rotation_interval", 300)
+                log.debug(f"Loaded user prefs: intervals={self._interval_overrides}, playlist={self._playlist}")
         except Exception as exc:
             log.warning(f"Could not load user_prefs.json: {exc}")
 
     def _save_prefs(self) -> None:
         try:
-            self._prefs_path.write_text(json.dumps({"intervals": self._interval_overrides}, indent=2))
+            data = {
+                "intervals": self._interval_overrides,
+                "playlist": self._playlist,
+                "rotation_interval": self._rotation_interval,
+            }
+            self._prefs_path.write_text(json.dumps(data, indent=2))
         except Exception as exc:
             log.warning(f"Could not save user_prefs.json: {exc}")
 
@@ -309,10 +339,23 @@ class Orchestrator:
                 self._update_status_cache(active_name, now, last_error, state_extra)
                 log.debug("LOOP ── status cache updated.")
 
-                interval = self._effective_interval(active_name, active.refresh_interval)
-                log.debug(f"LOOP ── sleeping {interval}s ...")
+                rotating = len(self._playlist) > 1
+                interval = self._rotation_interval if rotating else self._effective_interval(active_name, active.refresh_interval)
+                log.debug(f"LOOP ── sleeping {interval}s (rotation={rotating}) ...")
                 interrupted = self._timer.wait(interval)
                 log.debug(f"LOOP ── awake. interrupted={interrupted}, queue={self._action_queue.qsize()}")
+
+                if not interrupted and rotating:
+                    with self._lock:
+                        self._playlist_index = (self._playlist_index + 1) % len(self._playlist)
+                        next_mode = self._playlist[self._playlist_index]
+                        if next_mode != self._current_mode_name:
+                            old = self._current_mode_name
+                            self._modes[old].on_deactivate()
+                            self._current_mode_name = next_mode
+                            self._modes[next_mode].on_activate()
+                            self._suspended_displayed = False
+                            log.info(f"Playlist advance: {old} → {next_mode}")
 
             except KeyboardInterrupt:
                 log.info("Orchestrator stopped by KeyboardInterrupt")

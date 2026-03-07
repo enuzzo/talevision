@@ -103,6 +103,22 @@ def update_suspend():
         return jsonify({"error": str(exc)}), 500
 
 
+@api_bp.post("/playlist")
+def set_playlist():
+    """POST /api/playlist — {"modes": ["litclock", "slowmovie"], "rotation_interval": 300}"""
+    body = request.get_json(silent=True) or {}
+    modes = body.get("modes", [])
+    rotation_interval = body.get("rotation_interval", 300)
+    if not modes or not isinstance(modes, list):
+        return jsonify({"error": "Missing or invalid 'modes' list"}), 400
+    try:
+        _orchestrator().set_playlist(modes, int(rotation_interval))
+        return jsonify({"ok": True})
+    except Exception as exc:
+        log.error(f"Set playlist error: {exc}")
+        return jsonify({"error": str(exc)}), 500
+
+
 @api_bp.get("/interval")
 def get_intervals():
     """GET /api/interval — effective refresh intervals for all modes."""

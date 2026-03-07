@@ -355,6 +355,16 @@ pip-audit -r requirements.txt
 
 ---
 
+## Upcoming Modes
+
+TaleVision is designed as a multi-mode playlist system. Modes can run alone or cycle in rotation with a unified interval. These are next:
+
+**Teletext** — Ceefax/Oracle/Viewdata-style retro teletext pages. Mode 7 font, block graphics, 40×25 character grid. Archives of real teletext pages from the '70s–'80s rendered to the e-ink display. Coming soon.
+
+**ANSi Art** — ANSI art from the BBS artscene, displayed as a slow gallery. The art shown in this mode comes from the incredible archives at **[Sixteen Colors](https://16colo.rs/)** — the definitive collection of ANSI, ASCII, and artscene work spanning decades of digital art history. All artwork is the creation of the original artists and artgroups credited in each file. TaleVision displays these works with deep respect and admiration for the scene that produced them. If you enjoy what you see on the display, visit [16colo.rs](https://16colo.rs/) and explore — the talent, craft, and community behind this art form is extraordinary.
+
+---
+
 ## License
 
 [MIT](./LICENSE) — Netmilk Studio sagl.

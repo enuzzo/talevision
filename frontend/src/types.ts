@@ -20,4 +20,7 @@ export interface Status {
   quote?: string | null
   suspend?: SuspendConfig
   intervals?: Record<string, ModeInterval>
+  playlist?: string[]
+  playlist_index?: number
+  rotation_interval?: number
 }

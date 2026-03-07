@@ -45,4 +45,11 @@ export const api = {
 
   resetInterval: (mode: string) =>
     fetch(`/api/interval/${mode}`, { method: 'DELETE' }).then(r => json<{ ok: boolean }>(r)),
+
+  setPlaylist: (modes: string[], rotation_interval: number) =>
+    fetch('/api/playlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ modes, rotation_interval }),
+    }).then(r => json<{ ok: boolean }>(r)),
 }

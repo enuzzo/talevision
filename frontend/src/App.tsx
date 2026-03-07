@@ -14,7 +14,6 @@ function cx(...classes: (string | false | null | undefined)[]) {
 
 function toDate(val: string | number | null | undefined): Date | null {
   if (val == null) return null
-  // last_update comes as Unix seconds (float); ISO strings also handled
   const n = typeof val === 'number' ? val * 1000 : parseFloat(String(val))
   const d = isNaN(n) ? new Date(String(val)) : new Date(n)
   return isNaN(d.getTime()) ? null : d
@@ -37,22 +36,28 @@ function formatTime(val: string | number | null | undefined): string {
 }
 
 const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
-const MODES = ['litclock', 'slowmovie'] as const
-type Mode = typeof MODES[number]
 
-const MODE_LABEL: Record<Mode, string> = {
-  litclock: 'LitClock',
-  slowmovie: 'SlowMovie',
+// ─── Mode Registry ──────────────────────────────────────────────────────────
+
+interface ModeInfo {
+  id: string
+  label: string
+  icon: string
+  color: string
+  available: boolean
 }
 
-const MODE_ICON: Record<Mode, string> = {
-  litclock: '🕐',
-  slowmovie: '🎬',
-}
+const ALL_MODES: ModeInfo[] = [
+  { id: 'litclock',  label: 'LitClock',  icon: '🕐', color: '#4a7fa5', available: true },
+  { id: 'slowmovie', label: 'SlowMovie', icon: '🎬', color: '#c8923a', available: true },
+  { id: 'teletext',  label: 'Teletext',  icon: '📺', color: '#6a9a7a', available: false },
+  { id: 'ansi',      label: 'ANSi Art',  icon: '▓',  color: '#9a6ab5', available: false },
+]
 
-const MODE_COLOR: Record<Mode, string> = {
-  litclock: '#4a7fa5',
-  slowmovie: '#c8923a',
+const MODE_MAP = Object.fromEntries(ALL_MODES.map(m => [m.id, m]))
+
+function getModeInfo(id: string): ModeInfo {
+  return MODE_MAP[id] ?? { id, label: id, icon: '?', color: '#6b6b73', available: false }
 }
 
 // ─── Live Clock ─────────────────────────────────────────────────────────────
@@ -80,42 +85,38 @@ function RenderingOverlay({ mode }: { mode: string }) {
     return () => clearInterval(id)
   }, [])
   const dots = '.'.repeat(tick)
-  const color = MODES.includes(mode as Mode) ? MODE_COLOR[mode as Mode] : '#c8923a'
-  const icon = MODE_ICON[mode as Mode] ?? ''
+  const info = getModeInfo(mode)
 
   return (
     <div className="absolute inset-0 z-20 bg-black flex items-center justify-center overflow-hidden">
-      {/* Sweeping scan line */}
       <div
         className="absolute left-0 right-0 h-px pointer-events-none"
         style={{
-          background: `linear-gradient(to right, transparent, ${color}90, transparent)`,
-          boxShadow: `0 0 18px 6px ${color}30`,
+          background: `linear-gradient(to right, transparent, ${info.color}90, transparent)`,
+          boxShadow: `0 0 18px 6px ${info.color}30`,
           animation: 'scanSweep 2.6s linear infinite',
         }}
       />
-      {/* Corner brackets */}
       {(['top-5 left-5 border-t-2 border-l-2', 'top-5 right-5 border-t-2 border-r-2',
          'bottom-5 left-5 border-b-2 border-l-2', 'bottom-5 right-5 border-b-2 border-r-2'] as const
       ).map((cls, i) => (
-        <div key={i} className={`absolute w-7 h-7 ${cls}`} style={{ borderColor: `${color}65` }} />
+        <div key={i} className={`absolute w-7 h-7 ${cls}`} style={{ borderColor: `${info.color}65` }} />
       ))}
-      {/* Center */}
       <div className="flex flex-col items-center gap-5">
         <div className="relative w-14 h-14 flex items-center justify-center">
           <div className="absolute inset-0 rounded-full border"
-            style={{ borderColor: `${color}45`, animation: 'ringPulse 2s ease-out infinite' }} />
+            style={{ borderColor: `${info.color}45`, animation: 'ringPulse 2s ease-out infinite' }} />
           <div className="absolute inset-2 rounded-full border"
-            style={{ borderColor: `${color}25`, animation: 'ringPulse 2s ease-out infinite 0.55s' }} />
+            style={{ borderColor: `${info.color}25`, animation: 'ringPulse 2s ease-out infinite 0.55s' }} />
           <div className="w-2 h-2 rounded-full"
-            style={{ backgroundColor: color, animation: 'dotBlink 1.2s ease-in-out infinite' }} />
+            style={{ backgroundColor: info.color, animation: 'dotBlink 1.2s ease-in-out infinite' }} />
         </div>
         <div className="text-center">
-          <div className="font-display text-xs font-semibold tracking-[0.6em] uppercase" style={{ color }}>
+          <div className="font-display text-xs font-semibold tracking-[0.6em] uppercase" style={{ color: info.color }}>
             Rendering
           </div>
           <div className="font-mono text-[10px] tracking-[0.25em] text-secondary/50 mt-1">
-            {icon} {mode}{dots}
+            {info.icon} {mode}{dots}
           </div>
         </div>
       </div>
@@ -137,7 +138,6 @@ function FramePreview({ refreshKey, waiting, waitingMode }: { refreshKey: number
 
   return (
     <div className="relative w-full bg-black border border-border" style={{ aspectRatio: '5/3' }}>
-      {/* Matte frame lines */}
       <div className="absolute inset-[6px] border border-border/40 pointer-events-none z-10" />
 
       {waiting && <RenderingOverlay mode={waitingMode} />}
@@ -172,46 +172,219 @@ function FramePreview({ refreshKey, waiting, waitingMode }: { refreshKey: number
   )
 }
 
-// ─── Mode Selector ───────────────────────────────────────────────────────────
+// ─── Playlist Editor ────────────────────────────────────────────────────────
 
-function ModeSelector({
-  current,
-  onSwitch,
-  switching,
+function PlaylistEditor({
+  playlist,
+  rotationInterval,
+  currentMode,
+  onSave,
+  saving,
 }: {
-  current: string
-  onSwitch: (m: Mode) => void
-  switching: boolean
+  playlist: string[]
+  rotationInterval: number
+  currentMode: string
+  onSave: (modes: string[], interval: number) => void
+  saving: boolean
 }) {
+  const [items, setItems] = useState<string[]>([])
+  const [enabled, setEnabled] = useState<Set<string>>(new Set())
+  const [interval, setIntervalVal] = useState(Math.round(rotationInterval / 60))
+  const [saved, setSaved] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+  const syncedRef = useRef(false)
+
+  useEffect(() => {
+    if (syncedRef.current) return
+    if (playlist.length === 0) return
+    syncedRef.current = true
+
+    const orderedEnabled = [...playlist]
+    const disabledAvailable = ALL_MODES
+      .filter(m => m.available && !playlist.includes(m.id))
+      .map(m => m.id)
+    const comingSoon = ALL_MODES.filter(m => !m.available).map(m => m.id)
+
+    setItems([...orderedEnabled, ...disabledAvailable, ...comingSoon])
+    setEnabled(new Set(playlist))
+    setIntervalVal(Math.round(rotationInterval / 60))
+  }, [playlist, rotationInterval])
+
+  const toggleMode = (id: string) => {
+    const info = getModeInfo(id)
+    if (!info.available) return
+    setEnabled(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        if (next.size <= 1) return prev
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  const moveUp = (idx: number) => {
+    if (idx <= 0) return
+    setItems(prev => {
+      const next = [...prev]
+      ;[next[idx - 1], next[idx]] = [next[idx], next[idx - 1]]
+      return next
+    })
+  }
+
+  const moveDown = (idx: number) => {
+    setItems(prev => {
+      if (idx >= prev.length - 1) return prev
+      const next = [...prev]
+      ;[next[idx], next[idx + 1]] = [next[idx + 1], next[idx]]
+      return next
+    })
+  }
+
+  const handleSave = () => {
+    const orderedEnabled = items.filter(id => enabled.has(id))
+    onSave(orderedEnabled, interval * 60)
+    setSaved(true)
+    clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => setSaved(false), 2500)
+  }
+
+  const enabledCount = enabled.size
+  const isRotating = enabledCount > 1
+
   return (
-    <div className="flex items-center gap-8">
-      {MODES.map(m => {
-        const active = current === m
-        const color = MODE_COLOR[m]
-        return (
-          <button
-            key={m}
-            onClick={() => !active && onSwitch(m)}
-            disabled={switching}
-            className={cx(
-              'relative flex items-center gap-2 font-display text-xl font-semibold pb-1 transition-colors duration-200 outline-none',
-              'disabled:cursor-wait',
-              active ? 'cursor-default' : 'text-secondary hover:text-primary/70 cursor-pointer',
-            )}
-            style={{ color: active ? color : undefined }}
-          >
-            <span className="text-base">{MODE_ICON[m]}</span>
-            {MODE_LABEL[m]}
-            <span
-              className="absolute bottom-0 left-0 h-px transition-all duration-300"
-              style={{ width: active ? '100%' : '0%', backgroundColor: color }}
-            />
-          </button>
-        )
-      })}
-      {switching && (
-        <span className="label animate-pulse-amber">switching…</span>
+    <div className="space-y-4">
+      <div className="space-y-1">
+        {items.map((id, idx) => {
+          const info = getModeInfo(id)
+          const isEnabled = enabled.has(id)
+          const isCurrent = id === currentMode
+          const isComingSoon = !info.available
+
+          return (
+            <div
+              key={id}
+              className={cx(
+                'group flex items-center gap-3 px-3 py-2.5 border transition-all duration-150',
+                isComingSoon
+                  ? 'border-border/30 opacity-40'
+                  : isEnabled
+                    ? 'border-border bg-surface/50'
+                    : 'border-border/50 opacity-60',
+              )}
+            >
+              {/* Checkbox */}
+              <button
+                onClick={() => toggleMode(id)}
+                disabled={isComingSoon}
+                className={cx(
+                  'w-4 h-4 border flex items-center justify-center flex-shrink-0 transition-all duration-150',
+                  isComingSoon
+                    ? 'border-border/40 cursor-not-allowed'
+                    : isEnabled
+                      ? 'cursor-pointer'
+                      : 'border-border hover:border-accent/50 cursor-pointer',
+                )}
+                style={{
+                  borderColor: isEnabled ? info.color : undefined,
+                  backgroundColor: isEnabled ? info.color : undefined,
+                }}
+              >
+                {isEnabled && (
+                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                    <path d="M1 4l2.5 2.5L9 1" stroke="#0a0a0c" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </button>
+
+              {/* Icon + Name */}
+              <span className="text-sm flex-shrink-0 w-5 text-center" style={{ color: isEnabled ? info.color : undefined }}>
+                {info.icon}
+              </span>
+              <span
+                className={cx(
+                  'font-display text-sm font-semibold tracking-wide flex-1',
+                  isComingSoon ? 'text-secondary/50' : isEnabled ? 'text-primary' : 'text-secondary',
+                )}
+                style={{ color: isEnabled && !isComingSoon ? info.color : undefined }}
+              >
+                {info.label}
+              </span>
+
+              {/* Current indicator */}
+              {isCurrent && (
+                <span className="label text-[8px]" style={{ color: info.color }}>NOW</span>
+              )}
+
+              {/* Coming soon badge */}
+              {isComingSoon && (
+                <span className="font-mono text-[8px] uppercase tracking-[0.15em] text-secondary/40 border border-border/40 px-1.5 py-0.5">
+                  soon
+                </span>
+              )}
+
+              {/* Reorder arrows — only for available modes */}
+              {!isComingSoon && (
+                <div className="flex flex-col gap-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => moveUp(idx)}
+                    disabled={idx === 0}
+                    className="text-secondary hover:text-accent disabled:text-border transition-colors p-0 leading-none"
+                  >
+                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+                      <path d="M9 5L5 1 1 5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => moveDown(idx)}
+                    disabled={idx === items.length - 1}
+                    className="text-secondary hover:text-accent disabled:text-border transition-colors p-0 leading-none"
+                  >
+                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+                      <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Rotation interval — visible when 2+ modes enabled */}
+      {isRotating && (
+        <div className="flex items-center gap-3 px-1 animate-fade-in">
+          <span className="label flex-shrink-0">Rotation</span>
+          <input
+            type="number"
+            min={1}
+            max={60}
+            value={interval}
+            onChange={e => setIntervalVal(Math.max(1, parseInt(e.target.value) || 1))}
+            className="w-16 bg-surface border border-border text-primary font-mono text-sm px-2 py-1 outline-none focus:border-accent transition-colors text-center"
+          />
+          <span className="label">min</span>
+          <span className="label text-accent/60 ml-auto">
+            {enabledCount} modes · {interval * enabledCount} min cycle
+          </span>
+        </div>
       )}
+
+      {/* Save button */}
+      <div className="flex items-center gap-3 pt-1">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="font-mono text-xs uppercase tracking-widest px-4 py-2 bg-surface border border-border text-primary hover:border-accent hover:text-accent transition-all duration-150 disabled:opacity-50 disabled:cursor-wait"
+        >
+          {saving ? 'Saving…' : 'Save playlist'}
+        </button>
+        {saved && (
+          <span className="label text-success animate-fade-in">Saved</span>
+        )}
+      </div>
     </div>
   )
 }
@@ -240,7 +413,6 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
   const [activeTo, setActiveTo] = useState('18:00')
   const [days, setDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6])
 
-  // Sync from server exactly once, as soon as status arrives
   const syncedRef = useRef(false)
   useEffect(() => {
     if (!initial || syncedRef.current) return
@@ -256,8 +428,8 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
   const mut = useMutation({
     mutationFn: () => api.suspend({
       enabled,
-      start: activeTo,    // device goes to sleep at active end
-      end: activeFrom,    // device wakes at active start
+      start: activeTo,
+      end: activeFrom,
       days,
     }),
     onSuccess: () => {
@@ -365,7 +537,6 @@ function IntervalRow({
   const qc = useQueryClient()
   const [minutes, setMinutes] = useState(Math.round(data.effective / 60))
 
-  // Keep input in sync if the effective value changes externally (e.g. after reset)
   useEffect(() => {
     setMinutes(Math.round(data.effective / 60))
   }, [data.effective])
@@ -486,7 +657,6 @@ export default function App() {
   const clock = useClock()
   const qc = useQueryClient()
   const [refreshKey, setRefreshKey] = useState(Date.now())
-  const [optimisticMode, setOptimisticMode] = useState<string | null>(null)
   const [waitingSince, setWaitingSince] = useState<number | null>(null)
   const waiting = waitingSince !== null
 
@@ -496,7 +666,6 @@ export default function App() {
     refetchInterval: waiting ? 2000 : 12_000,
   })
 
-  // Detect when Pi finishes rendering the new frame
   useEffect(() => {
     if (!waiting || !waitingSince || !status?.last_update) return
     const lu = typeof status.last_update === 'number'
@@ -508,20 +677,23 @@ export default function App() {
     }
   }, [status?.last_update, waiting, waitingSince])
 
-  // Safety timeout: stop waiting after 120s regardless
   useEffect(() => {
     if (!waiting) return
     const id = setTimeout(() => { setWaitingSince(null); setRefreshKey(Date.now()) }, 120_000)
     return () => clearTimeout(id)
   }, [waiting])
 
-  const currentMode = optimisticMode ?? status?.mode ?? '—'
+  const currentMode = status?.mode ?? '—'
+  const playlist = status?.playlist ?? [currentMode]
+  const rotationInterval = status?.rotation_interval ?? 300
+  const isRotating = playlist.length > 1
+  const currentModeInfo = getModeInfo(currentMode)
 
-  const modeMut = useMutation({
-    mutationFn: (m: Mode) => api.setMode(m),
-    onMutate: (m) => { setOptimisticMode(m); setWaitingSince(Date.now()) },
+  const playlistMut = useMutation({
+    mutationFn: ({ modes, interval }: { modes: string[]; interval: number }) =>
+      api.setPlaylist(modes, interval),
+    onMutate: () => setWaitingSince(Date.now()),
     onSuccess: () => { void qc.invalidateQueries({ queryKey: ['status'] }) },
-    onSettled: () => setOptimisticMode(null),
   })
 
   const refreshMut = useMutation({
@@ -561,12 +733,14 @@ export default function App() {
                 style={{
                   color: isError ? '#9a4a4a' :
                          isSuspended ? '#6b6b73' :
-                         MODES.includes(currentMode as Mode) ? MODE_COLOR[currentMode as Mode] : undefined,
+                         currentModeInfo.color,
                 }}
               >
                 {isError ? 'offline' :
                  isSuspended ? '⏸ suspended' :
-                 `${MODE_ICON[currentMode as Mode] ?? ''} ${currentMode}`}
+                 isRotating
+                   ? `${currentModeInfo.icon} ${currentMode} · ${playlist.length} in rotation`
+                   : `${currentModeInfo.icon} ${currentMode}`}
               </span>
             </div>
           </div>
@@ -581,36 +755,43 @@ export default function App() {
           <FramePreview refreshKey={refreshKey} waiting={waiting} waitingMode={currentMode} />
         </section>
 
-        {/* Mode + Refresh row */}
-        <section className="flex items-center justify-between">
-          <ModeSelector
-            current={currentMode}
-            onSwitch={m => modeMut.mutate(m)}
-            switching={modeMut.isPending}
-          />
-          <button
-            onClick={handleRefresh}
-            disabled={refreshMut.isPending}
-            className={cx(
-              'flex items-center gap-2 font-mono text-xs uppercase tracking-widest',
-              'px-4 py-2 border transition-all duration-150 outline-none',
-              refreshMut.isPending
-                ? 'border-accent/30 text-accent/50 cursor-wait'
-                : 'border-border text-secondary hover:border-accent hover:text-accent cursor-pointer',
-            )}
-          >
-            <svg
-              width="12" height="12" viewBox="0 0 12 12" fill="none"
-              className={refreshMut.isPending ? 'animate-spin' : ''}
+        {/* Playlist + Refresh row */}
+        <section className="flex items-start justify-between gap-8">
+          <div className="flex-1 min-w-0">
+            <div className="label mb-3">Playlist</div>
+            <PlaylistEditor
+              playlist={playlist}
+              rotationInterval={rotationInterval}
+              currentMode={currentMode}
+              onSave={(modes, interval) => playlistMut.mutate({ modes, interval })}
+              saving={playlistMut.isPending}
+            />
+          </div>
+          <div className="flex flex-col items-end gap-3 pt-7 flex-shrink-0">
+            <button
+              onClick={handleRefresh}
+              disabled={refreshMut.isPending}
+              className={cx(
+                'flex items-center gap-2 font-mono text-xs uppercase tracking-widest',
+                'px-4 py-2 border transition-all duration-150 outline-none',
+                refreshMut.isPending
+                  ? 'border-accent/30 text-accent/50 cursor-wait'
+                  : 'border-border text-secondary hover:border-accent hover:text-accent cursor-pointer',
+              )}
             >
-              <path
-                d="M10.5 6a4.5 4.5 0 1 1-1.32-3.18"
-                stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"
-              />
-              <path d="M9 1.5h2.25V3.75" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            {refreshMut.isPending ? 'Rendering…' : 'Force refresh'}
-          </button>
+              <svg
+                width="12" height="12" viewBox="0 0 12 12" fill="none"
+                className={refreshMut.isPending ? 'animate-spin' : ''}
+              >
+                <path
+                  d="M10.5 6a4.5 4.5 0 1 1-1.32-3.18"
+                  stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"
+                />
+                <path d="M9 1.5h2.25V3.75" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              {refreshMut.isPending ? 'Rendering…' : 'Force refresh'}
+            </button>
+          </div>
         </section>
 
         <div className="border-t border-border" />
@@ -624,8 +805,22 @@ export default function App() {
             <div>
               <StatusRow
                 label="Mode"
-                value={<span className="font-display text-base font-semibold uppercase tracking-wider">{currentMode}</span>}
+                value={
+                  <span className="font-display text-base font-semibold uppercase tracking-wider" style={{ color: currentModeInfo.color }}>
+                    {currentModeInfo.icon} {currentMode}
+                  </span>
+                }
               />
+              {isRotating && (
+                <StatusRow
+                  label="Rotation"
+                  value={
+                    <span className="text-accent">
+                      {playlist.map(id => getModeInfo(id).icon).join(' → ')} · {fmtInterval(rotationInterval)}
+                    </span>
+                  }
+                />
+              )}
               <StatusRow
                 label="Suspended"
                 value={
@@ -647,7 +842,7 @@ export default function App() {
               {status?.video && (
                 <StatusRow
                   label="🎬 Film"
-                  value={<span className="font-display text-base font-semibold" style={{ color: MODE_COLOR.slowmovie }}>{status.video}</span>}
+                  value={<span className="font-display text-base font-semibold" style={{ color: getModeInfo('slowmovie').color }}>{status.video}</span>}
                 />
               )}
               {status?.quote && (
@@ -671,19 +866,19 @@ export default function App() {
 
         </section>
 
-        {/* Refresh intervals */}
-        {status?.intervals && Object.keys(status.intervals).length > 0 && (
+        {/* Refresh intervals — only in single mode */}
+        {!isRotating && status?.intervals && Object.keys(status.intervals).length > 0 && (
           <section>
             <div className="border-t border-border mb-6" />
             <div className="label mb-4">Refresh intervals</div>
             <div>
-              {MODES.filter(m => status.intervals![m]).map(m => (
+              {ALL_MODES.filter(m => m.available && status.intervals![m.id]).map(m => (
                 <IntervalRow
-                  key={m}
-                  modeName={m}
-                  data={status.intervals![m]}
-                  color={MODE_COLOR[m]}
-                  icon={MODE_ICON[m]}
+                  key={m.id}
+                  modeName={m.id}
+                  data={status.intervals![m.id]}
+                  color={m.color}
+                  icon={m.icon}
                 />
               ))}
             </div>
