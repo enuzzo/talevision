@@ -197,24 +197,24 @@ class Orchestrator:
 
         while True:
             try:
-                log.info(f"LOOP ── top. queue={self._action_queue.qsize()} mode={self._current_mode_name}")
+                log.debug(f"LOOP ── top. queue={self._action_queue.qsize()} mode={self._current_mode_name}")
                 self._process_actions()
 
                 with self._lock:
                     active_name = self._current_mode_name
-                log.info(f"LOOP ── active mode: {active_name}")
+                log.debug(f"LOOP ── active mode: {active_name}")
                 active = self._modes[active_name]
 
                 is_suspended = self._scheduler.is_suspended()
 
                 if is_suspended and self._suspended_displayed:
-                    log.info("LOOP ── suspended, sleeping")
+                    log.debug("LOOP ── suspended, sleeping")
                     self._timer.wait(active.refresh_interval)
                     continue
 
-                log.info(f"LOOP ── render() starting ...")
+                log.debug(f"LOOP ── render() starting ...")
                 frame = active.render(is_suspended=is_suspended)
-                log.info("LOOP ── render() done. canvas.show() starting ...")
+                log.debug("LOOP ── render() done. canvas.show() starting ...")
 
                 if is_suspended:
                     self._suspended_displayed = True
@@ -222,10 +222,10 @@ class Orchestrator:
                     self._suspended_displayed = False
 
                 self._canvas.show(frame)
-                log.info("LOOP ── canvas.show() done. saving frame ...")
+                log.debug("LOOP ── canvas.show() done. saving frame ...")
 
                 self._save_frame(frame, active_name)
-                log.info("LOOP ── frame saved. updating status cache ...")
+                log.debug("LOOP ── frame saved. updating status cache ...")
 
                 mode_obj = self._modes.get(active_name)
                 state = mode_obj.get_state() if mode_obj else None
@@ -233,12 +233,12 @@ class Orchestrator:
                 now = time.time()
                 last_error = None
                 self._update_status_cache(active_name, now, last_error, state_extra)
-                log.info("LOOP ── status cache updated.")
+                log.debug("LOOP ── status cache updated.")
 
                 interval = active.refresh_interval
-                log.info(f"LOOP ── sleeping {interval}s ...")
+                log.debug(f"LOOP ── sleeping {interval}s ...")
                 interrupted = self._timer.wait(interval)
-                log.info(f"LOOP ── awake. interrupted={interrupted}, queue={self._action_queue.qsize()}")
+                log.debug(f"LOOP ── awake. interrupted={interrupted}, queue={self._action_queue.qsize()}")
 
             except KeyboardInterrupt:
                 log.info("Orchestrator stopped by KeyboardInterrupt")
