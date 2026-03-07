@@ -31,6 +31,10 @@ venv/
 *.egg-info/
 dist/
 build/
+# Commit the built frontend bundle (Pi has no Node to build locally)
+!talevision/web/static/dist/
+# Ignore node_modules inside frontend/
+frontend/node_modules/
 
 # OS
 .DS_Store
