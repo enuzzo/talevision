@@ -11,21 +11,27 @@ function cx(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(' ')
 }
 
-function formatRelative(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return iso
-  const diff = Math.floor((Date.now() - d.getTime()) / 1000)
-  if (diff < 5) return 'just now'
-  if (diff < 60) return `${diff}s ago`
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-  return `${Math.floor(diff / 3600)}h ago`
+function toDate(val: string | number | null | undefined): Date | null {
+  if (val == null) return null
+  // last_update comes as Unix seconds (float); ISO strings also handled
+  const n = typeof val === 'number' ? val * 1000 : parseFloat(String(val))
+  const d = isNaN(n) ? new Date(String(val)) : new Date(n)
+  return isNaN(d.getTime()) ? null : d
 }
 
-function formatTime(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return iso
+function formatLastRender(val: string | number | null | undefined): string {
+  const d = toDate(val)
+  if (!d) return '—'
+  const today = new Date()
+  const isToday = d.toDateString() === today.toDateString()
+  const time = d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+  if (isToday) return `today ${time}`
+  return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short' }) + ` ${time}`
+}
+
+function formatTime(val: string | number | null | undefined): string {
+  const d = toDate(val)
+  if (!d) return '—'
   return d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
 }
 
@@ -542,7 +548,7 @@ export default function App() {
               />
               <StatusRow
                 label="Last render"
-                value={formatRelative(status?.last_update)}
+                value={formatLastRender(status?.last_update)}
               />
               {status?.next_wake && (
                 <StatusRow

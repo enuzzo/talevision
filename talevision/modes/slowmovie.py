@@ -128,6 +128,14 @@ class SlowMovieMode(DisplayMode):
             log.info(f"  {len(available)} video(s) ready in media/")
         else:
             log.warning("  No videos found in media/ — add .mp4/.mkv/.avi/.mov files")
+        import threading
+        from talevision.media.sidecars import auto_generate_missing
+        t = threading.Thread(
+            target=auto_generate_missing,
+            args=(self._base_dir / self._cfg.media_dir, self._base_dir / "secrets.yaml"),
+            daemon=True,
+        )
+        t.start()
 
     def on_deactivate(self) -> None:
         log.info("SlowMovie deactivated")
