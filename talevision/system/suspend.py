@@ -71,6 +71,16 @@ class SuspendScheduler:
                 candidate += datetime.timedelta(days=1)
             return candidate
 
+    def get_config(self) -> dict:
+        """Return the current schedule config as a dict (thread-safe)."""
+        with self._lock:
+            return {
+                "enabled": self._enabled,
+                "start": self._start_str,
+                "end": self._end_str,
+                "days": list(self._days),
+            }
+
     def update(self, start: str, end: str, days: List[int], enabled: bool) -> None:
         """Thread-safe config update (called from API handler)."""
         with self._lock:

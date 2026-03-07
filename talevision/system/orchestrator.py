@@ -82,6 +82,7 @@ class Orchestrator:
             }
             for name, mode in self._modes.items()
         }
+        status["suspend"] = self._scheduler.get_config()
         return status
 
     def get_frame_path(self, mode: Optional[str] = None) -> Optional[Path]:
