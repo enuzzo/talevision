@@ -247,15 +247,17 @@ class Orchestrator:
 
     def _render_suspend_screen(self) -> Image.Image:
         from talevision.render.suspend_screen import render_suspend_screen
-        cfg = self._config.suspend
+        cfg = self._scheduler.get_config()
         next_wake = self._scheduler.next_wake_time()
         size = (self._canvas.width, self._canvas.height)
+        suspend_days = cfg["days"]
+        active_days = [d for d in range(7) if d not in suspend_days]
         try:
             return render_suspend_screen(
-                start=cfg.start,
-                end=cfg.end,
-                days=list(cfg.days),
-                enabled=cfg.enabled,
+                start=cfg["end"],
+                end=cfg["start"],
+                days=active_days,
+                enabled=cfg["enabled"],
                 next_wake=next_wake,
                 canvas_size=size,
                 base_dir=self._base_dir,
