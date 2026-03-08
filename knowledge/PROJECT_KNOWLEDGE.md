@@ -20,7 +20,7 @@ Stable technical context for all assistants.
 - Image: Pillow 10+, ffmpeg (system-installed via apt on Pi)
 - Config: PyYAML + dacite dataclasses
 - Typography: Babel (locale formatting), Signika + Taviraj TTF fonts
-- Display: Pimoroni Inky Impression 7-colour, 800×480 px, 7-colour e-ink (SPI)
+- Display: Pimoroni Inky Impression 7-colour, 800×480 px, 7-colour e-ink (SPI). Driver: `inky.inky_ac073tc1a.Inky` (NOT `inky.auto` — no EEPROM on this board). Init: `Inky(resolution=(800, 480))`.
 - Target platform: Raspberry Pi Zero W (armv6l, 512MB RAM), Raspbian Trixie (Debian 13)
 - Dev platform: macOS or Linux (no hardware required for render pipeline)
 - Network: LAN + Tailscale; WebUI reachable at LAN IP, `talevision.local`, or Tailscale IP
@@ -202,6 +202,8 @@ LOOP-step log messages in `orchestrator.py` are at **DEBUG** level (changed from
 - **GPIO group**: run as the deploy user or add to `gpio` group; otherwise button polling silently no-ops.
 - **Panel refresh**: e-ink takes ~30 s to update; software intervals (300 s / 90 s) are longer by design — this is not a bug.
 - **SPI chip select conflict (CRITICAL)**: on Trixie, Inky SPI fails with default `dtparam=spi=on`. Add `dtoverlay=spi0-0cs` on the line after `dtparam=spi=on` in `/boot/firmware/config.txt`, then reboot. Without this, display never initializes.
+- **Inky Impression 7" has NO EEPROM**: `inky.auto.auto()` always fails with "No EEPROM detected!". Must use `from inky.inky_ac073tc1a import Inky` with explicit `resolution=(800, 480)`. The older `inky.inky_uc8159` does NOT support 800×480. Library version: inky 2.3.0.
+- **Inky 7-colour native palette**: Black (0,0,0), White (255,255,255), Red (255,0,0), Green (0,255,0), Blue (0,0,255), Yellow (255,255,0), Orange (255,128,0). Pure colours render crisp; intermediate colours get dithered.
 - **IP detection on Pi Zero W**: `socket.getaddrinfo()` does not return LAN/Tailscale IPs; `main.py` uses `subprocess.check_output(["hostname", "-I"])` instead.
 - **Orchestrator status cache**: `get_status()` reads from `_status_cache` dict protected by a separate `_status_lock`, never the render lock — prevents Flask threads from blocking during long SPI writes (~56 s).
 - **waitress required**: without waitress, Flask dev server runs instead — acceptable on Pi but not ideal.

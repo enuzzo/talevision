@@ -15,7 +15,7 @@ from talevision.config.schema import DisplayConfig
 log = logging.getLogger(__name__)
 
 try:
-    from inky.auto import auto as InkyAutoDisplay
+    from inky.inky_ac073tc1a import Inky as InkyImpression7
     warnings.filterwarnings("ignore", message="Busy Wait: Held high.*")
     INKY_AVAILABLE = True
 except ImportError:
@@ -46,7 +46,9 @@ class InkyCanvas:
             log.info("Inky library not available — running in simulation mode")
             return
         try:
-            self._display = InkyAutoDisplay(ask_user=False, verbose=False)
+            self._display = InkyImpression7(
+                resolution=(self._cfg.width, self._cfg.height),
+            )
             log.info(
                 f"Inky display initialized: {self._display.__class__.__name__} "
                 f"{self._display.resolution[0]}x{self._display.resolution[1]}"
