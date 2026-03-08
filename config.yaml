@@ -19,9 +19,9 @@ logging:
 
 suspend:
   enabled: true
-  start: "23:00"
-  end: "07:00"
-  days: [0,1,2,3,4,5,6]   # 0=Mon … 6=Sun; empty = all days
+  start: "17:30"
+  end: "09:30"
+  days: [5,6]   # 0=Mon … 6=Sun; suspend days (fully off). Active: Mon-Fri 09:30–17:30
   message: "TaleVision — Netmilk Studio"
   logo_path: "assets/icons/logo.png"
 
