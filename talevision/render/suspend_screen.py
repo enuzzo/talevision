@@ -17,8 +17,15 @@ TL, TR, BL, BR = "╔", "╗", "╚", "╝"
 LM, RM = "╠", "╣"
 
 
-def _load_font(base_dir: Path, size: int) -> ImageFont.FreeTypeFont:
-    candidates = [
+def _load_font(base_dir: Path, size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
+    if bold:
+        candidates = [
+            base_dir / "assets" / "fonts" / "DejaVuSansMono-Bold.ttf",
+            Path("/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf"),
+        ]
+    else:
+        candidates = []
+    candidates += [
         base_dir / "assets" / "fonts" / "DejaVuSansMono.ttf",
         Path("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"),
         Path("/Library/Fonts/Courier New.ttf"),
@@ -63,9 +70,9 @@ def render_suspend_screen(
     img = Image.new("RGB", (W, H_px), (0, 0, 0))
     draw = ImageDraw.Draw(img)
 
-    font_lg = _load_font(base_dir, 20)
-    font_md = _load_font(base_dir, 16)
-    font_sm = _load_font(base_dir, 13)
+    font_lg = _load_font(base_dir, 22, bold=True)
+    font_md = _load_font(base_dir, 17, bold=True)
+    font_sm = _load_font(base_dir, 14, bold=True)
 
     now = datetime.datetime.now()
 
