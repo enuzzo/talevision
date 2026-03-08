@@ -190,12 +190,7 @@ def render_welcome_screen(
         x_box = (W - text_w(line, font_sm)) // 2
         # Box frame chars in black, content in green
         if line.startswith(V):
-            # Draw the full line in green first, then overwrite box chars in black
-            draw.text((x_box, y), line, font=font_sm, fill=GREEN)
-            # Redraw the first and last box-drawing chars in black
-            draw.text((x_box, y), V, font=font_sm, fill=BLACK)
-            last_v_x = x_box + text_w(line[:-1], font_sm)
-            draw.text((last_v_x, y), V, font=font_sm, fill=BLACK)
+            draw.text((x_box, y), line, font=font_sm, fill=BLACK)
         elif line.startswith(LM):
             draw.text((x_box, y), line, font=font_sm, fill=BLACK)
         else:
