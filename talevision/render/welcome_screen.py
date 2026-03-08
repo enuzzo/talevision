@@ -17,8 +17,17 @@ BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
 ORANGE = (255, 128, 0)
 
-# Cycle through vivid colors for the header letters
-HEADER_COLORS = [RED, ORANGE, YELLOW, GREEN, BLUE, RED, ORANGE, YELLOW, GREEN, BLUE]
+# ASCII art logo — gradient shade chars (░▒▓█)
+LOGO_LINES = [
+    "░        ░░░      ░░░  ░░░░░░░░        ░░  ░░░░  ░░        ░░░      ░░░        ░░░      ░░░   ░░░  ░",
+    "▒▒▒▒  ▒▒▒▒▒  ▒▒▒▒  ▒▒  ▒▒▒▒▒▒▒▒  ▒▒▒▒▒▒▒▒  ▒▒▒▒  ▒▒▒▒▒  ▒▒▒▒▒  ▒▒▒▒▒▒▒▒▒▒▒  ▒▒▒▒▒  ▒▒▒▒  ▒▒    ▒▒  ▒",
+    "▓▓▓▓  ▓▓▓▓▓  ▓▓▓▓  ▓▓  ▓▓▓▓▓▓▓▓      ▓▓▓▓▓  ▓▓  ▓▓▓▓▓▓  ▓▓▓▓▓▓      ▓▓▓▓▓▓  ▓▓▓▓▓  ▓▓▓▓  ▓▓  ▓  ▓  ▓",
+    "████  █████        ██  ████████  ██████████    ███████  ███████████  █████  █████  ████  ██  ██    █",
+    "████  █████  ████  ██        ██        █████  █████        ███      ███        ███      ███  ███   █",
+]
+
+# Gradient colours per logo row (top=warm → bottom=cool)
+LOGO_ROW_COLORS = [ORANGE, RED, RED, BLUE, BLUE]
 
 # Box-drawing characters
 H = "═"
@@ -86,7 +95,7 @@ def render_welcome_screen(
     img = Image.new("RGB", (W, H_px), WHITE)
     draw = ImageDraw.Draw(img)
 
-    font_lg = _load_font(base_dir, 22)
+    font_logo = _load_font(base_dir, 10)
     font_md = _load_font(base_dir, 16)
     font_sm = _load_font(base_dir, 13)
 
@@ -98,24 +107,7 @@ def render_welcome_screen(
         bb = draw.textbbox((0, 0), "Ay", font=fnt)
         return bb[3] - bb[1]
 
-    # ── Header: each letter in a different color ──────────────────────
-    header_letters = list("T · A · L · E · V · I · S · I · O · N")
-    # Map only actual letters to colors
-    letter_idx = 0
-    header_parts = []  # (char, color)
-    for ch in header_letters:
-        if ch.isalpha():
-            color = HEADER_COLORS[letter_idx % len(HEADER_COLORS)]
-            letter_idx += 1
-            header_parts.append((ch, color))
-        else:
-            header_parts.append((ch, BLACK))
-
-    # Measure total header width
-    total_header_w = sum(text_w(ch, font_lg) for ch, _ in header_parts)
-    hx = (W - total_header_w) // 2
-
-    lh_lg = text_h(font_lg) + 6
+    lh_logo = text_h(font_logo) + 1
     lh_md = text_h(font_md) + 4
     lh_sm = text_h(font_sm) + 3
 
@@ -154,10 +146,10 @@ def render_welcome_screen(
 
     # ── Calculate total height for vertical centering ─────────────────
     total_h = (
-        lh_lg                       # header
-        + 6                         # gap
+        len(LOGO_LINES) * lh_logo  # ASCII logo
+        + 10                        # gap after logo
         + lh_md                     # subhead
-        + 24                        # gap before box
+        + 20                        # gap before box
         + len(info_lines) * lh_sm   # info box
         + 20                        # gap before footer
         + lh_md                     # SYSTEM READY
@@ -166,18 +158,13 @@ def render_welcome_screen(
 
     y = max((H_px - total_h) // 2, bar_h + 10)
 
-    # ── Draw header letter by letter ──────────────────────────────────
-    cx = hx
-    for ch, color in header_parts:
-        draw.text((cx, y), ch, font=font_lg, fill=color)
-        cx += text_w(ch, font_lg)
-    y += lh_lg + 6
-
-    # Thin decorative separator under header (orange)
-    sep_x0 = hx
-    sep_x1 = W - hx
-    draw.line([(sep_x0, y), (sep_x1, y)], fill=ORANGE, width=1)
-    y += 8
+    # ── Draw ASCII art logo with gradient colours ─────────────────────
+    for i, line in enumerate(LOGO_LINES):
+        color = LOGO_ROW_COLORS[i % len(LOGO_ROW_COLORS)]
+        x_logo = (W - text_w(line, font_logo)) // 2
+        draw.text((x_logo, y), line, font=font_logo, fill=color)
+        y += lh_logo
+    y += 10
 
     # Subheader
     subhead = "S Y S T E M   B O O T"
