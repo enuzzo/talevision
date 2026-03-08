@@ -41,8 +41,10 @@ TaleVision is the obvious outcome. One device. One config file. One dashboard. S
 
 - [LitClock](#litclock)
 - [SlowMovie](#slowmovie)
+- [Playlist & Rotation](#playlist--rotation)
 - [Hardware](#hardware)
 - [How It Works](#how-it-works)
+- [Boot Sequence](#boot-sequence)
 - [Quick Start](#quick-start)
 - [Configuration](#configuration)
 - [Web Dashboard](#web-dashboard)
@@ -82,6 +84,16 @@ Every 90 seconds: select a film from `media/`, pick a random frame somewhere in 
 **Overlay:** an RGBA composite layer, `alpha_composite()` at the end. A rounded rectangle (`radius=8`, `fill=(0,0,0,190)`) sits in the bottom-left with the film title (bold), year (light), director, and timecode. A QR code in a white-on-black rounded box in the bottom-right links to TMDB search for that title. If a `.json` sidecar file exists next to the `.mp4` with `title`, `director`, and `year` keys, those populate the overlay. Without one, the filename stem is used. Both outcomes are dignified.
 
 **Auto-generated sidecars:** on first activation of SlowMovie, the system scans `media/` for videos without a `.json` sidecar and generates them automatically via TMDB (requires `tmdb_api_key` in `secrets.yaml`). No manual step needed. `generate_sidecars.py` in the project root is still available for bulk pre-generation or dry-runs.
+
+---
+
+## Playlist & Rotation
+
+TaleVision doesn't make you choose. Enable both modes — or eventually all four — and the Orchestrator cycles through them in order. A unified rotation interval (default: 5 minutes, configurable 30s–60min) replaces per-mode intervals during rotation. After each render, it waits, then advances to the next mode in the playlist.
+
+Single mode? Per-mode interval applies as before. Two or more? Rotation takes over. The playlist is reorderable from the dashboard with up/down arrows. Persisted to `user_prefs.json`. Survives reboots.
+
+**API:** `POST /api/playlist` with `{"modes": ["litclock", "slowmovie"], "rotation_interval": 300}`.
 
 ---
 
@@ -126,6 +138,16 @@ The display refreshes slowly on purpose. E-ink panels take ~30 seconds and hold 
 ```
 
 The Orchestrator runs in the main thread. Flask runs in a daemon thread. They communicate through a `queue.Queue` and a `threading.Lock`. Button presses from GPIO polling go through the same queue. Nobody touches the render pipeline from outside the main thread.
+
+---
+
+## Boot Sequence
+
+On power-up, TaleVision renders a **welcome screen** to the e-ink display before anything else — a BBS/NFO-style boot splash on a white background with a colourful ASCII art logo, hostname, LAN IP, dashboard URL, active mode, and current playlist. The seven native Inky colours (red, orange, blue, black) are used at full saturation — no dithering, no apologies.
+
+The welcome screen holds for 15 seconds. Long enough to confirm the device is alive and read the IP address. Then the Orchestrator takes over and renders the first real frame.
+
+The systemd service is set to `Restart=always`. On reboot, crash, power cycle, existential doubt — TaleVision comes back. The Pi has one job and it will do it.
 
 ---
 
@@ -191,7 +213,7 @@ Dashboard at `http://<pi-ip>:5000`.
 
 ## Web Dashboard
 
-`http://<pi-ip>:5000` — a dark, cinematic control panel built in React (Vite + Tailwind CSS + Radix UI). No page reloads. Animated particle background. Amber/dark palette.
+`http://<pi-ip>:5000` — built in React (Vite + Tailwind CSS + Radix UI), themed with the ScryBar Design System (deep navy #070D2D, violet accent #7551FF, cyan secondary #39B8FF, Montserrat + Space Mono). No page reloads. Animated particle background. Netmilk Studio logo in the footer.
 
 **Frame preview** — when you switch mode or force-refresh, the preview immediately shows a cinematic "Rendering" overlay (sweeping scan line, pulsing rings, corner brackets) and polls status every 2 s. As soon as the Pi finishes rendering, the overlay clears and the new frame fades in automatically. No manual reload needed.
 
@@ -228,6 +250,7 @@ Dashboard at `http://<pi-ip>:5000`.
 | `/api/interval` | GET | — | Per-mode interval overrides |
 | `/api/interval` | POST | `{"mode": "litclock", "seconds": 300}` | Set interval override |
 | `/api/interval/<mode>` | DELETE | — | Reset to config default |
+| `/api/playlist` | POST | `{"modes": [...], "rotation_interval": N}` | Set playlist and rotation interval |
 
 ---
 
@@ -280,7 +303,8 @@ talevision/
 │   ├── render/
 │   │   ├── typography.py        FontManager, wrap_text_block, get_text_dimensions
 │   │   ├── layout.py            draw_header, draw_centered_text_block
-│   │   ├── suspend_screen.py    BBS/NFO style e-ink suspend screen (DejaVuSansMono)
+│   │   ├── suspend_screen.py    BBS/NFO style e-ink suspend screen (DejaVuSansMono Bold)
+│   │   ├── welcome_screen.py    Boot splash — ASCII art logo, system info, 7-colour
 │   │   ├── canvas.py            InkyCanvas (hardware) + PNG simulation fallback
 │   │   └── frame_cache.py       SHA256 video cache + ffmpeg frame extraction
 │   ├── media/
@@ -307,7 +331,7 @@ talevision/
 │   ├── package.json             Vite + React + Tailwind + Radix UI + TanStack Query
 │   └── vite.config.ts           Outputs to talevision/web/static/dist/
 ├── assets/
-│   ├── fonts/                   Signika + Taviraj (22 weights) + DejaVuSansMono
+│   ├── fonts/                   Signika + Taviraj (22 weights) + DejaVuSansMono + Bold
 │   ├── lang/                    quotes-{de,en,es,fr,it,pt}.csv + fallback.csv
 │   └── icons/                   logo.png
 ├── media/                       Your .mp4 files + sidecar .json (gitignored for .mp4)
@@ -346,6 +370,8 @@ pip-audit -r requirements.txt
 **Testing without Pi hardware works.** `--render-only` saves a PNG. The Inky library falls back silently. The GPIO handler logs one line and goes quiet. The full render pipeline runs on macOS without modification. This is by design.
 
 **SPI must be enabled before Inky will work.** `scripts/install.sh` handles this. On Raspbian Trixie, also add `dtoverlay=spi0-0cs` on the line after `dtparam=spi=on` in `/boot/firmware/config.txt` and reboot — without this, the display never initializes (a Trixie-specific SPI chip-select issue).
+
+**The Inky Impression 7" has no EEPROM.** `inky.auto.auto()` will always fail with "No EEPROM detected!". TaleVision uses `inky.inky_ac073tc1a.Inky` with explicit `resolution=(800, 480)` — the correct driver for this board. The older `inky.inky_uc8159` does not support 800×480. If you see EEPROM errors, this is why.
 
 **`pip install Pillow` will likely fail on armv6l.** PyPI does not ship armv6l wheels. Use `sudo apt install python3-pil` and let the system package win. The system package is fine. This is documented, expected, and not something we are going to fix because we cannot fix it.
 
