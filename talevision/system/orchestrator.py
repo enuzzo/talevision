@@ -278,8 +278,29 @@ class Orchestrator:
         except Exception as exc:
             log.error(f"Failed to save frame: {exc}")
 
+    def _render_welcome_screen(self) -> Image.Image:
+        from talevision.render.welcome_screen import render_welcome_screen
+        size = (self._canvas.width, self._canvas.height)
+        return render_welcome_screen(
+            port=self._config.web.port,
+            mode=self._current_mode_name,
+            playlist=self._playlist,
+            canvas_size=size,
+            base_dir=self._base_dir,
+        )
+
     def run(self) -> None:
         """Main loop. Blocks forever. Call from main thread."""
+        # ── Welcome screen (15 s boot splash) ─────────────────────────
+        try:
+            log.info("Rendering welcome screen…")
+            welcome = self._render_welcome_screen()
+            self._canvas.show(welcome)
+            log.info("Welcome screen displayed, waiting 15 s…")
+            self._timer.wait(15)
+        except Exception as exc:
+            log.error(f"Welcome screen error: {exc}", exc_info=True)
+
         with self._lock:
             active_name = self._current_mode_name
         active = self._modes[active_name]

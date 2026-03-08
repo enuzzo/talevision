@@ -4,6 +4,7 @@ archive/
 # Secrets and local user preferences
 secrets.yaml
 user_prefs.json
+DEPLOY_LOCAL.md
 
 # Media (large files, local only)
 media/*.mp4
