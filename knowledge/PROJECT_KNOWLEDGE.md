@@ -204,6 +204,9 @@ LOOP-step log messages in `orchestrator.py` are at **DEBUG** level (changed from
 - **SPI chip select conflict (CRITICAL)**: on Trixie, Inky SPI fails with default `dtparam=spi=on`. Add `dtoverlay=spi0-0cs` on the line after `dtparam=spi=on` in `/boot/firmware/config.txt`, then reboot. Without this, display never initializes.
 - **Inky Impression 7" has NO EEPROM**: `inky.auto.auto()` always fails with "No EEPROM detected!". Must use `from inky.inky_ac073tc1a import Inky` with explicit `resolution=(800, 480)`. The older `inky.inky_uc8159` does NOT support 800×480. Library version: inky 2.3.0.
 - **Inky 7-colour native palette**: Black (0,0,0), White (255,255,255), Red (255,0,0), Green (0,255,0), Blue (0,0,255), Yellow (255,255,0), Orange (255,128,0). Pure colours render crisp; intermediate colours get dithered.
+- **Inky "Busy Wait" warnings**: `Busy Wait: Timed out after N.NNs` warnings from the ac073tc1a driver are normal during e-ink refresh. The display takes ~30–60 s to fully update. These are not errors.
+- **E-ink colour contrast**: Green text on white e-ink background is too faint to read. For white backgrounds, use Black for body text. Red, Blue, Orange work well for accents/headers. Yellow is faint on white — use only on dark backgrounds.
+- **Welcome screen**: BBS/NFO style boot splash on white background, shown for 15 s at startup before normal operation begins. Rendered by `talevision/render/welcome_screen.py`, triggered from `orchestrator.run()`.
 - **IP detection on Pi Zero W**: `socket.getaddrinfo()` does not return LAN/Tailscale IPs; `main.py` uses `subprocess.check_output(["hostname", "-I"])` instead.
 - **Orchestrator status cache**: `get_status()` reads from `_status_cache` dict protected by a separate `_status_lock`, never the render lock — prevents Flask threads from blocking during long SPI writes (~56 s).
 - **waitress required**: without waitress, Flask dev server runs instead — acceptable on Pi but not ideal.

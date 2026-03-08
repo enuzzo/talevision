@@ -60,6 +60,18 @@ Entry format:
 - Decision: Labels changed to "SUSPEND HOURS" and "SUSPEND DAYS". Values are the raw config suspend window (start=sleep, end=wake). Dashboard still shows the UX-inverted "active hours" for intuitive editing.
 - Impact/Tradeoffs: Suspend screen is now semantically correct. Two different presentations of the same data (suspend screen = raw, dashboard = inverted) — documented in PROJECT_KNOWLEDGE.md.
 
+## 2026-03-08 - Manual Inky Driver Initialization (ac073tc1a)
+
+- Context: `inky.auto.auto()` fails with "No EEPROM detected!" because the Inky Impression 7" board lacks an EEPROM chip for auto-detection. The older `inky.inky_uc8159` driver doesn't support 800×480.
+- Decision: Use `from inky.inky_ac073tc1a import Inky` with explicit `resolution=(800, 480)`. Removed all `inky.auto` usage.
+- Impact/Tradeoffs: Hardcoded to one display model. If the hardware changes, `canvas.py` must be updated. Acceptable since this is a single-device project.
+
+## 2026-03-08 - Welcome Screen Boot Splash
+
+- Context: After reboot, the e-ink display stays blank for ~30 s while TaleVision loads. No visual confirmation that the system is alive.
+- Decision: Show a 15-second BBS/NFO-style welcome screen (white background, colourful header, system info box) before entering the main render loop. Systemd service set to `Restart=always` for reliable autostart.
+- Impact/Tradeoffs: Adds ~45 s to first useful frame (15 s display + ~30 s e-ink refresh). Worth it for boot confidence. The 15 s timer is interruptible if needed.
+
 ## 2026-02-28 - SHA256 File Hash as Video Cache Key (SlowMovie)
 
 - Context: Video info (duration, fps, frame count) is slow to fetch via ffprobe. Need a stable, content-based cache key.
