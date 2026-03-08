@@ -17,21 +17,21 @@ BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
 ORANGE = (255, 128, 0)
 
-# ASCII art logo — two-tone shade (█ solid + ▒ shadow)
+# ASCII art logo — backslash/pipe style with decorative strokes
 LOGO_LINES = [
-    " ███████████           ████           █████   █████  ███           ███",
-    "▒█▒▒▒███▒▒▒█          ▒▒███          ▒▒███   ▒▒███  ▒▒▒           ▒▒▒",
-    "▒   ▒███  ▒   ██████   ▒███   ██████  ▒███    ▒███  ████   █████  ████   ██████  ████████",
-    "    ▒███     ▒▒▒▒▒███  ▒███  ███▒▒███ ▒███    ▒███ ▒▒███  ███▒▒  ▒▒███  ███▒▒███▒▒███▒▒███",
-    "    ▒███      ███████  ▒███ ▒███████  ▒▒███   ███   ▒███ ▒▒█████  ▒███ ▒███ ▒███ ▒███ ▒███",
-    "    ▒███     ███▒▒███  ▒███ ▒███▒▒▒    ▒▒▒█████▒    ▒███  ▒▒▒▒███ ▒███ ▒███ ▒███ ▒███ ▒███",
-    "    █████   ▒▒████████ █████▒▒██████     ▒▒███      █████ ██████  █████▒▒██████  ████ █████",
-    "   ▒▒▒▒▒     ▒▒▒▒▒▒▒▒ ▒▒▒▒▒  ▒▒▒▒▒▒       ▒▒▒      ▒▒▒▒▒ ▒▒▒▒▒▒  ▒▒▒▒▒  ▒▒▒▒▒▒  ▒▒▒▒ ▒▒▒▒▒",
+    " _________  ________  ___       _______   ___      ___ ___  ________  ___  ________  ________",
+    "|\\___   ___\\\\   __  \\|\\  \\     |\\  ___ \\ |\\  \\    /  /|\\  \\|\\   ____\\|\\  \\|\\   __  \\|\\   ___  \\",
+    "\\|___ \\  \\_\\ \\  \\|\\  \\ \\  \\    \\ \\   __/|\\ \\  \\  /  / | \\  \\ \\  \\___|\\ \\  \\ \\  \\|\\  \\ \\  \\\\ \\  \\",
+    "     \\ \\  \\ \\ \\   __  \\ \\  \\    \\ \\  \\_|/_\\ \\  \\/  / / \\ \\  \\ \\_____  \\ \\  \\ \\  \\\\\\  \\ \\  \\\\ \\  \\",
+    "      \\ \\  \\ \\ \\  \\ \\  \\ \\  \\____\\ \\  \\_|\\ \\ \\    / /   \\ \\  \\|____|\\  \\ \\  \\ \\  \\\\\\  \\ \\  \\\\ \\  \\",
+    "       \\ \\__\\ \\ \\__\\ \\__\\ \\_______\\ \\_______\\ \\__/ /     \\ \\__\\____\\_\\  \\ \\__\\ \\_______\\ \\__\\\\ \\__\\",
+    "        \\|__|  \\|__|\\|__|\\|_______|\\|_______|\\|__|/       \\|__|\\_________\\|__|\\|_______|\\|__| \\|__|",
+    "                                                              \\|_________|",
 ]
 
-# Two-tone: solid chars in red, shadow ▒ chars drawn via row colour
-LOGO_SOLID_COLOR = RED
-LOGO_SHADOW_COLOR = BLUE
+# Decorative strokes in red, backslash/pipe structure in blue
+LOGO_STROKE_COLOR = RED
+LOGO_FRAME_COLOR = BLUE
 
 # Box-drawing characters
 H = "═"
@@ -162,16 +162,18 @@ def render_welcome_screen(
 
     y = max((H_px - total_h) // 2, bar_h + 10)
 
-    # ── Draw ASCII art logo — two-tone (solid=red, shadow=blue) ─────
-    char_w = text_w("█", font_logo)
-    for i, line in enumerate(LOGO_LINES):
-        x_logo = (W - text_w(line, font_logo)) // 2
+    # ── Draw ASCII art logo — two-tone (frame=blue, strokes=red) ────
+    char_w = text_w("M", font_logo)
+    for line in LOGO_LINES:
+        x_logo = (W - len(line) * char_w) // 2
         cx = x_logo
         for ch in line:
-            if ch == "▒":
-                draw.text((cx, y), ch, font=font_logo, fill=LOGO_SHADOW_COLOR)
+            if ch in ("\\", "|", "/"):
+                draw.text((cx, y), ch, font=font_logo, fill=LOGO_FRAME_COLOR)
+            elif ch == "_":
+                draw.text((cx, y), ch, font=font_logo, fill=LOGO_STROKE_COLOR)
             elif ch != " ":
-                draw.text((cx, y), ch, font=font_logo, fill=LOGO_SOLID_COLOR)
+                draw.text((cx, y), ch, font=font_logo, fill=BLACK)
             cx += char_w
         y += lh_logo
     y += 10
