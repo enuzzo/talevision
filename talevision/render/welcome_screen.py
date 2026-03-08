@@ -17,17 +17,21 @@ BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
 ORANGE = (255, 128, 0)
 
-# ASCII art logo — gradient shade chars (░▒▓█)
+# ASCII art logo — two-tone shade (█ solid + ▒ shadow)
 LOGO_LINES = [
-    "░        ░░░      ░░░  ░░░░░░░░        ░░  ░░░░  ░░        ░░░      ░░░        ░░░      ░░░   ░░░  ░",
-    "▒▒▒▒  ▒▒▒▒▒  ▒▒▒▒  ▒▒  ▒▒▒▒▒▒▒▒  ▒▒▒▒▒▒▒▒  ▒▒▒▒  ▒▒▒▒▒  ▒▒▒▒▒  ▒▒▒▒▒▒▒▒▒▒▒  ▒▒▒▒▒  ▒▒▒▒  ▒▒    ▒▒  ▒",
-    "▓▓▓▓  ▓▓▓▓▓  ▓▓▓▓  ▓▓  ▓▓▓▓▓▓▓▓      ▓▓▓▓▓  ▓▓  ▓▓▓▓▓▓  ▓▓▓▓▓▓      ▓▓▓▓▓▓  ▓▓▓▓▓  ▓▓▓▓  ▓▓  ▓  ▓  ▓",
-    "████  █████        ██  ████████  ██████████    ███████  ███████████  █████  █████  ████  ██  ██    █",
-    "████  █████  ████  ██        ██        █████  █████        ███      ███        ███      ███  ███   █",
+    " ███████████           ████           █████   █████  ███           ███",
+    "▒█▒▒▒███▒▒▒█          ▒▒███          ▒▒███   ▒▒███  ▒▒▒           ▒▒▒",
+    "▒   ▒███  ▒   ██████   ▒███   ██████  ▒███    ▒███  ████   █████  ████   ██████  ████████",
+    "    ▒███     ▒▒▒▒▒███  ▒███  ███▒▒███ ▒███    ▒███ ▒▒███  ███▒▒  ▒▒███  ███▒▒███▒▒███▒▒███",
+    "    ▒███      ███████  ▒███ ▒███████  ▒▒███   ███   ▒███ ▒▒█████  ▒███ ▒███ ▒███ ▒███ ▒███",
+    "    ▒███     ███▒▒███  ▒███ ▒███▒▒▒    ▒▒▒█████▒    ▒███  ▒▒▒▒███ ▒███ ▒███ ▒███ ▒███ ▒███",
+    "    █████   ▒▒████████ █████▒▒██████     ▒▒███      █████ ██████  █████▒▒██████  ████ █████",
+    "   ▒▒▒▒▒     ▒▒▒▒▒▒▒▒ ▒▒▒▒▒  ▒▒▒▒▒▒       ▒▒▒      ▒▒▒▒▒ ▒▒▒▒▒▒  ▒▒▒▒▒  ▒▒▒▒▒▒  ▒▒▒▒ ▒▒▒▒▒",
 ]
 
-# Gradient colours per logo row (top=warm → bottom=cool)
-LOGO_ROW_COLORS = [ORANGE, RED, RED, BLUE, BLUE]
+# Two-tone: solid chars in red, shadow ▒ chars drawn via row colour
+LOGO_SOLID_COLOR = RED
+LOGO_SHADOW_COLOR = BLUE
 
 # Box-drawing characters
 H = "═"
@@ -158,11 +162,17 @@ def render_welcome_screen(
 
     y = max((H_px - total_h) // 2, bar_h + 10)
 
-    # ── Draw ASCII art logo with gradient colours ─────────────────────
+    # ── Draw ASCII art logo — two-tone (solid=red, shadow=blue) ─────
+    char_w = text_w("█", font_logo)
     for i, line in enumerate(LOGO_LINES):
-        color = LOGO_ROW_COLORS[i % len(LOGO_ROW_COLORS)]
         x_logo = (W - text_w(line, font_logo)) // 2
-        draw.text((x_logo, y), line, font=font_logo, fill=color)
+        cx = x_logo
+        for ch in line:
+            if ch == "▒":
+                draw.text((cx, y), ch, font=font_logo, fill=LOGO_SHADOW_COLOR)
+            elif ch != " ":
+                draw.text((cx, y), ch, font=font_logo, fill=LOGO_SOLID_COLOR)
+            cx += char_w
         y += lh_logo
     y += 10
 
