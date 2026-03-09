@@ -29,7 +29,6 @@ from talevision.render.typography import (
 from talevision.render.layout import (
     draw_centered_text_block,
     draw_header,
-    draw_suspend_screen,
 )
 from .base import DisplayMode, ModeState
 
@@ -174,16 +173,8 @@ class LitClockMode(DisplayMode):
             return COLOR_BLACK, COLOR_WHITE
         return COLOR_WHITE, COLOR_BLACK
 
-    def render(self, is_suspended: bool = False) -> Image.Image:
+    def render(self) -> Image.Image:
         """Render and return the clock image (RGB 800×480)."""
-        if is_suspended:
-            return draw_suspend_screen(
-                self._suspend_cfg,
-                self._fonts,
-                self._display_cfg.width,
-                self._display_cfg.height,
-                self._base_dir,
-            )
         return self._draw_clock_screen()
 
     def _draw_clock_screen(self) -> Image.Image:

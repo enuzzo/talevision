@@ -392,16 +392,7 @@ class SlowMovieMode(DisplayMode):
         final = Image.alpha_composite(img_rgba, overlay_layer)
         return final.convert("RGB")
 
-    def render(self, is_suspended: bool = False) -> Image.Image:
-        from talevision.render.layout import draw_suspend_screen
-        if is_suspended:
-            return draw_suspend_screen(
-                self._suspend_cfg,
-                FontManager(self._app_cfg.litclock.fonts, self._base_dir),
-                self._display_cfg.width,
-                self._display_cfg.height,
-                self._base_dir,
-            )
+    def render(self) -> Image.Image:
         return self._run_cycle()
 
     def _run_cycle(self) -> Image.Image:

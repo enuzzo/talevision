@@ -78,6 +78,8 @@ class SuspendScheduler:
                     if candidate.weekday() not in self._days:
                         break
                     candidate += datetime.timedelta(days=1)
+                else:
+                    return None  # all 7 days are suspend days — device never wakes
             return candidate
 
     def get_config(self) -> dict:

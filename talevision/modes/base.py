@@ -33,7 +33,7 @@ class DisplayMode(abc.ABC):
         """Called when switching away from this mode. Override if needed."""
 
     @abc.abstractmethod
-    def render(self, is_suspended: bool = False) -> Image.Image:
+    def render(self) -> Image.Image:
         """Render and return a PIL Image (RGB, 800×480)."""
 
     @abc.abstractmethod

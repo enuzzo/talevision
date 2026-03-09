@@ -78,18 +78,23 @@ class Orchestrator:
     def get_status(self) -> dict:
         with self._status_lock:
             status = dict(self._status_cache)
-        status["intervals"] = {
-            name: {
-                "effective": self._effective_interval(name, mode.refresh_interval),
-                "default": mode.refresh_interval,
-                "overridden": name in self._interval_overrides,
+        with self._lock:
+            intervals = {
+                name: {
+                    "effective": self._effective_interval(name, mode.refresh_interval),
+                    "default": mode.refresh_interval,
+                    "overridden": name in self._interval_overrides,
+                }
+                for name, mode in self._modes.items()
             }
-            for name, mode in self._modes.items()
-        }
+            playlist = list(self._playlist)
+            playlist_index = self._playlist_index
+            rotation_interval = self._rotation_interval
+        status["intervals"] = intervals
         status["suspend"] = self._scheduler.get_config()
-        status["playlist"] = list(self._playlist)
-        status["playlist_index"] = self._playlist_index
-        status["rotation_interval"] = self._rotation_interval
+        status["playlist"] = playlist
+        status["playlist_index"] = playlist_index
+        status["rotation_interval"] = rotation_interval
         return status
 
     def get_frame_path(self, mode: Optional[str] = None) -> Optional[Path]:
@@ -126,12 +131,14 @@ class Orchestrator:
 
     def set_playlist(self, modes: list, rotation_interval: int = 300) -> None:
         valid = [m for m in modes if m in self._modes]
-        if not valid:
-            valid = [self._current_mode_name]
-        self._playlist = valid
-        self._rotation_interval = max(30, min(rotation_interval, 3600))
-        self._playlist_index = 0
-        if valid[0] != self._current_mode_name:
+        with self._lock:
+            if not valid:
+                valid = [self._current_mode_name]
+            self._playlist = valid
+            self._rotation_interval = max(30, min(rotation_interval, 3600))
+            self._playlist_index = 0
+            switch_needed = valid[0] != self._current_mode_name
+        if switch_needed:
             self._action_queue.put(("switch_mode", valid[0]))
             self._timer.interrupt()
         self._save_prefs()
@@ -348,14 +355,10 @@ class Orchestrator:
                     continue
 
                 log.debug(f"LOOP ── render() starting ...")
-                frame = active.render(is_suspended=is_suspended)
+                frame = active.render()
                 log.debug("LOOP ── render() done. canvas.show() starting ...")
 
-                if is_suspended:
-                    self._suspended_displayed = True
-                else:
-                    self._suspended_displayed = False
-
+                self._suspended_displayed = False
                 self._canvas.show(frame)
                 log.debug("LOOP ── canvas.show() done. saving frame ...")
 
