@@ -1,5 +1,5 @@
 app:
-  default_mode: slowmovie   # litclock | slowmovie
+  default_mode: ansi   # litclock | slowmovie | ansi
 
 display:
   width: 800
@@ -95,6 +95,11 @@ slowmovie:
     dir: "assets/fonts"
     bold: "Signika-Bold.ttf"
     light: "Signika-Light.ttf"
+
+ansi:
+  refresh_interval: 180    # seconds between art changes (3 min)
+  art_dir: "assets/ansi"
+  order: "sequential"      # sequential | random
 
 buttons:
   enabled: true

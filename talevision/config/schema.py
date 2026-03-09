@@ -125,6 +125,13 @@ class SlowMovieConfig:
 
 
 @dataclass
+class AnsiConfig:
+    refresh_interval: int = 180          # 3 minutes
+    art_dir: str = "assets/ansi"
+    order: str = "sequential"            # sequential | random
+
+
+@dataclass
 class ButtonsConfig:
     enabled: bool = True
     gpio_map: dict = field(default_factory=lambda: {"a": 5, "b": 6, "c": 16, "d": 24})
@@ -145,4 +152,5 @@ class AppConfig:
     suspend: SuspendConfig = field(default_factory=SuspendConfig)
     litclock: LitClockConfig = field(default_factory=LitClockConfig)
     slowmovie: SlowMovieConfig = field(default_factory=SlowMovieConfig)
+    ansi: AnsiConfig = field(default_factory=AnsiConfig)
     buttons: ButtonsConfig = field(default_factory=ButtonsConfig)
