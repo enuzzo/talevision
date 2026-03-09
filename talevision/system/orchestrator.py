@@ -121,6 +121,8 @@ class Orchestrator:
 
     def set_suspend_schedule(self, start: str, end: str, days: list, enabled: bool) -> None:
         self._scheduler.update(start, end, days, enabled)
+        self._suspended_displayed = False
+        self._timer.interrupt()
 
     def set_playlist(self, modes: list, rotation_interval: int = 300) -> None:
         valid = [m for m in modes if m in self._modes]
