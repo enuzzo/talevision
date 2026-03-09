@@ -205,8 +205,8 @@ Dashboard at `http://<pi-ip>:5000`.
 | `slowmovie.overlay.qr_enabled` | `true` | TMDB QR code in frame corner |
 | `slowmovie.overlay.qr_content` | `tmdb_search` | QR link pattern (`tmdb_search` or `imdb_search`) |
 | `display.saturation` | `0.6` | Inky colour saturation (0.0 – 1.0) |
-| `suspend.start` / `.end` | `23:00` / `07:00` | Sleep window — overnight ranges handled correctly |
-| `suspend.days` | `[0..6]` | Which weekdays to suspend (0=Mon, 6=Sun; all = every day) |
+| `suspend.start` / `.end` | `17:30` / `09:30` | Sleep/wake time — overnight ranges handled correctly (start > end wraps midnight) |
+| `suspend.days` | `[5,6]` | Fully-off days (0=Mon … 6=Sun). Default: Sat+Sun fully off, Mon–Fri follow the time window |
 | `buttons.actions` | see below | Remap GPIO buttons to any action |
 
 ---
@@ -273,7 +273,7 @@ All four remappable in `config.yaml` under `buttons.actions`. On non-Pi hardware
 
 Between `suspend.start` and `suspend.end`, TaleVision stops rendering and waits. The panel holds the last image with zero power draw. The Pi idles.
 
-On entering suspension, it renders a **BBS/NFO style screen** — black background, box-drawing characters, amber header, active hours, day-of-week markers (`[MON]` for active, ` MON ` for inactive), and the next wake time. Minimal, typeset, readable in the dark.
+On entering suspension, it renders a **BBS/NFO style screen** — white background, box-drawing characters, orange header, active hours, day-of-week markers (`[MON]` for active, ` MON ` for inactive), and the next wake time. Rainbow border bars at top and bottom, matching the boot screen. Minimal, typeset, readable.
 
 Overnight windows (`23:00 → 07:00`) are handled correctly: if `start > end`, the suspended period wraps midnight. Day-of-week filtering is supported. An empty list means every day.
 
