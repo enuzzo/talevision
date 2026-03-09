@@ -1,4 +1,5 @@
 """Orchestrator — main application loop and thread-safe mode controller."""
+import datetime
 import json
 import logging
 import queue
@@ -325,18 +326,23 @@ class Orchestrator:
 
                 is_suspended = self._scheduler.is_suspended()
 
-                if is_suspended and self._suspended_displayed:
-                    log.debug("LOOP ── suspended, sleeping")
-                    self._timer.wait(self._effective_interval(active_name, active.refresh_interval))
-                    continue
-
-                if is_suspended and not self._suspended_displayed:
-                    frame = self._render_suspend_screen()
-                    self._canvas.show(frame)
-                    self._suspended_displayed = True
-                    self._save_frame(frame, active_name)
-                    self._update_status_cache(active_name, time.time(), None, {})
-                    self._timer.wait(self._effective_interval(active_name, active.refresh_interval))
+                if is_suspended:
+                    if not self._suspended_displayed:
+                        frame = self._render_suspend_screen()
+                        self._canvas.show(frame)
+                        self._suspended_displayed = True
+                        self._save_frame(frame, active_name)
+                        self._update_status_cache(active_name, time.time(), None, {})
+                    next_wake = self._scheduler.next_wake_time()
+                    if next_wake:
+                        sleep_secs = max(10, min(
+                            (next_wake - datetime.datetime.now()).total_seconds(),
+                            86400,
+                        ))
+                    else:
+                        sleep_secs = 60
+                    log.debug(f"LOOP ── suspended, sleeping {sleep_secs:.0f}s until wake")
+                    self._timer.wait(sleep_secs)
                     continue
 
                 log.debug(f"LOOP ── render() starting ...")

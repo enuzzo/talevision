@@ -10,6 +10,15 @@ log = logging.getLogger(__name__)
 
 DAYS_ABBR = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
 
+# Inky Impression 7-colour native palette
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
+YELLOW = (255, 255, 0)
+ORANGE = (255, 128, 0)
+
 # Box-drawing characters
 H = "═"
 V = "║"
@@ -67,12 +76,22 @@ def render_suspend_screen(
 ) -> Image.Image:
     """Render a BBS/NFO-style suspend info screen for the e-ink display."""
     W, H_px = canvas_size
-    img = Image.new("RGB", (W, H_px), (0, 0, 0))
+    img = Image.new("RGB", (W, H_px), WHITE)
     draw = ImageDraw.Draw(img)
 
-    font_lg = _load_font(base_dir, 22, bold=True)
-    font_md = _load_font(base_dir, 17, bold=True)
-    font_sm = _load_font(base_dir, 14, bold=True)
+    font_lg = _load_font(base_dir, 24, bold=True)
+    font_md = _load_font(base_dir, 19, bold=True)
+    font_sm = _load_font(base_dir, 16, bold=True)
+
+    # Decorative top/bottom rainbow bar (same as welcome screen)
+    border_colors = [RED, ORANGE, YELLOW, GREEN, BLUE, RED, ORANGE]
+    bar_h = 4
+    segment_w = W // len(border_colors)
+    for i, color in enumerate(border_colors):
+        x0 = i * segment_w
+        x1 = (i + 1) * segment_w if i < len(border_colors) - 1 else W
+        draw.rectangle([(x0, 0), (x1, bar_h - 1)], fill=color)
+        draw.rectangle([(x0, H_px - bar_h), (x1, H_px - 1)], fill=color)
 
     now = datetime.datetime.now()
 
@@ -150,30 +169,30 @@ def render_suspend_screen(
 
     # Draw header
     x_hdr = (W - text_w(header, font_lg)) // 2
-    draw.text((x_hdr, y), header, font=font_lg, fill=(200, 146, 58))  # amber
+    draw.text((x_hdr, y), header, font=font_lg, fill=ORANGE)
     y += lh_lg + 6
 
     # Thin separator under header
     sep_x0 = (W - text_w(header, font_lg)) // 2
     sep_x1 = W - sep_x0
-    draw.line([(sep_x0, y), (sep_x1, y)], fill=(80, 60, 20), width=1)
+    draw.line([(sep_x0, y), (sep_x1, y)], fill=ORANGE, width=1)
     y += 8
 
     # Subheader
     x_sub = (W - text_w(subhead, font_md)) // 2
-    draw.text((x_sub, y), subhead, font=font_md, fill=(180, 180, 180))
+    draw.text((x_sub, y), subhead, font=font_md, fill=BLACK)
     y += lh_md + 18
 
     # Box lines
     for line in box_lines:
         x_box = (W - text_w(line, font_sm)) // 2
-        draw.text((x_box, y), line, font=font_sm, fill=(220, 220, 220))
+        draw.text((x_box, y), line, font=font_sm, fill=BLACK)
         y += lh_sm
 
     y += 16
 
     # NOW line
     x_now = (W - text_w(now_str, font_sm)) // 2
-    draw.text((x_now, y), now_str, font=font_sm, fill=(120, 120, 120))
+    draw.text((x_now, y), now_str, font=font_sm, fill=(80, 80, 80))
 
     return img
