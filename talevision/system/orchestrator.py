@@ -49,6 +49,7 @@ class Orchestrator:
         self._frame_paths: Dict[str, Path] = {
             "litclock": base_dir / "cache" / "litclock_frame.png",
             "slowmovie": base_dir / "cache" / "slowmovie_frame.jpg",
+            "ansi": base_dir / "cache" / "ansi_frame.png",
         }
         for p in self._frame_paths.values():
             p.parent.mkdir(parents=True, exist_ok=True)
