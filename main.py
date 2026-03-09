@@ -122,7 +122,7 @@ def main():
         mode_name = config.app.default_mode
         mode = modes[mode_name]
         log.info(f"Render-only: rendering {mode_name} frame…")
-        img = mode.render(is_suspended=False)
+        img = mode.render()
         out_path = BASE_DIR / "talevision_frame.png"
         img.save(str(out_path), format="PNG")
         log.info(f"Frame saved to: {out_path}")
