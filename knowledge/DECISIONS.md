@@ -72,6 +72,24 @@ Entry format:
 - Decision: Show a 15-second BBS/NFO-style welcome screen (white background, colourful header, system info box) before entering the main render loop. Systemd service set to `Restart=always` for reliable autostart.
 - Impact/Tradeoffs: Adds ~45 s to first useful frame (15 s display + ~30 s e-ink refresh). Worth it for boot confidence. The 15 s timer is interruptible if needed.
 
+## 2026-03-09 - Suspend Screen: White Background, Sleep Until next_wake_time
+
+- Context: Suspend screen used black background (hard to read in daylight). Loop slept for `effective_interval` (300s) during suspend, causing periodic display refreshes. `set_suspend_schedule()` via API didn't wake a sleeping loop, so changes took effect only hours later.
+- Decision: White background with orange header and rainbow border bars (matching welcome screen). Loop sleeps until `next_wake_time()` (actual resume datetime) instead of per-mode interval. `set_suspend_schedule()` resets `_suspended_displayed` and interrupts the timer.
+- Impact/Tradeoffs: Display refreshes once on suspend entry and holds. API schedule changes apply immediately.
+
+## 2026-03-09 - Thread Safety Audit: _lock Covers Playlist and Interval State
+
+- Context: Code review identified that `set_playlist()` wrote to `_playlist`/`_playlist_index`/`_rotation_interval` without `_lock`, and `get_status()` read those fields also without `_lock`. Race with the main loop's playlist advance (under `_lock`) could cause IndexError or stale API responses.
+- Decision: `set_playlist()` acquires `_lock` around all writes and derives `switch_needed` inside before releasing. `get_status()` acquires `_lock` to snapshot playlist/interval state before building the response.
+- Impact/Tradeoffs: Correct thread safety at the cost of slightly more lock contention on `_lock`. Acceptable — `get_status()` is called at most every 2–12 s and holds the lock for microseconds.
+
+## 2026-03-09 - Remove is_suspended from DisplayMode.render()
+
+- Context: `render(is_suspended=True)` was dead code — the orchestrator handles suspend before calling `render()`, so modes never received `is_suspended=True`. Both `LitClockMode` and `SlowMovieMode` had unreachable branches that imported/built unused objects.
+- Decision: Remove `is_suspended` parameter from `DisplayMode.render()` ABC and both implementations. Orchestrator calls `active.render()` unconditionally.
+- Impact/Tradeoffs: Cleaner interface. New modes must not handle suspend logic in `render()` — the orchestrator owns that responsibility entirely.
+
 ## 2026-02-28 - SHA256 File Hash as Video Cache Key (SlowMovie)
 
 - Context: Video info (duration, fps, frame count) is slow to fetch via ffprobe. Need a stable, content-based cache key.

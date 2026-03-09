@@ -171,7 +171,7 @@ LOOP-step log messages in `orchestrator.py` are at **DEBUG** level (changed from
 - **Full-suspend days**: if today's weekday is in `days`, device is suspended ALL 24 hours — no time check.
 - **Active days**: if today's weekday is NOT in `days`, device follows the time window (suspended during window, active outside).
 - **Example**: active 09–18 Mon-Fri, Sat+Sun off → device OFF from Fri 18:00 to Mon 09:00 continuously.
-- `next_wake_time()` returns the datetime when suspension ends. Skips forward past full-suspend days to find the first active day where the wake time (end) applies.
+- `next_wake_time()` returns the datetime when suspension ends. Skips forward past full-suspend days to find the first active day where the wake time (end) applies. Returns `None` if all 7 days are in `days` (device configured to never wake).
 - Thread-safe `update()` method called from API handler.
 - Suspend screen is rendered once on entry and held; `_suspended_displayed` flag prevents re-rendering.
 - **BBS/NFO suspend screen** (`talevision/render/suspend_screen.py`): renders to the e-ink display when suspended. White background, DejaVuSansMono Bold font (24/19/16 pt), box-drawing chars (`╔═╗║╚╝╠╣`), orange header "T · A · L · E · V · I · S · I · O · N", active hours/days row (`[MON] [TUE]...`), resume time, rainbow border bars top/bottom (same as welcome screen). `inner_w=60` to fit all 7 days with single-space separators. The orchestrator intercepts the loop before `active.render()` and calls this instead. Rendered once on suspend entry and held until resume.
@@ -210,6 +210,8 @@ LOOP-step log messages in `orchestrator.py` are at **DEBUG** level (changed from
 - **Suspend screen**: white background, DejaVuSansMono Bold, orange header, black box text, rainbow border bars top/bottom. Rendered once on suspend entry and held — no periodic refresh. Font sizes: 24/19/16 bold.
 - **Suspend timer sleep**: when suspended, the orchestrator sleeps until `next_wake_time()` (the actual resume time), not for `effective_interval`. This prevents unnecessary loop cycles and display refreshes during the suspend window.
 - **`set_suspend_schedule()` must interrupt the timer**: if the schedule changes via API while suspended, the loop is sleeping until the old `next_wake_time`. Without `timer.interrupt()` + `_suspended_displayed = False` in `set_suspend_schedule()`, the new schedule takes effect only when the old sleep expires — which can be hours away.
+- **`set_playlist()` and `get_status()` use `_lock`**: `_playlist`, `_playlist_index`, `_rotation_interval`, `_interval_overrides` are shared between the Flask thread and the main loop. All reads/writes to these fields go under `_lock`. `set_playlist()` derives `switch_needed` inside the lock before releasing, then enqueues the action outside.
+- **`render()` has no `is_suspended` parameter**: the orchestrator intercepts suspend before calling `render()`, so modes never receive a suspended state. `DisplayMode.render()` signature is `render(self) -> Image.Image` — no flag.
 - **IP detection on Pi Zero W**: `socket.getaddrinfo()` does not return LAN/Tailscale IPs; `main.py` uses `subprocess.check_output(["hostname", "-I"])` instead.
 - **Orchestrator status cache**: `get_status()` reads from `_status_cache` dict protected by a separate `_status_lock`, never the render lock — prevents Flask threads from blocking during long SPI writes (~56 s).
 - **waitress required**: without waitress, Flask dev server runs instead — acceptable on Pi but not ideal.
