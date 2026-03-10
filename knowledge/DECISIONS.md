@@ -120,6 +120,24 @@ Entry format:
 - Decision: Replace with a CRT/radio-tuning aesthetic: dark warm `#19120C` background, animated TV grain via `NoiseCanvas` (tiny canvas scaled with `imageRendering: pixelated`), CSS CRT scanlines, amber sweep band, `TuningGauge` SVG (oscillating needle animating via Tailwind `gauge-needle` keyframe), mode name in Lobster with `animate-flicker`.
 - Impact/Tradeoffs: SVG `transform-origin` on `<line>` elements doesn't work cross-browser. Workaround: wrap needle in `<g transform="translate(cx,cy)">`, apply `transform-box: fill-box; transform-origin: 50% 100%` to the `<line>` — rotates around the line's own bottom point.
 
+## 2026-03-10 - TV Frame Background for Welcome and Suspend Screens
+
+- Context: Welcome and suspend screens used rainbow colour bars for visual framing. The bars were thin (4–6px), and faint colours (green/yellow) were barely visible on the white e-ink background.
+- Decision: Composite `assets/img/talevision-frame.png` (RGBA, 800×480, dark TV bezel with transparent centre) on white as the background for both screens. Remove rainbow bars entirely. Adjust minimum y-offset to 28px to keep content inside the frame's inner area.
+- Impact/Tradeoffs: Consistent visual identity across boot and suspend. Frame is in git so it deploys with the code. E-ink renders the dark grey bezel as black (dithered) — looks correct. If frame PNG is missing, screens fall back gracefully to white background.
+
+## 2026-03-10 - Welcome Screen: 30s Splash + Random Tagline + Screenshot Saved
+
+- Context: 15-second welcome was too short to read on physical e-ink (panel refresh takes ~55s). Tagline was static. No way to inspect the welcome screen after boot without a camera.
+- Decision: Extend to 30 seconds. Replace static tagline with `random.choice(TAGLINES)` from the same 20-item pool used in the web dashboard. Save rendered image to `cache/welcome_frame.png` via `_save_frame()` immediately after `canvas.show()`.
+- Impact/Tradeoffs: Boot-to-first-content is now ~85s (30s welcome + 55s e-ink refresh). Acceptable for a wall display. Screenshot lets developers/operators inspect the welcome screen without physical access.
+
+## 2026-03-10 - Wikipedia: Proportional Thumbnail + Full Extract + QR Zone Clipping
+
+- Context: Thumbnail was force-cropped to 4:3, breaking articles with portrait images. Body text used only the short intro from the summary API. Text overflowed into the QR code area at the bottom-right.
+- Decision: (1) Resize thumbnail to `THUMB_W=180px` maintaining original aspect ratio — no crop. (2) Make a second API call (`action=query&prop=extracts&exchars=3000`) to fetch full article text beyond the intro. (3) Per-line width calculation: beside thumbnail → `narrow_w`, in QR zone → `qr_safe_w`, otherwise → `full_w`. Last clipped line gets ` …`; QR message in Signika 16pt grey centred in the QR zone.
+- Impact/Tradeoffs: Two HTTP calls per render (summary + extract) — both fast, Pi Zero W handles it within the 10s timeout. Text now fills the panel and visually respects the QR code.
+
 ## 2026-03-10 - Language Order: it / es / pt / en / fr / de
 
 - Context: Languages were listed alphabetically (de/en/es/fr/it/pt) in default config and UI. Project context is Italian-first (deployed in Italy, Netmilk is Italian).

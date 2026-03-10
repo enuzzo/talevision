@@ -79,7 +79,7 @@ If no quote exists for the current minute — coverage is good but not complete 
 
 ## SlowMovie
 
-Every 90 seconds: select a film from `media/`, pick a random frame somewhere in the middle (skipping the first 2 minutes and the last 4 — credits and cold-open black slates are not cinema), extract it with ffmpeg, run it through the PIL pipeline, fit it to the panel, composite the overlay.
+Every 5 minutes: select a film from `media/`, pick a random frame somewhere in the middle (skipping the first 2 minutes and the last 4 — credits and cold-open black slates are not cinema), extract it with ffmpeg, run it through the PIL pipeline, fit it to the panel, composite the overlay.
 
 **PIL pipeline, in order:** Brightness → Gamma (custom LUT via `point()`, not an ImageEnhance filter) → Contrast → Color saturation → cover or contain fit.
 
@@ -95,11 +95,11 @@ Every 90 seconds: select a film from `media/`, pick a random frame somewhere in 
 
 ## Wikipedia
 
-Every few minutes: pick a random Wikipedia article in your chosen language, render it to the display. Title in bold, extract body word-wrapped to fit, thumbnail image if the article has one (top-right, cropped to 4:3), QR code bottom-right linking to the full article.
+Every 5 minutes: pick a random Wikipedia article in your chosen language, render it to the display. Title in bold, extract body word-wrapped to fit, thumbnail image if the article has one (top-right, resized proportionally to 180px wide), QR code bottom-right linking to the full article.
 
 At the top: the time and date in the same Taviraj-SemiBold header used by LitClock — `14:32 · 10 marzo '26` — with the language label right-aligned (`Wikipedia · IT`). Date formatted with Babel so the month name is in the display language, not whatever the system locale happens to be.
 
-If the body text runs long, the last visible line is replaced with a language-appropriate prompt to scan the QR: *"… scansiona il QR per saperne di più"*, or the equivalent in five other languages. Wikipedia's article quality is uneven. The prompt is diplomatically vague about whether this is because the article is interesting or because it is very, very long.
+The body text uses a full second API call (`action=query&prop=extracts`) to fetch up to 3000 characters of article content beyond the intro — internal sections included. Text fills the panel intelligently: lines beside the thumbnail use a narrower wrap, lines below it use full width, and lines that descend into the QR zone auto-narrow to avoid overdrawing the code. If the text still runs long, the last body line ends with ` …` and a smaller sans-serif caption (`Signika-Regular 16pt`, grey) appears centred in the QR area: *"… scansiona il QR per saperne di più"*, or the equivalent in five other languages.
 
 **Languages:** `it` · `es` · `pt` · `en` · `fr` · `de` — same six as LitClock, same language selector in the dashboard. One setting controls both.
 
@@ -107,7 +107,7 @@ If the body text runs long, the last visible line is replaced with a language-ap
 
 ## Weather
 
-Every 10 minutes: fetch current conditions and a 3-day forecast from [wttr.in](https://wttr.in/) — no API key, no account, no nothing. Structured JSON. The temperature is rendered very large (Signika-Bold 80pt) because that is the only information most people actually want from a weather display. Below it: condition string, feels-like, wind, humidity. Below that: a three-day forecast with date, max/min temperatures, and midday condition.
+Every 5 minutes: fetch current conditions and a 3-day forecast from [wttr.in](https://wttr.in/) — no API key, no account, no nothing. Structured JSON. The temperature is rendered very large (Signika-Bold 80pt) because that is the only information most people actually want from a weather display. Below it: condition string, feels-like, wind, humidity. Below that: a three-day forecast with date, max/min temperatures, and midday condition.
 
 Location is configurable from the dashboard, with autocomplete powered by Nominatim (OpenStreetMap, no key). Change the city, hit save. The display updates on the next render cycle.
 
@@ -172,9 +172,9 @@ The Orchestrator runs in the main thread. Flask runs in a daemon thread. They co
 
 ## Boot Sequence
 
-On power-up, TaleVision renders a **welcome screen** to the e-ink display before anything else. "TaleVision" in Lobster at 88pt, orange, centred. Below it: *"The best thing on your wall since the clock."* in Taviraj Italic. Below that: a BBS/NFO-style info box — hostname, LAN IP, dashboard URL, active mode, playlist — in DejaVuSansMono Bold with box-drawing characters. Closes with "■ SYSTEM READY ■" in red. Rainbow colour bars at top and bottom from the seven native Inky colours.
+On power-up, TaleVision renders a **welcome screen** to the e-ink display before anything else. A vintage TV frame graphic (800×480, transparent centre) is composited as background. Inside it: "TaleVision" in Lobster at 75pt, black, centred. Below it: a randomly chosen sardonic tagline from a pool of twenty, in Taviraj Italic. Below that: `[ STARTING IN 30 SECONDS ]` in red spaced caps. Then a compact BBS/NFO-style info box — hostname, LAN IP, dashboard URL — in DejaVuSansMono Bold with box-drawing characters. Closes with "TaleVision v1.5 · Netmilk Studio" in blue.
 
-The welcome screen holds for 15 seconds. Long enough to confirm the device is alive and read the IP address. Then the Orchestrator takes over and renders the first real frame.
+The welcome screen holds for 30 seconds. Long enough to confirm the device is alive, read the IP address, and actually look at it. The rendered frame is saved to `cache/welcome_frame.png` on every boot. Then the Orchestrator takes over and renders the first real frame.
 
 The systemd service is set to `Restart=always`. On reboot, crash, power cycle, existential doubt — TaleVision comes back. The Pi has one job and it will do it.
 
@@ -228,7 +228,7 @@ Dashboard at `http://<pi-ip>:5000`.
 | `litclock.vertical_centering_adjustment` | `40` | Pixels nudged upward from mathematical centre |
 | `litclock.use_italic_for_em` | `true` | Switch to italic font when `<em>` appears in quote |
 | `litclock.invert_colors` | `false` | White text on black background |
-| `slowmovie.refresh_interval` | `90` | Seconds between SlowMovie frames |
+| `slowmovie.refresh_interval` | `300` | Seconds between SlowMovie frames |
 | `slowmovie.video_file` | `random` | Specific filename or `random` |
 | `slowmovie.image.fit_mode` | `cover` | `cover` (crop to fill) or `contain` (letterbox) |
 | `slowmovie.overlay.qr_enabled` | `true` | TMDB QR code in frame corner |
@@ -236,9 +236,9 @@ Dashboard at `http://<pi-ip>:5000`.
 | `display.saturation` | `0.6` | Inky colour saturation (0.0 – 1.0) |
 | `wikipedia.refresh_interval` | `300` | Seconds between Wikipedia article fetches |
 | `wikipedia.language` | `it` | Default language for Wikipedia (`it` · `es` · `pt` · `en` · `fr` · `de`) |
-| `weather.refresh_interval` | `600` | Seconds between weather fetches |
+| `weather.refresh_interval` | `300` | Seconds between weather fetches |
 | `weather.location` | `Roma` | Default city (editable from dashboard) |
-| `suspend.start` / `.end` | `17:00` / `08:00` | Sleep/wake time — overnight ranges handled correctly (start > end wraps midnight) |
+| `suspend.start` / `.end` | `18:00` / `08:00` | Sleep/wake time — overnight ranges handled correctly (start > end wraps midnight) |
 | `suspend.days` | `[5,6]` | Fully-off days (0=Mon … 6=Sun). Default: Sat+Sun fully off, Mon–Fri follow the time window |
 | `buttons.actions` | see below | Remap GPIO buttons to any action |
 
@@ -327,7 +327,7 @@ All four remappable in `config.yaml` under `buttons.actions`. On non-Pi hardware
 
 Between `suspend.start` and `suspend.end`, TaleVision stops rendering and waits. The panel holds the last image with zero power draw. The Pi idles.
 
-On entering suspension, it renders a **suspend screen**: "TaleVision" in Lobster at 76pt, orange. Below it: a random literary quote from the LitClock database, word-wrapped in Taviraj Italic, with the author below. Then the BBS info box — active hours, day-of-week markers (`[MON]` for active, ` MON ` for suspended), next wake time — in DejaVuSansMono with box-drawing characters. Rainbow border bars matching the boot screen. Timestamp at the bottom in grey.
+On entering suspension, it renders a **suspend screen**: same vintage TV frame background as the welcome screen. "TaleVision" in Lobster at 65pt, black. Below it: `· DISPLAY SUSPENDED ·` in orange spaced caps — so it's immediately clear what's happening. Below that: a random literary quote from the LitClock database, word-wrapped in Taviraj Italic, with the author below. Then the BBS info box — active hours, day-of-week markers (`[MON]` for active, ` MON ` for suspended), next wake time — in DejaVuSansMono with box-drawing characters. Timestamp at the bottom in grey.
 
 Overnight windows (`23:00 → 07:00`) are handled correctly: if `start > end`, the suspended period wraps midnight. Day-of-week filtering is supported. An empty list means every day.
 
@@ -437,12 +437,6 @@ pip-audit -r requirements.txt
 **The display takes ~30 seconds to refresh.** The software intervals (60s for LitClock, 90s for SlowMovie) are deliberately longer than the panel cycle time. The screen is not frozen. The Pi has not crashed. The film is not broken. It's e-ink. Patience is a feature, not a workaround.
 
 ---
-
-## Upcoming Modes
-
-TaleVision is a multi-mode playlist system. Modes run alone or cycle in rotation with a unified interval. One more is in the works:
-
-**Teletext** — Ceefax/Oracle/Viewdata-style retro teletext pages. Mode 7 font, block graphics, 40×25 character grid. Archives of real teletext pages from the '70s–'80s rendered to e-ink. Native PIL, no heavy dependencies, zero apologies for the aesthetic.
 
 ---
 

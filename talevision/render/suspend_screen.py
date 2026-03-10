@@ -250,7 +250,8 @@ def render_suspend_screen(
     # ── Vertical centering ────────────────────────────────────────────────────
     quote_block_h = len(quote_lines) * lh_quote + (lh_author + 4 if author else 0) if quote_lines else 0
     total_h = (
-        lh_lobster + 8
+        lh_lobster + 6
+        + lh_md + 10                        # suspended label
         + quote_block_h + (14 if quote_block_h else 0)
         + len(box_lines) * lh_sm
         + 14
@@ -262,7 +263,13 @@ def render_suspend_screen(
     title = "TaleVision"
     draw.text(((W - text_w(title, font_lobster)) // 2, y), title,
               font=font_lobster, fill=BLACK)
-    y += lh_lobster + 8
+    y += lh_lobster + 6
+
+    # ── Suspended label ───────────────────────────────────────────────────────
+    suspended = "·  D I S P L A Y   S U S P E N D E D  ·"
+    draw.text(((W - text_w(suspended, font_md)) // 2, y), suspended,
+              font=font_md, fill=ORANGE)
+    y += lh_md + 10
 
     # ── Quote + author ────────────────────────────────────────────────────────
     if quote_lines:
