@@ -669,6 +669,105 @@ function LanguageSelector({ current }: { current?: string }) {
   )
 }
 
+// ─── Weather Settings ────────────────────────────────────────────────────────
+
+function WeatherSettings({ currentLocation }: { currentLocation?: string }) {
+  const qc = useQueryClient()
+  const [input, setInput] = useState(currentLocation ?? '')
+  const [suggestions, setSuggestions] = useState<Array<{ name: string; display: string }>>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+
+  useEffect(() => {
+    if (currentLocation && !input) setInput(currentLocation)
+  }, [currentLocation])
+
+  const searchMut = useMutation({
+    mutationFn: (q: string) => api.searchWeatherLocation(q),
+    onSuccess: (data) => {
+      setSuggestions(data.results)
+      setShowSuggestions(data.results.length > 0)
+    },
+  })
+
+  const saveMut = useMutation({
+    mutationFn: () => api.setWeatherLocation(input),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['status'] })
+      setSaved(true)
+      clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => setSaved(false), 2500)
+    },
+  })
+
+  const handleInputChange = (val: string) => {
+    setInput(val)
+    clearTimeout(debounceRef.current)
+    if (val.length >= 2) {
+      debounceRef.current = setTimeout(() => searchMut.mutate(val), 400)
+    } else {
+      setSuggestions([])
+      setShowSuggestions(false)
+    }
+  }
+
+  const selectSuggestion = (name: string) => {
+    setInput(name)
+    setSuggestions([])
+    setShowSuggestions(false)
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <span className="label flex-shrink-0">Location</span>
+        <div className="relative flex-1">
+          <input
+            type="text"
+            value={input}
+            onChange={e => handleInputChange(e.target.value)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+            placeholder="City name…"
+            className="w-full bg-deep rounded-sm text-primary font-mono text-sm px-3 py-2 outline-none transition-all duration-200"
+            style={{ border: '1px solid rgba(255,255,255,0.1)' }}
+            onFocus={e => { e.target.style.borderColor = '#01B574' }}
+          />
+          {showSuggestions && suggestions.length > 0 && (
+            <div
+              className="absolute top-full left-0 right-0 mt-1 bg-surface rounded-sm z-50 overflow-hidden"
+              style={{ border: '1px solid rgba(255,255,255,0.1)' }}
+            >
+              {suggestions.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={() => selectSuggestion(s.name)}
+                  className="w-full text-left px-3 py-2 font-mono text-sm text-secondary hover:bg-surface-hover hover:text-accent transition-colors"
+                >
+                  <span className="text-primary">{s.name}</span>
+                  <span className="text-muted text-xs ml-2">{s.display.slice(0, 55)}…</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => saveMut.mutate()}
+          disabled={saveMut.isPending || !input.trim()}
+          className="font-mono text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-sm bg-accent text-white hover:bg-accent-hover transition-all duration-200 disabled:opacity-50"
+          style={{ boxShadow: '0 0 20px rgba(117,81,255,0.15)' }}
+        >
+          {saveMut.isPending ? 'Saving…' : 'Set location'}
+        </button>
+        {saved && <span className="label animate-fade-in" style={{ color: '#01B574' }}>Saved</span>}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main App ─────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -912,6 +1011,14 @@ export default function App() {
           <section className="animate-fade-in bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
             <div className="label mb-3">Language</div>
             <LanguageSelector current={status?.language ?? undefined} />
+          </section>
+        )}
+
+        {/* Weather location — only for weather mode */}
+        {currentMode === 'weather' && (
+          <section className="animate-fade-in bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="label mb-3">Weather location</div>
+            <WeatherSettings currentLocation={status?.weather_location ?? undefined} />
           </section>
         )}
 
