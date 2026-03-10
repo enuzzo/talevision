@@ -14,7 +14,7 @@ from talevision.modes.base import DisplayMode, ModeState
 
 log = logging.getLogger(__name__)
 
-LANGS = ["it", "en", "de", "es", "fr", "pt"]
+LANGS = ["it", "es", "pt", "en", "fr", "de"]
 COLOR_WHITE = (255, 255, 255)
 COLOR_BLACK = (0, 0, 0)
 COLOR_ACCENT = (117, 81, 255)

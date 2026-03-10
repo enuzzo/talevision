@@ -58,13 +58,14 @@ def load_secrets(secrets_path: Path) -> dict:
         return {}
 
 
+_LANG_ORDER = ["it", "es", "pt", "en", "fr", "de"]
+
+
 def detect_available_languages(lang_dir: Path) -> List[str]:
-    """Return list of language codes for which quotes-{lang}.csv exists."""
+    """Return list of language codes for which quotes-{lang}.csv exists, in preferred order."""
     if not lang_dir.is_dir():
         return []
-    langs = []
-    for p in sorted(lang_dir.glob("quotes-*.csv")):
-        lang_code = p.stem.replace("quotes-", "")
-        if lang_code:
-            langs.append(lang_code)
-    return langs
+    found = {p.stem.replace("quotes-", "") for p in lang_dir.glob("quotes-*.csv") if p.stem.replace("quotes-", "")}
+    ordered = [c for c in _LANG_ORDER if c in found]
+    remaining = sorted(c for c in found if c not in _LANG_ORDER)
+    return ordered + remaining

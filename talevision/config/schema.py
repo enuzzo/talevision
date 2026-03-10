@@ -135,7 +135,7 @@ class AnsiConfig:
 class WikipediaConfig:
     refresh_interval: int = 300
     language: str = "it"
-    languages: List[str] = field(default_factory=lambda: ["it", "en", "de", "es", "fr", "pt"])
+    languages: List[str] = field(default_factory=lambda: ["it", "es", "pt", "en", "fr", "de"])
     timeout: int = 10
 
 
