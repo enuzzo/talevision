@@ -256,13 +256,14 @@ Dashboard at `http://<pi-ip>:5000`.
 
 ## Web UI Fonts
 
-The control dashboard uses the following typefaces, served via Google Fonts under the
-[SIL Open Font License 1.1](https://openfontlicense.org/):
+The control dashboard uses the following typefaces, served via Google Fonts:
 
 | Font | Role | Designer | Copyright |
 |---|---|---|---|
-| **[Sarina](https://fonts.google.com/specimen/Sarina)** | Logotype ("TaleVision") | Pria Ravichandran | © 2012 Google LLC |
+| **[Lobster](https://fonts.google.com/specimen/Lobster)** | Logotype ("TaleVision"), section headings | Pablo Impallari | © 2010 Pablo Impallari |
 | **[Funnel Display](https://fonts.google.com/specimen/Funnel+Display)** | Interface text, labels, values | Mirko Velimirović / Undercase Type | © 2024 The Funnel Project Authors |
+
+Both typefaces are licensed under the [SIL Open Font License 1.1](https://openfontlicense.org/) — free to use, embed, and redistribute with attribution.
 
 ---
 
