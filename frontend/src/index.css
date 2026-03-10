@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Syne+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sarina&family=Funnel+Display:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,13 +6,13 @@
 
 @layer base {
   html {
-    background-color: #0B0C0A;
-    color: #EDE8DC;
+    background-color: #F1EBD9;
+    color: #4A4B59;
   }
 
   body {
     margin: 0;
-    font-family: 'Syne Mono', 'SF Mono', 'Fira Code', monospace;
+    font-family: 'Funnel Display', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -22,59 +22,59 @@
   }
 
   ::selection {
-    background: rgba(200, 168, 75, 0.28);
-    color: #EDE8DC;
+    background: rgba(202, 121, 109, 0.22);
+    color: #4A4B59;
   }
 
   ::-webkit-scrollbar {
     width: 4px;
   }
   ::-webkit-scrollbar-track {
-    background: #0B0C0A;
+    background: #F1EBD9;
   }
   ::-webkit-scrollbar-thumb {
-    background: #252722;
+    background: #DDD1BB;
     border-radius: 4px;
   }
 }
 
 @layer components {
   .label {
-    @apply font-mono text-[11px] uppercase tracking-[0.08em] text-tertiary;
+    @apply font-display text-[11px] uppercase tracking-[0.08em] text-tertiary;
     font-weight: 600;
   }
 
   .value {
-    @apply font-mono text-sm text-primary;
+    @apply font-display text-sm text-primary;
   }
 
   /* Radix Switch */
   [data-radix-switch-root] {
     width: 44px !important;
     height: 24px !important;
-    background-color: #1F211C !important;
+    background-color: #DDD1BB !important;
     border-radius: 9999px !important;
-    border: 1px solid rgba(255,255,255,0.1) !important;
+    border: 1px solid rgba(74,75,89,0.15) !important;
     transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) !important;
     cursor: pointer !important;
     flex-shrink: 0 !important;
   }
 
   [data-radix-switch-root][data-state='checked'] {
-    background-color: #C8A84B !important;
-    border-color: #C8A84B !important;
+    background-color: #CA796D !important;
+    border-color: #CA796D !important;
   }
 
   [data-radix-switch-thumb] {
     display: block !important;
     width: 18px !important;
     height: 18px !important;
-    background-color: #EDE8DC !important;
+    background-color: #F1EBD9 !important;
     border-radius: 9999px !important;
     transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1) !important;
     transform: translateX(3px) !important;
     will-change: transform !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
+    box-shadow: 0 1px 3px rgba(74,75,89,0.2) !important;
   }
 
   [data-radix-switch-thumb][data-state='checked'] {
@@ -83,11 +83,11 @@
 
   /* Radix Select */
   [data-radix-select-trigger] {
-    font-family: 'Syne Mono', 'SF Mono', monospace;
-    font-size: 13px;
-    color: #EDE8DC;
-    background: #111310;
-    border: 1px solid rgba(255,255,255,0.1);
+    font-family: 'Funnel Display', sans-serif;
+    font-size: 14px;
+    color: #4A4B59;
+    background: #F1EBD9;
+    border: 1px solid rgba(74,75,89,0.15);
     padding: 0 16px;
     height: 40px;
     border-radius: 6px;
@@ -101,26 +101,26 @@
     transition: border-color 200ms ease;
   }
   [data-radix-select-trigger]:hover {
-    border-color: #C8A84B;
+    border-color: #CA796D;
   }
   [data-radix-select-trigger]:focus {
-    border-color: #C8A84B;
-    box-shadow: 0 0 0 3px rgba(200, 168, 75, 0.12);
+    border-color: #CA796D;
+    box-shadow: 0 0 0 3px rgba(202, 121, 109, 0.12);
   }
 
   [data-radix-select-content] {
-    background: #1F211C;
-    border: 1px solid rgba(255,255,255,0.1);
+    background: #F1EBD9;
+    border: 1px solid rgba(74,75,89,0.15);
     border-radius: 10px;
     overflow: hidden;
     z-index: 100;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+    box-shadow: 0 8px 32px rgba(74,75,89,0.15);
   }
 
   [data-radix-select-item] {
-    font-family: 'Syne Mono', 'SF Mono', monospace;
-    font-size: 13px;
-    color: #EDE8DC;
+    font-family: 'Funnel Display', sans-serif;
+    font-size: 14px;
+    color: #4A4B59;
     padding: 0 16px;
     height: 38px;
     display: flex;
@@ -131,10 +131,10 @@
   }
   [data-radix-select-item]:hover,
   [data-radix-select-item][data-highlighted] {
-    background: #252722;
-    color: #C8A84B;
+    background: #E8E0CA;
+    color: #CA796D;
   }
   [data-radix-select-item][data-state='checked'] {
-    color: #C8A84B;
+    color: #CA796D;
   }
 }

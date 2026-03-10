@@ -254,6 +254,18 @@ Dashboard at `http://<pi-ip>:5000`.
 
 ---
 
+## Web UI Fonts
+
+The control dashboard uses the following typefaces, served via Google Fonts under the
+[SIL Open Font License 1.1](https://openfontlicense.org/):
+
+| Font | Role | Designer | Copyright |
+|---|---|---|---|
+| **[Sarina](https://fonts.google.com/specimen/Sarina)** | Logotype ("TaleVision") | Pria Ravichandran | © 2012 Google LLC |
+| **[Funnel Display](https://fonts.google.com/specimen/Funnel+Display)** | Interface text, labels, values | Mirko Velimirović / Undercase Type | © 2024 The Funnel Project Authors |
+
+---
+
 ## Physical Buttons
 
 The Inky Impression has four buttons on the side. Default mapping:

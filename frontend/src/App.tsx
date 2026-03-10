@@ -47,16 +47,16 @@ interface ModeInfo {
 }
 
 const ALL_MODES: ModeInfo[] = [
-  { id: 'litclock',  label: 'LitClock',  icon: '🕐', color: '#7AB8D4', available: true },
-  { id: 'slowmovie', label: 'SlowMovie', icon: '🎬', color: '#D4A050', available: true },
-  { id: 'wikipedia', label: 'Wikipedia', icon: '📖', color: '#C8A84B', available: true },
-  { id: 'weather',   label: 'Weather',   icon: '🌤', color: '#7AB87A', available: true },
+  { id: 'litclock',  label: 'LitClock',  icon: '🕐', color: '#6B8FA0', available: true },
+  { id: 'slowmovie', label: 'SlowMovie', icon: '🎬', color: '#C8974A', available: true },
+  { id: 'wikipedia', label: 'Wikipedia', icon: '📖', color: '#CA796D', available: true },
+  { id: 'weather',   label: 'Weather',   icon: '🌤', color: '#8DA495', available: true },
 ]
 
 const MODE_MAP = Object.fromEntries(ALL_MODES.map(m => [m.id, m]))
 
 function getModeInfo(id: string): ModeInfo {
-  return MODE_MAP[id] ?? { id, label: id, icon: '?', color: '#5C5850', available: false }
+  return MODE_MAP[id] ?? { id, label: id, icon: '?', color: '#9C8E84', available: false }
 }
 
 // ─── Live Clock ─────────────────────────────────────────────────────────────
@@ -114,7 +114,7 @@ function RenderingOverlay({ mode }: { mode: string }) {
           <div className="font-display text-xs font-semibold tracking-[0.6em] uppercase" style={{ color: info.color }}>
             Rendering
           </div>
-          <div className="font-mono text-[10px] tracking-[0.25em] text-tertiary mt-1">
+          <div className="font-display text-[10px] tracking-[0.25em] text-tertiary mt-1">
             {info.icon} {mode}{dots}
           </div>
         </div>
@@ -136,7 +136,7 @@ function FramePreview({ refreshKey, waiting, waitingMode }: { refreshKey: number
   }, [refreshKey])
 
   return (
-    <div className="relative w-full bg-deep rounded-lg overflow-hidden" style={{ aspectRatio: '5/3', border: '1px solid rgba(255,255,255,0.06)' }}>
+    <div className="relative w-full bg-deep rounded-lg overflow-hidden" style={{ aspectRatio: '5/3', border: '1px solid rgba(74,75,89,0.12)' }}>
       <div className="absolute inset-[6px] border border-border-default/40 rounded pointer-events-none z-10" />
 
       {waiting && <RenderingOverlay mode={waitingMode} />}
@@ -173,6 +173,19 @@ function FramePreview({ refreshKey, waiting, waitingMode }: { refreshKey: number
 
 // ─── Playlist Editor ────────────────────────────────────────────────────────
 
+function GripIcon() {
+  return (
+    <svg width="8" height="12" viewBox="0 0 8 12" fill="currentColor">
+      <circle cx="2" cy="2" r="1.2" />
+      <circle cx="6" cy="2" r="1.2" />
+      <circle cx="2" cy="6" r="1.2" />
+      <circle cx="6" cy="6" r="1.2" />
+      <circle cx="2" cy="10" r="1.2" />
+      <circle cx="6" cy="10" r="1.2" />
+    </svg>
+  )
+}
+
 function PlaylistEditor({
   playlist,
   rotationInterval,
@@ -190,6 +203,8 @@ function PlaylistEditor({
   const [enabled, setEnabled] = useState<Set<string>>(new Set())
   const [interval, setIntervalVal] = useState(Math.round(rotationInterval / 60))
   const [saved, setSaved] = useState(false)
+  const [dragIdx, setDragIdx] = useState<number | null>(null)
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout>>()
   const syncedRef = useRef(false)
 
@@ -224,22 +239,33 @@ function PlaylistEditor({
     })
   }
 
-  const moveUp = (idx: number) => {
-    if (idx <= 0) return
-    setItems(prev => {
-      const next = [...prev]
-      ;[next[idx - 1], next[idx]] = [next[idx], next[idx - 1]]
-      return next
-    })
+  const handleDragStart = (e: React.DragEvent, idx: number) => {
+    setDragIdx(idx)
+    e.dataTransfer.effectAllowed = 'move'
   }
 
-  const moveDown = (idx: number) => {
+  const handleDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (dragOverIdx !== idx) setDragOverIdx(idx)
+  }
+
+  const handleDrop = (e: React.DragEvent, idx: number) => {
+    e.preventDefault()
+    if (dragIdx === null || dragIdx === idx) return
     setItems(prev => {
-      if (idx >= prev.length - 1) return prev
       const next = [...prev]
-      ;[next[idx], next[idx + 1]] = [next[idx + 1], next[idx]]
+      const [removed] = next.splice(dragIdx, 1)
+      next.splice(idx, 0, removed)
       return next
     })
+    setDragIdx(null)
+    setDragOverIdx(null)
+  }
+
+  const handleDragEnd = () => {
+    setDragIdx(null)
+    setDragOverIdx(null)
   }
 
   const handleSave = () => {
@@ -261,33 +287,53 @@ function PlaylistEditor({
           const isEnabled = enabled.has(id)
           const isCurrent = id === currentMode
           const isComingSoon = !info.available
+          const isDragging = dragIdx === idx
+          const isDropTarget = dragOverIdx === idx && dragOverIdx !== dragIdx
 
           return (
             <div
               key={id}
+              draggable={!isComingSoon}
+              onDragStart={e => handleDragStart(e, idx)}
+              onDragOver={e => handleDragOver(e, idx)}
+              onDrop={e => handleDrop(e, idx)}
+              onDragEnd={handleDragEnd}
               className={cx(
-                'group flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200',
+                'flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-150',
                 isComingSoon
                   ? 'opacity-35'
                   : isEnabled
                     ? 'bg-surface hover:bg-surface-hover'
                     : 'bg-deep/50 opacity-60 hover:opacity-80',
+                isDragging ? 'opacity-40 scale-[0.98]' : '',
               )}
-              style={{ border: isEnabled && !isComingSoon ? `1px solid ${info.color}20` : '1px solid rgba(255,255,255,0.06)' }}
+              style={{
+                border: isDropTarget
+                  ? '2px solid #CA796D'
+                  : isEnabled && !isComingSoon
+                    ? `1px solid ${info.color}35`
+                    : '1px solid rgba(74,75,89,0.10)',
+                cursor: isComingSoon ? 'default' : 'grab',
+              }}
             >
+              {/* Drag handle */}
+              {!isComingSoon && (
+                <div className="text-muted flex-shrink-0 select-none">
+                  <GripIcon />
+                </div>
+              )}
+
               {/* Checkbox */}
               <button
                 onClick={() => toggleMode(id)}
                 disabled={isComingSoon}
                 className={cx(
                   'w-[20px] h-[20px] rounded-xs flex items-center justify-center flex-shrink-0 transition-all duration-200',
-                  isComingSoon
-                    ? 'cursor-not-allowed'
-                    : 'cursor-pointer',
+                  isComingSoon ? 'cursor-not-allowed' : 'cursor-pointer',
                 )}
                 style={{
-                  border: isEnabled ? `1px solid ${info.color}` : '1px solid rgba(255,255,255,0.1)',
-                  backgroundColor: isEnabled ? info.color : '#111310',
+                  border: isEnabled ? `1px solid ${info.color}` : '1px solid rgba(74,75,89,0.2)',
+                  backgroundColor: isEnabled ? info.color : '#E8E0CA',
                 }}
               >
                 {isEnabled && (
@@ -298,7 +344,7 @@ function PlaylistEditor({
               </button>
 
               {/* Icon + Name */}
-              <span className="text-sm flex-shrink-0 w-5 text-center" style={{ color: isEnabled ? info.color : '#5C5850' }}>
+              <span className="text-sm flex-shrink-0 w-5 text-center" style={{ color: isEnabled ? info.color : '#9C8E84' }}>
                 {info.icon}
               </span>
               <span
@@ -314,7 +360,7 @@ function PlaylistEditor({
               {/* Current indicator */}
               {isCurrent && (
                 <span
-                  className="font-mono text-[9px] font-bold tracking-[0.1em] px-2 py-0.5 rounded-full"
+                  className="font-display text-[9px] font-bold tracking-[0.1em] px-2 py-0.5 rounded-full"
                   style={{ color: info.color, backgroundColor: `${info.color}18` }}
                 >
                   NOW
@@ -323,33 +369,9 @@ function PlaylistEditor({
 
               {/* Coming soon badge */}
               {isComingSoon && (
-                <span className="font-mono text-[9px] font-bold uppercase tracking-[0.1em] text-muted px-2 py-0.5 rounded-full bg-elevated">
+                <span className="font-display text-[9px] font-bold uppercase tracking-[0.1em] text-muted px-2 py-0.5 rounded-full bg-elevated">
                   soon
                 </span>
-              )}
-
-              {/* Reorder arrows */}
-              {!isComingSoon && (
-                <div className="flex flex-col gap-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => moveUp(idx)}
-                    disabled={idx === 0}
-                    className="text-tertiary hover:text-accent disabled:text-muted transition-colors p-0 leading-none"
-                  >
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
-                      <path d="M9 5L5 1 1 5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => moveDown(idx)}
-                    disabled={idx === items.length - 1}
-                    className="text-tertiary hover:text-accent disabled:text-muted transition-colors p-0 leading-none"
-                  >
-                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
-                      <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </button>
-                </div>
               )}
             </div>
           )
@@ -366,13 +388,13 @@ function PlaylistEditor({
             max={60}
             value={interval}
             onChange={e => setIntervalVal(Math.max(1, parseInt(e.target.value) || 1))}
-            className="w-16 bg-deep rounded-sm text-primary font-mono text-sm px-2 py-1.5 outline-none transition-all duration-200 text-center"
-            style={{ border: '1px solid rgba(255,255,255,0.1)' }}
-            onFocus={e => e.target.style.borderColor = '#C8A84B'}
-            onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+            className="w-16 bg-deep rounded-sm text-primary font-display text-sm px-2 py-1.5 outline-none transition-all duration-200 text-center"
+            style={{ border: '1px solid rgba(74,75,89,0.15)' }}
+            onFocus={e => (e.target.style.borderColor = '#CA796D')}
+            onBlur={e => (e.target.style.borderColor = 'rgba(74,75,89,0.15)')}
           />
           <span className="label">min</span>
-          <span className="label ml-auto" style={{ color: '#7AB8D4' }}>
+          <span className="label ml-auto" style={{ color: '#6B8FA0' }}>
             {enabledCount} modes · {interval * enabledCount} min cycle
           </span>
         </div>
@@ -383,13 +405,13 @@ function PlaylistEditor({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="font-mono text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-sm bg-accent text-white hover:bg-accent-hover transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
-          style={{ boxShadow: '0 0 20px rgba(200,168,75,0.15)' }}
+          className="font-display text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-sm bg-accent text-cream hover:bg-accent-hover transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
+          style={{ boxShadow: '0 0 20px rgba(202,121,109,0.20)' }}
         >
           {saving ? 'Saving…' : 'Save playlist'}
         </button>
         {saved && (
-          <span className="label animate-fade-in" style={{ color: '#7AB87A' }}>Saved</span>
+          <span className="label animate-fade-in" style={{ color: '#8DA495' }}>Saved</span>
         )}
       </div>
     </div>
@@ -400,7 +422,7 @@ function PlaylistEditor({
 
 function StatusRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+    <div className="flex items-baseline justify-between gap-4 py-2.5" style={{ borderBottom: '1px solid rgba(74,75,89,0.10)' }}>
       <span className="label flex-shrink-0">{label}</span>
       <span className="value text-right truncate max-w-[220px]">{value}</span>
     </div>
@@ -467,23 +489,23 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
             type="time"
             value={activeFrom}
             onChange={e => setActiveFrom(e.target.value)}
-            className="w-full bg-deep rounded-sm text-primary font-mono text-sm px-3 py-2 outline-none transition-all duration-200"
-            style={{ border: '1px solid rgba(255,255,255,0.1)' }}
-            onFocus={e => e.target.style.borderColor = '#C8A84B'}
-            onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+            className="w-full bg-deep rounded-sm text-primary font-display text-sm px-3 py-2 outline-none transition-all duration-200"
+            style={{ border: '1px solid rgba(74,75,89,0.15)' }}
+            onFocus={e => (e.target.style.borderColor = '#CA796D')}
+            onBlur={e => (e.target.style.borderColor = 'rgba(74,75,89,0.15)')}
           />
         </div>
-        <span className="label pb-2" style={{ color: '#C8A84B' }}>→</span>
+        <span className="label pb-2" style={{ color: '#CA796D' }}>→</span>
         <div>
           <div className="label mb-1">⏹ Off at</div>
           <input
             type="time"
             value={activeTo}
             onChange={e => setActiveTo(e.target.value)}
-            className="w-full bg-deep rounded-sm text-primary font-mono text-sm px-3 py-2 outline-none transition-all duration-200"
-            style={{ border: '1px solid rgba(255,255,255,0.1)' }}
-            onFocus={e => e.target.style.borderColor = '#C8A84B'}
-            onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+            className="w-full bg-deep rounded-sm text-primary font-display text-sm px-3 py-2 outline-none transition-all duration-200"
+            style={{ border: '1px solid rgba(74,75,89,0.15)' }}
+            onFocus={e => (e.target.style.borderColor = '#CA796D')}
+            onBlur={e => (e.target.style.borderColor = 'rgba(74,75,89,0.15)')}
           />
         </div>
       </div>
@@ -496,12 +518,12 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
               key={i}
               onClick={() => toggleDay(i)}
               className={cx(
-                'w-9 h-9 text-[12px] font-mono font-bold rounded-sm transition-all duration-200 outline-none',
+                'w-9 h-9 text-[12px] font-display font-bold rounded-sm transition-all duration-200 outline-none',
                 days.includes(i)
-                  ? 'bg-accent text-white'
+                  ? 'bg-accent text-cream'
                   : 'bg-deep text-tertiary hover:text-primary cursor-pointer',
               )}
-              style={{ border: days.includes(i) ? '1px solid #C8A84B' : '1px solid rgba(255,255,255,0.1)' }}
+              style={{ border: days.includes(i) ? '1px solid #CA796D' : '1px solid rgba(74,75,89,0.15)' }}
             >
               {d}
             </button>
@@ -513,13 +535,13 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
         <button
           onClick={() => mut.mutate()}
           disabled={mut.isPending}
-          className="font-mono text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-sm bg-accent text-white hover:bg-accent-hover transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
-          style={{ boxShadow: '0 0 20px rgba(200,168,75,0.15)' }}
+          className="font-display text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-sm bg-accent text-cream hover:bg-accent-hover transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
+          style={{ boxShadow: '0 0 20px rgba(202,121,109,0.20)' }}
         >
           {mut.isPending ? 'Saving…' : 'Save schedule'}
         </button>
         {saved && (
-          <span className="label animate-fade-in" style={{ color: '#7AB87A' }}>Saved</span>
+          <span className="label animate-fade-in" style={{ color: '#8DA495' }}>Saved</span>
         )}
       </div>
     </div>
@@ -567,7 +589,7 @@ function IntervalRow({
   })
 
   return (
-    <div className="flex items-center gap-3 py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+    <div className="flex items-center gap-3 py-2.5" style={{ borderBottom: '1px solid rgba(74,75,89,0.10)' }}>
       <span className="text-sm" style={{ color }}>{icon}</span>
       <span className="label flex-shrink-0 w-20" style={{ color }}>{modeName}</span>
       <input
@@ -576,17 +598,17 @@ function IntervalRow({
         max={1440}
         value={minutes}
         onChange={e => setMinutes(Math.max(1, parseInt(e.target.value) || 1))}
-        className="w-16 bg-deep rounded-sm text-primary font-mono text-sm px-2 py-1.5 outline-none transition-all duration-200 text-center"
-        style={{ border: '1px solid rgba(255,255,255,0.1)' }}
-        onFocus={e => e.target.style.borderColor = '#C8A84B'}
-        onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+        className="w-16 bg-deep rounded-sm text-primary font-display text-sm px-2 py-1.5 outline-none transition-all duration-200 text-center"
+        style={{ border: '1px solid rgba(74,75,89,0.15)' }}
+        onFocus={e => (e.target.style.borderColor = '#CA796D')}
+        onBlur={e => (e.target.style.borderColor = 'rgba(74,75,89,0.15)')}
       />
       <span className="label">min</span>
       <button
         onClick={() => setMut.mutate()}
         disabled={setMut.isPending}
-        className="font-mono text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-sm bg-surface text-secondary hover:bg-surface-hover hover:text-accent transition-all duration-200 disabled:opacity-50"
-        style={{ border: '1px solid rgba(255,255,255,0.06)' }}
+        className="font-display text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-sm bg-surface text-secondary hover:bg-surface-hover hover:text-accent transition-all duration-200 disabled:opacity-50"
+        style={{ border: '1px solid rgba(74,75,89,0.10)' }}
       >
         {setMut.isPending ? '…' : 'Set'}
       </button>
@@ -596,7 +618,7 @@ function IntervalRow({
           disabled={resetMut.isPending}
           className="label hover:text-danger transition-colors"
           title={`Reset to default (${fmtInterval(data.default)})`}
-          style={{ color: '#D45858' }}
+          style={{ color: '#C05050' }}
         >
           reset
         </button>
@@ -729,20 +751,20 @@ function WeatherSettings({ currentLocation }: { currentLocation?: string }) {
             onChange={e => handleInputChange(e.target.value)}
             onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
             placeholder="City name…"
-            className="w-full bg-deep rounded-sm text-primary font-mono text-sm px-3 py-2 outline-none transition-all duration-200"
-            style={{ border: '1px solid rgba(255,255,255,0.1)' }}
-            onFocus={e => { e.target.style.borderColor = '#C8A84B' }}
+            className="w-full bg-deep rounded-sm text-primary font-display text-sm px-3 py-2 outline-none transition-all duration-200"
+            style={{ border: '1px solid rgba(74,75,89,0.15)' }}
+            onFocus={e => { e.target.style.borderColor = '#CA796D' }}
           />
           {showSuggestions && suggestions.length > 0 && (
             <div
               className="absolute top-full left-0 right-0 mt-1 bg-surface rounded-sm z-50 overflow-hidden"
-              style={{ border: '1px solid rgba(255,255,255,0.1)' }}
+              style={{ border: '1px solid rgba(74,75,89,0.15)' }}
             >
               {suggestions.map((s, i) => (
                 <button
                   key={i}
                   onClick={() => selectSuggestion(s.name)}
-                  className="w-full text-left px-3 py-2 font-mono text-sm text-secondary hover:bg-surface-hover hover:text-accent transition-colors"
+                  className="w-full text-left px-3 py-2 font-display text-sm text-secondary hover:bg-surface-hover hover:text-accent transition-colors"
                 >
                   <span className="text-primary">{s.name}</span>
                   <span className="text-muted text-xs ml-2">{s.display.slice(0, 55)}…</span>
@@ -756,12 +778,12 @@ function WeatherSettings({ currentLocation }: { currentLocation?: string }) {
         <button
           onClick={() => saveMut.mutate()}
           disabled={saveMut.isPending || !input.trim()}
-          className="font-mono text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-sm bg-accent text-white hover:bg-accent-hover transition-all duration-200 disabled:opacity-50"
-          style={{ boxShadow: '0 0 20px rgba(200,168,75,0.15)' }}
+          className="font-display text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-sm bg-accent text-cream hover:bg-accent-hover transition-all duration-200 disabled:opacity-50"
+          style={{ boxShadow: '0 0 20px rgba(202,121,109,0.20)' }}
         >
           {saveMut.isPending ? 'Saving…' : 'Set location'}
         </button>
-        {saved && <span className="label animate-fade-in" style={{ color: '#7AB87A' }}>Saved</span>}
+        {saved && <span className="label animate-fade-in" style={{ color: '#8DA495' }}>Saved</span>}
       </div>
     </div>
   )
@@ -823,17 +845,17 @@ export default function App() {
   const isSuspended = status?.suspended ?? false
 
   return (
-    <div className="min-h-screen bg-bg text-primary font-mono animate-fade-in">
+    <div className="min-h-screen bg-bg text-primary font-display animate-fade-in">
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 backdrop-blur-sm relative" style={{ backgroundColor: 'rgba(11,12,10,0.92)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <header className="sticky top-0 z-40 backdrop-blur-sm" style={{ backgroundColor: 'rgba(241,235,217,0.93)', borderBottom: '1px solid rgba(74,75,89,0.10)' }}>
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="w-2.5 h-2.5 rounded-full bg-accent" style={{ boxShadow: '0 0 12px rgba(200,168,75,0.4)' }} />
-            <span className="font-display text-lg font-bold tracking-wide">TaleVision</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-accent" style={{ boxShadow: '0 0 12px rgba(202,121,109,0.4)' }} />
+            <span className="font-title text-xl" style={{ color: '#4A4B59' }}>TaleVision</span>
           </div>
           <div className="flex items-center gap-5">
-            <span className="font-mono text-sm text-tertiary tabular-nums">{clock}</span>
+            <span className="font-display text-sm text-tertiary tabular-nums">{clock}</span>
             <div className="flex items-center gap-2">
               <span
                 className={cx(
@@ -843,15 +865,15 @@ export default function App() {
                   'bg-success',
                 )}
                 style={{
-                  boxShadow: isError ? '0 0 8px rgba(212,88,88,0.5)' :
-                             !isSuspended && !isError ? '0 0 8px rgba(122,184,122,0.5)' : undefined,
+                  boxShadow: isError ? '0 0 8px rgba(192,80,80,0.4)' :
+                             !isSuspended && !isError ? '0 0 8px rgba(141,164,149,0.5)' : undefined,
                 }}
               />
               <span
                 className="label"
                 style={{
-                  color: isError ? '#D45858' :
-                         isSuspended ? '#5C5850' :
+                  color: isError ? '#C05050' :
+                         isSuspended ? '#9C8E84' :
                          currentModeInfo.color,
                 }}
               >
@@ -867,7 +889,7 @@ export default function App() {
       </header>
 
       {/* ── Main content ───────────────────────────────────────────────── */}
-      <main className="max-w-4xl mx-auto px-6 py-8 space-y-8 relative z-10">
+      <main className="max-w-4xl mx-auto px-6 py-8 space-y-8">
 
         {/* Frame Preview */}
         <section>
@@ -891,13 +913,13 @@ export default function App() {
               onClick={handleRefresh}
               disabled={refreshMut.isPending}
               className={cx(
-                'flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-widest',
+                'flex items-center gap-2 font-display text-xs font-bold uppercase tracking-widest',
                 'px-4 py-2.5 rounded-sm transition-all duration-200 outline-none',
                 refreshMut.isPending
                   ? 'bg-surface text-accent/50 cursor-wait'
                   : 'bg-surface text-secondary hover:bg-surface-hover hover:text-accent cursor-pointer',
               )}
-              style={{ border: '1px solid rgba(255,255,255,0.06)' }}
+              style={{ border: '1px solid rgba(74,75,89,0.10)' }}
             >
               <svg
                 width="12" height="12" viewBox="0 0 12 12" fill="none"
@@ -914,13 +936,13 @@ export default function App() {
           </div>
         </section>
 
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+        <div style={{ borderTop: '1px solid rgba(74,75,89,0.10)' }} />
 
         {/* Status + Suspend — two-column grid */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
           {/* Status */}
-          <div className="bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(74,75,89,0.10)' }}>
             <div className="label mb-4">Status</div>
             <div>
               <StatusRow
@@ -935,7 +957,7 @@ export default function App() {
                 <StatusRow
                   label="Rotation"
                   value={
-                    <span style={{ color: '#7AB8D4' }}>
+                    <span style={{ color: '#6B8FA0' }}>
                       {playlist.map(id => getModeInfo(id).icon).join(' → ')} · {fmtInterval(rotationInterval)}
                     </span>
                   }
@@ -944,7 +966,7 @@ export default function App() {
               <StatusRow
                 label="Suspended"
                 value={
-                  <span style={{ color: isSuspended ? '#D4A050' : '#7AB87A' }}>
+                  <span style={{ color: isSuspended ? '#C8974A' : '#8DA495' }}>
                     {isSuspended ? '⏸ yes' : '▶ no'}
                   </span>
                 }
@@ -962,7 +984,7 @@ export default function App() {
               {status?.video && (
                 <StatusRow
                   label="🎬 Film"
-                  value={<span className="font-display text-base font-semibold" style={{ color: '#D4A050' }}>{status.video}</span>}
+                  value={<span className="font-display text-base font-semibold" style={{ color: '#C8974A' }}>{status.video}</span>}
                 />
               )}
               {status?.quote && (
@@ -979,7 +1001,7 @@ export default function App() {
           </div>
 
           {/* Suspend Schedule */}
-          <div className="bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(74,75,89,0.10)' }}>
             <div className="label mb-4">Active schedule</div>
             <SuspendForm initial={status?.suspend} />
           </div>
@@ -988,7 +1010,7 @@ export default function App() {
 
         {/* Refresh intervals — only in single mode */}
         {!isRotating && status?.intervals && Object.keys(status.intervals).length > 0 && (
-          <section className="bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+          <section className="bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(74,75,89,0.10)' }}>
             <div className="label mb-4">Refresh intervals</div>
             <div>
               {ALL_MODES.filter(m => m.available && status.intervals![m.id]).map(m => (
@@ -1006,7 +1028,7 @@ export default function App() {
 
         {/* Language selector — litclock and wikipedia */}
         {(currentMode === 'litclock' || currentMode === 'wikipedia') && (
-          <section className="animate-fade-in bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+          <section className="animate-fade-in bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(74,75,89,0.10)' }}>
             <div className="label mb-3">Language</div>
             <LanguageSelector current={status?.language ?? undefined} />
           </section>
@@ -1014,15 +1036,15 @@ export default function App() {
 
         {/* Weather location — only for weather mode */}
         {currentMode === 'weather' && (
-          <section className="animate-fade-in bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+          <section className="animate-fade-in bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(74,75,89,0.10)' }}>
             <div className="label mb-3">Weather location</div>
             <WeatherSettings currentLocation={status?.weather_location ?? undefined} />
           </section>
         )}
 
-        {/* Footer with Netmilk logo */}
+        {/* Footer */}
         <footer className="pt-8 pb-4 flex flex-col items-center gap-4">
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', width: '100%' }} />
+          <div style={{ borderTop: '1px solid rgba(74,75,89,0.10)', width: '100%' }} />
           <div className="flex items-center justify-between w-full pt-4">
             <span className="label">TaleVision · Pi Zero W</span>
             <span className="label">800 × 480 · e‑ink</span>
@@ -1031,7 +1053,7 @@ export default function App() {
             <img
               src="https://netmi.lk/wp-content/uploads/2024/10/netmilk.svg"
               alt="Netmilk Studio"
-              style={{ width: '130px', height: 'auto' }}
+              style={{ width: '130px', height: 'auto', filter: 'sepia(0.3)' }}
             />
           </div>
         </footer>
