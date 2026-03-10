@@ -132,6 +132,21 @@ class AnsiConfig:
 
 
 @dataclass
+class WikipediaConfig:
+    refresh_interval: int = 300
+    language: str = "it"
+    languages: List[str] = field(default_factory=lambda: ["it", "en", "de", "es", "fr", "pt"])
+    timeout: int = 10
+
+
+@dataclass
+class WeatherConfig:
+    refresh_interval: int = 600
+    location: str = "Roma"
+    timeout: int = 10
+
+
+@dataclass
 class ButtonsConfig:
     enabled: bool = True
     gpio_map: dict = field(default_factory=lambda: {"a": 5, "b": 6, "c": 16, "d": 24})
@@ -153,4 +168,6 @@ class AppConfig:
     litclock: LitClockConfig = field(default_factory=LitClockConfig)
     slowmovie: SlowMovieConfig = field(default_factory=SlowMovieConfig)
     ansi: AnsiConfig = field(default_factory=AnsiConfig)
+    wikipedia: WikipediaConfig = field(default_factory=WikipediaConfig)
+    weather: WeatherConfig = field(default_factory=WeatherConfig)
     buttons: ButtonsConfig = field(default_factory=ButtonsConfig)

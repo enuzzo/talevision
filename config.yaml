@@ -101,6 +101,16 @@ ansi:
   art_dir: "assets/ansi"
   order: "sequential"      # sequential | random
 
+wikipedia:
+  refresh_interval: 300   # seconds between article changes
+  language: "it"
+  timeout: 10
+
+weather:
+  refresh_interval: 600   # seconds between weather updates (10 min)
+  location: "Roma"
+  timeout: 10
+
 buttons:
   enabled: true
   gpio_map:
