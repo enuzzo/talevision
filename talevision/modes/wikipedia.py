@@ -246,49 +246,73 @@ class WikipediaMode(DisplayMode):
         # ── Extract body ──────────────────────────────────────────────────────
         extract = article.get("extract", "")
         line_h = 28
+        font_qr_msg = _load_font(self._font_dir / "Signika-Regular.ttf", 16)
 
-        # Wrap in two sections: beside thumbnail (narrow), then below (full width)
         body_start_y = y
         thumb_end_y = content_top + actual_thumb_h
-        lines_beside = max(0, (thumb_end_y - body_start_y + line_h - 1) // line_h) if actual_thumb_h > 0 else 0
+        qr_x = w - pad - QR_SIZE
+        qr_y = h - pad - QR_SIZE
+        qr_safe_w = qr_x - pad - 8  # text must stop before the QR left edge
 
+        # Per-line max width: beside thumbnail → narrow, in QR zone → qr_safe, else full
+        def _line_max_w(line_idx: int) -> int:
+            line_y = body_start_y + line_idx * line_h
+            if line_y < thumb_end_y:
+                return narrow_w
+            if line_y + line_h > qr_y:
+                return qr_safe_w
+            return full_w
+
+        avail_h = h - body_start_y - pad
+        max_lines = max(0, avail_h // line_h)
+
+        # Word-by-word wrap respecting per-line widths
         words = extract.split()
         body_lines: List[str] = []
         word_idx = 0
-        for _ in range(lines_beside):
+        for i in range(max_lines):
             if word_idx >= len(words):
                 break
+            mw = _line_max_w(i)
             current = ""
             while word_idx < len(words):
                 candidate = (current + " " + words[word_idx]).strip()
-                if draw.textlength(candidate, font=font_body) <= narrow_w:
+                if draw.textlength(candidate, font=font_body) <= mw:
                     current = candidate
                     word_idx += 1
                 else:
                     break
             if current:
                 body_lines.append(current)
-        remaining_extract = " ".join(words[word_idx:])
-        body_lines += _wrap_text(remaining_extract, font_body, draw, full_w)
+            elif word_idx < len(words):
+                body_lines.append(words[word_idx])
+                word_idx += 1
 
-        # QR sits in the bottom-right corner; text is left-aligned — no overlap
-        avail_h = h - body_start_y - pad
-        max_lines = max(0, avail_h // line_h)
+        was_clipped = word_idx < len(words)
 
-        displayed = list(body_lines[:max_lines])
-        if len(body_lines) > max_lines and max_lines > 0 and qr_img:
-            qr_msg = QR_MORE_MSG.get(self._language, QR_MORE_MSG["en"])
-            displayed[-1] = qr_msg
-        for i, line in enumerate(displayed):
-            is_qr_msg = i == len(displayed) - 1 and len(body_lines) > max_lines and qr_img
-            draw.text((pad, y), line, font=font_body,
-                      fill=COLOR_MUTED if is_qr_msg else COLOR_BLACK)
+        # Append ellipsis to last body line if clipped
+        if was_clipped and body_lines:
+            last = body_lines[-1]
+            ellipsis_line = last + " …"
+            mw = _line_max_w(len(body_lines) - 1)
+            while last and draw.textlength(ellipsis_line, font=font_body) > mw:
+                last = last.rsplit(" ", 1)[0]
+                ellipsis_line = last + " …"
+            body_lines[-1] = ellipsis_line
+
+        for line in body_lines:
+            draw.text((pad, y), line, font=font_body, fill=COLOR_BLACK)
             y += line_h
+
+        # QR message: sans-serif, smaller, vertically centred in QR zone
+        if qr_img and was_clipped:
+            qr_msg = QR_MORE_MSG.get(self._language, QR_MORE_MSG["en"])
+            qr_msg_h = font_qr_msg.size
+            qr_msg_y = qr_y + (QR_SIZE - qr_msg_h) // 2
+            draw.text((pad, qr_msg_y), qr_msg, font=font_qr_msg, fill=COLOR_MUTED)
 
         # ── QR code (bottom right) ────────────────────────────────────────────
         if qr_img:
-            qr_x = w - pad - QR_SIZE
-            qr_y = h - pad - QR_SIZE
             draw.rectangle(
                 [qr_x - 4, qr_y - 4, qr_x + QR_SIZE + 4, qr_y + QR_SIZE + 4],
                 fill=COLOR_WHITE,
