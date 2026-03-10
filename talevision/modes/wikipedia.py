@@ -20,6 +20,20 @@ COLOR_BLACK = (0, 0, 0)
 COLOR_ACCENT = (117, 81, 255)
 COLOR_MUTED = (110, 110, 110)
 
+LANG_TO_BABEL = {
+    "it": "it_IT", "en": "en_US", "de": "de_DE",
+    "es": "es_ES", "fr": "fr_FR", "pt": "pt_PT",
+}
+
+QR_MORE_MSG = {
+    "it": "… scansiona il QR per saperne di più",
+    "en": "… scan QR to read more",
+    "de": "… QR scannen für mehr",
+    "es": "… escanea el QR para leer más",
+    "fr": "… scannez le QR pour lire la suite",
+    "pt": "… digitalize o QR para ler mais",
+}
+
 THUMB_W = 180
 THUMB_H = 135
 QR_SIZE = 80
@@ -155,17 +169,22 @@ class WikipediaMode(DisplayMode):
 
         # ── Time header ───────────────────────────────────────────────────────
         time_str = now.strftime("%H:%M")
-        date_str = now.strftime("%A, %d %B %Y")
+        try:
+            from babel.dates import format_date
+            locale = LANG_TO_BABEL.get(self._language, "en_US")
+            date_str = format_date(now, format="d MMMM", locale=locale)
+        except Exception:
+            date_str = now.strftime("%d %B")
         lang_label = f"Wikipedia · {self._language.upper()}"
 
         draw.text((pad, y), time_str, font=font_bold, fill=COLOR_BLACK)
+        time_w = int(draw.textlength(time_str, font=font_bold))
+        draw.text((pad + time_w + 18, y + 10), date_str, font=font_meta, fill=COLOR_MUTED)
         draw.text(
             (w - pad - draw.textlength(lang_label, font=font_meta), y + 8),
             lang_label, font=font_meta, fill=COLOR_ACCENT,
         )
         y += 38
-        draw.text((pad, y), date_str, font=font_meta, fill=COLOR_MUTED)
-        y += 26
         draw.line([(pad, y), (w - pad, y)], fill=COLOR_ACCENT, width=2)
         y += 14
 
@@ -208,8 +227,14 @@ class WikipediaMode(DisplayMode):
         line_h = 28
         max_lines = max(0, avail_h // line_h)
 
-        for line in body_lines[:max_lines]:
-            draw.text((pad, y), line, font=font_body, fill=COLOR_BLACK)
+        displayed = list(body_lines[:max_lines])
+        if len(body_lines) > max_lines and max_lines > 0 and qr_img:
+            qr_msg = QR_MORE_MSG.get(self._language, QR_MORE_MSG["en"])
+            displayed[-1] = qr_msg
+        for i, line in enumerate(displayed):
+            is_qr_msg = i == len(displayed) - 1 and len(body_lines) > max_lines and qr_img
+            draw.text((pad, y), line, font=font_body,
+                      fill=COLOR_MUTED if is_qr_msg else COLOR_BLACK)
             y += line_h
 
         # ── QR code (bottom right) ────────────────────────────────────────────

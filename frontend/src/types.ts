@@ -25,4 +25,6 @@ export interface Status {
   rotation_interval?: number
   language?: string | null
   weather_location?: string | null
+  uptime_seconds?: number
+  is_suspended?: boolean
 }

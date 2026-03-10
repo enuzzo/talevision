@@ -71,6 +71,7 @@ class Orchestrator:
         self._playlist_index: int = 0
         self._rotation_interval: int = 300
         self._prefs_path = base_dir / "user_prefs.json"
+        self._start_time = time.time()
         self._load_prefs()
 
     # ------------------------------------------------------------------
@@ -97,6 +98,7 @@ class Orchestrator:
         status["playlist"] = playlist
         status["playlist_index"] = playlist_index
         status["rotation_interval"] = rotation_interval
+        status["uptime_seconds"] = int(time.time() - self._start_time)
         return status
 
     def get_frame_path(self, mode: Optional[str] = None) -> Optional[Path]:

@@ -34,6 +34,14 @@ function formatTime(val: string | number | null | undefined): string {
   return d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
 }
 
+function formatUptime(s: number): string {
+  if (s < 60) return `${s}s`
+  const m = Math.floor(s / 60) % 60
+  const h = Math.floor(s / 3600)
+  if (h === 0) return `${m}m`
+  return `${h}h ${m}m`
+}
+
 const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
 // ─── Mode Registry ──────────────────────────────────────────────────────────
@@ -56,7 +64,22 @@ const ALL_MODES: ModeInfo[] = [
 const MODE_MAP = Object.fromEntries(ALL_MODES.map(m => [m.id, m]))
 
 function getModeInfo(id: string): ModeInfo {
-  return MODE_MAP[id] ?? { id, label: id, icon: '?', color: '#9C8E84', available: false }
+  return MODE_MAP[id] ?? { id, label: id, icon: '?', color: '#978A80', available: false }
+}
+
+// ─── Language names ──────────────────────────────────────────────────────────
+
+const LANG_NAMES: Record<string, string> = {
+  it: 'Italiano',
+  en: 'English',
+  de: 'Deutsch',
+  es: 'Español',
+  fr: 'Français',
+  pt: 'Português',
+}
+
+function langLabel(code: string): string {
+  return LANG_NAMES[code] ?? code
 }
 
 // ─── Live Clock ─────────────────────────────────────────────────────────────
@@ -186,18 +209,34 @@ function GripIcon() {
   )
 }
 
+function RefreshIcon({ spinning }: { spinning: boolean }) {
+  return (
+    <svg
+      width="12" height="12" viewBox="0 0 12 12" fill="none"
+      className={spinning ? 'animate-spin' : ''}
+    >
+      <path d="M10.5 6a4.5 4.5 0 1 1-1.32-3.18" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M9 1.5h2.25V3.75" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 function PlaylistEditor({
   playlist,
   rotationInterval,
   currentMode,
   onSave,
   saving,
+  onRefresh,
+  refreshing,
 }: {
   playlist: string[]
   rotationInterval: number
   currentMode: string
   onSave: (modes: string[], interval: number) => void
   saving: boolean
+  onRefresh: () => void
+  refreshing: boolean
 }) {
   const [items, setItems] = useState<string[]>([])
   const [enabled, setEnabled] = useState<Set<string>>(new Set())
@@ -206,12 +245,13 @@ function PlaylistEditor({
   const [dragIdx, setDragIdx] = useState<number | null>(null)
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout>>()
-  const syncedRef = useRef(false)
+  const lastSyncedRef = useRef('')
 
   useEffect(() => {
-    if (syncedRef.current) return
     if (playlist.length === 0) return
-    syncedRef.current = true
+    const key = playlist.join(',') + ':' + rotationInterval
+    if (lastSyncedRef.current === key) return
+    lastSyncedRef.current = key
 
     const orderedEnabled = [...playlist]
     const disabledAvailable = ALL_MODES
@@ -256,7 +296,8 @@ function PlaylistEditor({
     setItems(prev => {
       const next = [...prev]
       const [removed] = next.splice(dragIdx, 1)
-      next.splice(idx, 0, removed)
+      const insertIdx = dragIdx < idx ? idx - 1 : idx
+      next.splice(insertIdx, 0, removed)
       return next
     })
     setDragIdx(null)
@@ -280,105 +321,101 @@ function PlaylistEditor({
   const isRotating = enabledCount > 1
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
+    <div className="space-y-3">
+      <div className="space-y-0.5">
         {items.map((id, idx) => {
           const info = getModeInfo(id)
           const isEnabled = enabled.has(id)
           const isCurrent = id === currentMode
           const isComingSoon = !info.available
           const isDragging = dragIdx === idx
-          const isDropTarget = dragOverIdx === idx && dragOverIdx !== dragIdx
+          const showDivider = dragOverIdx === idx && dragOverIdx !== dragIdx
 
           return (
-            <div
-              key={id}
-              draggable={!isComingSoon}
-              onDragStart={e => handleDragStart(e, idx)}
-              onDragOver={e => handleDragOver(e, idx)}
-              onDrop={e => handleDrop(e, idx)}
-              onDragEnd={handleDragEnd}
-              className={cx(
-                'flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-150',
-                isComingSoon
-                  ? 'opacity-35'
-                  : isEnabled
-                    ? 'bg-surface hover:bg-surface-hover'
-                    : 'bg-deep/50 opacity-60 hover:opacity-80',
-                isDragging ? 'opacity-40 scale-[0.98]' : '',
+            <div key={id}>
+              {showDivider && (
+                <div className="h-0.5 rounded-full mx-3 my-0.5" style={{ backgroundColor: '#CA796D', boxShadow: '0 0 6px rgba(202,121,109,0.5)' }} />
               )}
-              style={{
-                border: isDropTarget
-                  ? '2px solid #CA796D'
-                  : isEnabled && !isComingSoon
-                    ? `1px solid ${info.color}35`
-                    : '1px solid rgba(74,75,89,0.10)',
-                cursor: isComingSoon ? 'default' : 'grab',
-              }}
-            >
-              {/* Drag handle */}
-              {!isComingSoon && (
-                <div className="text-muted flex-shrink-0 select-none">
-                  <GripIcon />
-                </div>
-              )}
-
-              {/* Checkbox */}
-              <button
-                onClick={() => toggleMode(id)}
-                disabled={isComingSoon}
+              <div
+                draggable={!isComingSoon}
+                onDragStart={e => handleDragStart(e, idx)}
+                onDragOver={e => handleDragOver(e, idx)}
+                onDrop={e => handleDrop(e, idx)}
+                onDragEnd={handleDragEnd}
                 className={cx(
-                  'w-[20px] h-[20px] rounded-xs flex items-center justify-center flex-shrink-0 transition-all duration-200',
-                  isComingSoon ? 'cursor-not-allowed' : 'cursor-pointer',
+                  'flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-150',
+                  isComingSoon
+                    ? 'opacity-35'
+                    : isEnabled
+                      ? 'bg-surface hover:bg-surface-hover'
+                      : 'bg-deep/50 opacity-60 hover:opacity-80',
+                  isDragging ? 'opacity-40 scale-[0.98]' : '',
                 )}
                 style={{
-                  border: isEnabled ? `1px solid ${info.color}` : '1px solid rgba(74,75,89,0.2)',
-                  backgroundColor: isEnabled ? info.color : '#E8E0CA',
+                  border: isEnabled && !isComingSoon
+                    ? `1px solid ${info.color}35`
+                    : '1px solid rgba(74,75,89,0.10)',
+                  cursor: isComingSoon ? 'default' : 'grab',
                 }}
               >
-                {isEnabled && (
-                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                    <path d="M1 4l2.5 2.5L9 1" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                {!isComingSoon && (
+                  <div className="text-muted flex-shrink-0 select-none">
+                    <GripIcon />
+                  </div>
                 )}
-              </button>
 
-              {/* Icon + Name */}
-              <span className="text-sm flex-shrink-0 w-5 text-center" style={{ color: isEnabled ? info.color : '#9C8E84' }}>
-                {info.icon}
-              </span>
-              <span
-                className={cx(
-                  'font-display text-sm font-semibold tracking-wide flex-1',
-                  isComingSoon ? 'text-muted' : 'text-primary',
-                )}
-                style={{ color: isEnabled && !isComingSoon ? info.color : undefined }}
-              >
-                {info.label}
-              </span>
-
-              {/* Current indicator */}
-              {isCurrent && (
-                <span
-                  className="font-display text-[9px] font-bold tracking-[0.1em] px-2 py-0.5 rounded-full"
-                  style={{ color: info.color, backgroundColor: `${info.color}18` }}
+                <button
+                  onClick={() => toggleMode(id)}
+                  disabled={isComingSoon}
+                  className={cx(
+                    'w-[20px] h-[20px] rounded-xs flex items-center justify-center flex-shrink-0 transition-all duration-200',
+                    isComingSoon ? 'cursor-not-allowed' : 'cursor-pointer',
+                  )}
+                  style={{
+                    border: isEnabled ? `1px solid ${info.color}` : '1px solid rgba(74,75,89,0.2)',
+                    backgroundColor: isEnabled ? info.color : '#E8E0CA',
+                  }}
                 >
-                  NOW
-                </span>
-              )}
+                  {isEnabled && (
+                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                      <path d="M1 4l2.5 2.5L9 1" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </button>
 
-              {/* Coming soon badge */}
-              {isComingSoon && (
-                <span className="font-display text-[9px] font-bold uppercase tracking-[0.1em] text-muted px-2 py-0.5 rounded-full bg-elevated">
-                  soon
+                <span className="text-sm flex-shrink-0 w-5 text-center" style={{ color: isEnabled ? info.color : '#978A80' }}>
+                  {info.icon}
                 </span>
-              )}
+                <span
+                  className={cx(
+                    'font-title text-sm flex-1',
+                    isComingSoon ? 'text-muted' : 'text-primary',
+                  )}
+                  style={{ color: isEnabled && !isComingSoon ? info.color : undefined }}
+                >
+                  {info.label}
+                </span>
+
+                {isCurrent && (
+                  <span
+                    className="font-display text-[9px] font-bold tracking-[0.1em] px-2 py-0.5 rounded-full"
+                    style={{ color: info.color, backgroundColor: `${info.color}18` }}
+                  >
+                    NOW
+                  </span>
+                )}
+
+                {isComingSoon && (
+                  <span className="font-display text-[9px] font-bold uppercase tracking-[0.1em] text-muted px-2 py-0.5 rounded-full bg-elevated">
+                    soon
+                  </span>
+                )}
+              </div>
             </div>
           )
         })}
       </div>
 
-      {/* Rotation interval */}
       {isRotating && (
         <div className="flex items-center gap-3 px-1 animate-fade-in">
           <span className="label flex-shrink-0">Rotation</span>
@@ -400,8 +437,7 @@ function PlaylistEditor({
         </div>
       )}
 
-      {/* Save button */}
-      <div className="flex items-center gap-3 pt-1">
+      <div className="flex items-center gap-2 pt-1 flex-wrap">
         <button
           onClick={handleSave}
           disabled={saving}
@@ -410,10 +446,36 @@ function PlaylistEditor({
         >
           {saving ? 'Saving…' : 'Save playlist'}
         </button>
+        <button
+          onClick={onRefresh}
+          disabled={refreshing}
+          className={cx(
+            'flex items-center gap-2 font-display text-xs font-bold uppercase tracking-widest',
+            'px-4 py-2.5 rounded-sm transition-all duration-200 outline-none',
+            refreshing
+              ? 'bg-surface text-accent/50 cursor-wait'
+              : 'bg-surface text-secondary hover:bg-surface-hover hover:text-accent cursor-pointer',
+          )}
+          style={{ border: '1px solid rgba(74,75,89,0.10)' }}
+        >
+          <RefreshIcon spinning={refreshing} />
+          {refreshing ? 'Rendering…' : 'Force refresh'}
+        </button>
         {saved && (
           <span className="label animate-fade-in" style={{ color: '#8DA495' }}>Saved</span>
         )}
       </div>
+    </div>
+  )
+}
+
+// ─── Stats Card ──────────────────────────────────────────────────────────────
+
+function StatRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 py-2" style={{ borderBottom: '1px solid rgba(74,75,89,0.08)' }}>
+      <span className="label flex-shrink-0">{label}</span>
+      <span className="value text-right truncate max-w-[140px]">{value}</span>
     </div>
   )
 }
@@ -591,7 +653,7 @@ function IntervalRow({
   return (
     <div className="flex items-center gap-3 py-2.5" style={{ borderBottom: '1px solid rgba(74,75,89,0.10)' }}>
       <span className="text-sm" style={{ color }}>{icon}</span>
-      <span className="label flex-shrink-0 w-20" style={{ color }}>{modeName}</span>
+      <span className="font-title text-sm flex-shrink-0 w-20" style={{ color }}>{modeName}</span>
       <input
         type="number"
         min={1}
@@ -637,6 +699,8 @@ function IntervalRow({
 
 function LanguageSelector({ current }: { current?: string }) {
   const qc = useQueryClient()
+  const [localLang, setLocalLang] = useState<string | null>(null)
+
   const { data: langData } = useQuery({
     queryKey: ['languages'],
     queryFn: api.languages,
@@ -651,19 +715,23 @@ function LanguageSelector({ current }: { current?: string }) {
   const langs = langData?.languages ?? []
   if (!langs.length) return null
 
+  const displayLang = localLang ?? current ?? langs[0]
+
   return (
     <div className="flex items-center gap-4">
       <span className="label flex-shrink-0">Language</span>
       <Select.Root
-        value={current ?? langs[0]}
-        onValueChange={lang => mut.mutate(lang)}
+        value={displayLang}
+        onValueChange={lang => { setLocalLang(lang); mut.mutate(lang) }}
       >
         <Select.Trigger
           data-radix-select-trigger=""
           className="flex-1"
           aria-label="Language"
         >
-          <Select.Value />
+          <Select.Value>
+            {langLabel(displayLang)}
+          </Select.Value>
           <Select.Icon>
             <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
               <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -679,7 +747,7 @@ function LanguageSelector({ current }: { current?: string }) {
             <Select.Viewport>
               {langs.map(l => (
                 <Select.Item key={l} value={l} data-radix-select-item="">
-                  <Select.ItemText>{l}</Select.ItemText>
+                  <Select.ItemText>{langLabel(l)}</Select.ItemText>
                 </Select.Item>
               ))}
             </Select.Viewport>
@@ -842,7 +910,7 @@ export default function App() {
 
   const handleRefresh = useCallback(() => refreshMut.mutate(), [refreshMut])
 
-  const isSuspended = status?.suspended ?? false
+  const isSuspended = status?.is_suspended ?? false
 
   return (
     <div className="min-h-screen bg-bg text-primary font-display animate-fade-in">
@@ -852,7 +920,12 @@ export default function App() {
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="w-2.5 h-2.5 rounded-full bg-accent" style={{ boxShadow: '0 0 12px rgba(202,121,109,0.4)' }} />
-            <span className="font-title text-xl" style={{ color: '#4A4B59' }}>TaleVision</span>
+            <div className="flex flex-col gap-0">
+              <span className="font-title text-xl leading-tight" style={{ color: '#3B3C47' }}>TaleVision</span>
+              <span className="font-display text-[10px] text-tertiary italic leading-tight">
+                the best thing a screen can do is earn its update.
+              </span>
+            </div>
           </div>
           <div className="flex items-center gap-5">
             <span className="font-display text-sm text-tertiary tabular-nums">{clock}</span>
@@ -873,7 +946,7 @@ export default function App() {
                 className="label"
                 style={{
                   color: isError ? '#C05050' :
-                         isSuspended ? '#9C8E84' :
+                         isSuspended ? '#7C706A' :
                          currentModeInfo.color,
                 }}
               >
@@ -896,43 +969,62 @@ export default function App() {
           <FramePreview refreshKey={refreshKey} waiting={waiting} waitingMode={currentMode} />
         </section>
 
-        {/* Playlist + Refresh row */}
-        <section className="flex items-start justify-between gap-8">
+        {/* Language — always visible, top priority */}
+        <section className="bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(74,75,89,0.10)' }}>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-title text-base text-primary">Language</h2>
+            <span className="label" style={{ color: '#6B8FA0' }}>LitClock + Wikipedia</span>
+          </div>
+          <LanguageSelector current={status?.language ?? undefined} />
+        </section>
+
+        {/* Playlist + Stats — two column */}
+        <section className="flex items-start gap-6">
           <div className="flex-1 min-w-0">
-            <div className="label mb-3">Playlist</div>
+            <h2 className="font-title text-base text-primary mb-3">Playlist</h2>
             <PlaylistEditor
               playlist={playlist}
               rotationInterval={rotationInterval}
               currentMode={currentMode}
               onSave={(modes, interval) => playlistMut.mutate({ modes, interval })}
               saving={playlistMut.isPending}
+              onRefresh={handleRefresh}
+              refreshing={refreshMut.isPending}
             />
           </div>
-          <div className="flex flex-col items-end gap-3 pt-7 flex-shrink-0">
-            <button
-              onClick={handleRefresh}
-              disabled={refreshMut.isPending}
-              className={cx(
-                'flex items-center gap-2 font-display text-xs font-bold uppercase tracking-widest',
-                'px-4 py-2.5 rounded-sm transition-all duration-200 outline-none',
-                refreshMut.isPending
-                  ? 'bg-surface text-accent/50 cursor-wait'
-                  : 'bg-surface text-secondary hover:bg-surface-hover hover:text-accent cursor-pointer',
+
+          {/* Stats */}
+          <div className="w-52 flex-shrink-0">
+            <h2 className="font-title text-base text-primary mb-3">Stats</h2>
+            <div className="bg-surface rounded-lg p-4" style={{ border: '1px solid rgba(74,75,89,0.10)' }}>
+              <StatRow label="Uptime" value={formatUptime(status?.uptime_seconds ?? 0)} />
+              <StatRow label="Last render" value={formatLastRender(status?.last_update)} />
+              {status?.next_wake && (
+                <StatRow label="Next wake" value={formatTime(status.next_wake)} />
               )}
-              style={{ border: '1px solid rgba(74,75,89,0.10)' }}
-            >
-              <svg
-                width="12" height="12" viewBox="0 0 12 12" fill="none"
-                className={refreshMut.isPending ? 'animate-spin' : ''}
-              >
-                <path
-                  d="M10.5 6a4.5 4.5 0 1 1-1.32-3.18"
-                  stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"
+              <StatRow
+                label="Mode"
+                value={
+                  <span className="font-title text-sm" style={{ color: currentModeInfo.color }}>
+                    {currentModeInfo.icon} {currentMode}
+                  </span>
+                }
+              />
+              {isRotating && (
+                <StatRow
+                  label="Rotation"
+                  value={<span style={{ color: '#6B8FA0' }}>{fmtInterval(rotationInterval)}</span>}
                 />
-                <path d="M9 1.5h2.25V3.75" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              {refreshMut.isPending ? 'Rendering…' : 'Force refresh'}
-            </button>
+              )}
+              <StatRow
+                label="Status"
+                value={
+                  <span style={{ color: isSuspended ? '#C8974A' : '#8DA495' }}>
+                    {isSuspended ? '⏸ paused' : '▶ active'}
+                  </span>
+                }
+              />
+            </div>
           </div>
         </section>
 
@@ -943,12 +1035,12 @@ export default function App() {
 
           {/* Status */}
           <div className="bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(74,75,89,0.10)' }}>
-            <div className="label mb-4">Status</div>
+            <h2 className="font-title text-base text-primary mb-4">Status</h2>
             <div>
               <StatusRow
                 label="Mode"
                 value={
-                  <span className="font-display text-base font-semibold uppercase tracking-wider" style={{ color: currentModeInfo.color }}>
+                  <span className="font-title text-base font-semibold" style={{ color: currentModeInfo.color }}>
                     {currentModeInfo.icon} {currentMode}
                   </span>
                 }
@@ -1002,7 +1094,7 @@ export default function App() {
 
           {/* Suspend Schedule */}
           <div className="bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(74,75,89,0.10)' }}>
-            <div className="label mb-4">Active schedule</div>
+            <h2 className="font-title text-base text-primary mb-4">Active schedule</h2>
             <SuspendForm initial={status?.suspend} />
           </div>
 
@@ -1011,7 +1103,7 @@ export default function App() {
         {/* Refresh intervals — only in single mode */}
         {!isRotating && status?.intervals && Object.keys(status.intervals).length > 0 && (
           <section className="bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(74,75,89,0.10)' }}>
-            <div className="label mb-4">Refresh intervals</div>
+            <h2 className="font-title text-base text-primary mb-4">Refresh intervals</h2>
             <div>
               {ALL_MODES.filter(m => m.available && status.intervals![m.id]).map(m => (
                 <IntervalRow
@@ -1026,18 +1118,10 @@ export default function App() {
           </section>
         )}
 
-        {/* Language selector — litclock and wikipedia */}
-        {(currentMode === 'litclock' || currentMode === 'wikipedia') && (
-          <section className="animate-fade-in bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(74,75,89,0.10)' }}>
-            <div className="label mb-3">Language</div>
-            <LanguageSelector current={status?.language ?? undefined} />
-          </section>
-        )}
-
         {/* Weather location — only for weather mode */}
         {currentMode === 'weather' && (
           <section className="animate-fade-in bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(74,75,89,0.10)' }}>
-            <div className="label mb-3">Weather location</div>
+            <h2 className="font-title text-base text-primary mb-3">Weather location</h2>
             <WeatherSettings currentLocation={status?.weather_location ?? undefined} />
           </section>
         )}
@@ -1049,12 +1133,16 @@ export default function App() {
             <span className="label">TaleVision · Pi Zero W</span>
             <span className="label">800 × 480 · e‑ink</span>
           </div>
-          <div className="flex flex-col items-center gap-2 pt-4 opacity-40 hover:opacity-70 transition-opacity duration-300">
+          <div className="flex flex-col items-center gap-2 pt-6">
             <img
               src="https://netmi.lk/wp-content/uploads/2024/10/netmilk.svg"
               alt="Netmilk Studio"
-              style={{ width: '130px', height: 'auto', filter: 'sepia(0.3)' }}
+              className="hover:animate-shake cursor-pointer"
+              style={{ width: '130px', height: 'auto' }}
             />
+            <span className="font-display text-[10px] text-muted text-center leading-relaxed">
+              MIT License · enuzzo + Netmilk Studio · 2024
+            </span>
           </div>
         </footer>
 
