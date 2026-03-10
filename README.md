@@ -89,11 +89,11 @@ Every 90 seconds: select a film from `media/`, pick a random frame somewhere in 
 
 ## Playlist & Rotation
 
-TaleVision doesn't make you choose. Enable both modes — or eventually all four — and the Orchestrator cycles through them in order. A unified rotation interval (default: 5 minutes, configurable 30s–60min) replaces per-mode intervals during rotation. After each render, it waits, then advances to the next mode in the playlist.
+TaleVision doesn't make you choose. Enable any combination of modes and the Orchestrator cycles through them in order. A unified rotation interval (default: 5 minutes, configurable 30s–60min) replaces per-mode intervals during rotation. After each render, it waits, then advances to the next mode in the playlist.
 
 Single mode? Per-mode interval applies as before. Two or more? Rotation takes over. The playlist is reorderable from the dashboard with up/down arrows. Persisted to `user_prefs.json`. Survives reboots.
 
-**API:** `POST /api/playlist` with `{"modes": ["litclock", "slowmovie"], "rotation_interval": 300}`.
+**API:** `POST /api/playlist` with `{"modes": ["litclock", "slowmovie", "ansi"], "rotation_interval": 300}`.
 
 ---
 
@@ -205,7 +205,7 @@ Dashboard at `http://<pi-ip>:5000`.
 | `slowmovie.overlay.qr_enabled` | `true` | TMDB QR code in frame corner |
 | `slowmovie.overlay.qr_content` | `tmdb_search` | QR link pattern (`tmdb_search` or `imdb_search`) |
 | `display.saturation` | `0.6` | Inky colour saturation (0.0 – 1.0) |
-| `suspend.start` / `.end` | `17:30` / `09:30` | Sleep/wake time — overnight ranges handled correctly (start > end wraps midnight) |
+| `suspend.start` / `.end` | `17:00` / `08:00` | Sleep/wake time — overnight ranges handled correctly (start > end wraps midnight) |
 | `suspend.days` | `[5,6]` | Fully-off days (0=Mon … 6=Sun). Default: Sat+Sun fully off, Mon–Fri follow the time window |
 | `buttons.actions` | see below | Remap GPIO buttons to any action |
 
@@ -381,13 +381,23 @@ pip-audit -r requirements.txt
 
 ---
 
+## ANSi Art Mode
+
+TaleVision can display ANSI art from the BBS artscene as a slow gallery. One piece every three minutes. Rendered via `pyte` (terminal emulator) + BlockZone.ttf — a pixel-perfect recreation of the IBM VGA CP437 font, designed specifically for this purpose. The CGA 16-colour palette is mapped to Inky's 7 native colours at render time. No dithering. No approximation. Just block characters and the quiet dignity of a scene that peaked in 1994 and has never fully admitted it.
+
+The art shown in ANSi mode comes from the archives at **[Sixteen Colors](https://16colo.rs/)** — the definitive collection of ANSI, ASCII, and artscene work. All artwork is the creation of the original artists and artgroups credited in each file. TaleVision displays these works with deep respect. If you enjoy what you see, visit [16colo.rs](https://16colo.rs/) and go deep — the talent, the craft, and the community behind this art form is extraordinary and largely unacknowledged by everyone who should know better.
+
+Drop `.ans` files into `assets/ansi/` and they cycle automatically. Sequential by default, random if you prefer chaos.
+
+---
+
 ## Upcoming Modes
 
 TaleVision is designed as a multi-mode playlist system. Modes can run alone or cycle in rotation with a unified interval. These are next:
 
-**Teletext** — Ceefax/Oracle/Viewdata-style retro teletext pages. Mode 7 font, block graphics, 40×25 character grid. Archives of real teletext pages from the '70s–'80s rendered to the e-ink display. Coming soon.
+**Wikipedia Random** — a random Wikipedia article rendered to the display. Supports multiple languages. One unexpected fact every few minutes. The internet's largest collection of things you didn't know you needed to know, now on your wall, in a font that costs nothing and takes forever to update. Coming soon.
 
-**ANSi Art** — ANSI art from the BBS artscene, displayed as a slow gallery. The art shown in this mode comes from the incredible archives at **[Sixteen Colors](https://16colo.rs/)** — the definitive collection of ANSI, ASCII, and artscene work spanning decades of digital art history. All artwork is the creation of the original artists and artgroups credited in each file. TaleVision displays these works with deep respect and admiration for the scene that produced them. If you enjoy what you see on the display, visit [16colo.rs](https://16colo.rs/) and explore — the talent, craft, and community behind this art form is extraordinary.
+**Teletext** — Ceefax/Oracle/Viewdata-style retro teletext pages. Mode 7 font, block graphics, 40×25 character grid. Archives of real teletext pages from the '70s–'80s rendered to the e-ink display. Coming soon.
 
 ---
 

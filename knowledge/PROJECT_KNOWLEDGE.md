@@ -150,7 +150,7 @@ waitress is included in `requirements.txt` (`waitress==3.0.2`). Always install i
 - API: `POST /api/playlist` with `{modes: ["litclock", "slowmovie"], rotation_interval: 300}`.
 - `GET /api/status` returns `playlist`, `playlist_index`, `rotation_interval` fields.
 - Dashboard `PlaylistEditor`: checkboxes to enable/disable modes, up/down arrows to reorder, rotation interval input when 2+ modes enabled.
-- 4 modes in registry: `litclock` (active), `slowmovie` (active), `teletext` (coming soon), `ansi` (coming soon). Coming-soon modes shown in UI but disabled.
+- 5 modes in registry: `litclock` (active), `slowmovie` (active), `ansi` (active), `wikipedia` (planned), `teletext` (planned). Coming-soon modes shown in UI but disabled.
 
 ## Per-mode Interval Overrides
 
@@ -243,6 +243,24 @@ sudo systemctl start talevision
 4. Static analysis: `bandit -r talevision/ -ll`
 5. Dependency CVEs: `pip-audit -r requirements.txt`
 6. Render smoke test: `python main.py --render-only --mode litclock && python main.py --render-only --mode slowmovie`
+
+## ANSi Art Mode
+
+- `talevision/modes/ansi.py` — `AnsiMode` class. Reads `*.ans` from `assets/ansi/`, cycles sequentially.
+- Rendering: `data.decode('cp437', errors='replace')` → `pyte.Stream` (not `ByteStream`) → cell grid → PIL draw per cell → contain-fit to 800×480 on black background.
+- Font: `assets/BlockZone-master/BlockZone.ttf` — IBM VGA CP437, SIL OFL 1.1. Size 16 → ~8×16px cells.
+- CGA→Inky mapping: hardcoded list `CGA_TO_INKY[0..15]`. Cyan/magenta approximate to Green/Red. Tunable.
+- SAUCE strip: removes CP437 EOF (`0x1A`) and trailing SAUCE record (last 200 bytes) before parsing.
+- `pyte` dep: `pyte==0.8.1` in `requirements.txt`. Pure Python, install with `pip install pyte==0.8.1` on Pi.
+- **Open TODO**: layout/scaling needs tuning — art dimensions vs cell measurements sometimes produce misaligned or undersized output. `_measure_cell()` uses `font.getbbox("M")` which may not match actual advance width. Consider using `font.getlength("M")` for width.
+
+## Wikipedia Random Mode (planned)
+
+- Fetch: `GET https://{lang}.wikipedia.org/api/rest_v1/page/random/summary` — returns JSON with `title`, `extract`, `thumbnail`.
+- Languages: same 6 as LitClock (`it`, `en`, `de`, `es`, `fr`, `pt`).
+- Render: title in bold header, extract body wrapped at 700px, PIL only — no headless browser.
+- Refresh: ~300s default.
+- No external deps beyond `urllib` (already stdlib) or `requests` (already available if needed).
 
 ## Known Open TODOs
 
