@@ -44,6 +44,33 @@ function formatUptime(s: number): string {
 
 const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
+// ─── Taglines ─────────────────────────────────────────────────────────────────
+
+const TAGLINES = [
+  "The best thing a screen can do is earn its update.",
+  "One Pi. One wall. An unreasonable amount of thought.",
+  "Updates every five minutes. Refreshes never.",
+  "Literary quotes and slow cinema, sharing a wall politely.",
+  "A clock that reads. A cinema that waits. One device that doesn't care.",
+  "The Pis were already there. The reasoning was air-tight.",
+  "Each frame costs 30 seconds of e-ink patience.",
+  "Typeset in Taviraj. Rendered on a Tuesday.",
+  "Six languages. Seven colours. Zero hurry.",
+  "The screen earns its right to exist, one minute at a time.",
+  "Built to impress guests who didn't ask to be impressed.",
+  "A confession of over-engineering disguised as a clock.",
+  "SlowMovie: because films deserve to be watched at 1 frame per minute.",
+  "No streaming. No notifications. Just the wall, being interesting.",
+  "It updates less often than your opinions. And it's more reliable.",
+  "Borges, Calvino, Woolf — and a random Wikipedia article. Niche.",
+  "Powered by a chip the size of a stamp and a questionable amount of free time.",
+  "A dashboard for a device that doesn't need one.",
+  "The font survived the migration. Not everything does.",
+  "Four buttons on the side. None of them labelled correctly.",
+]
+
+const TAGLINE = TAGLINES[Math.floor(Math.random() * TAGLINES.length)]
+
 // ─── Mode Registry ──────────────────────────────────────────────────────────
 
 interface ModeInfo {
@@ -98,22 +125,103 @@ function useClock() {
   return time
 }
 
+// ─── Noise Canvas ────────────────────────────────────────────────────────────
+
+function NoiseCanvas() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    let active = true
+    const W = canvas.width, H = canvas.height
+    const draw = () => {
+      if (!active) return
+      const img = ctx.createImageData(W, H)
+      const d = img.data
+      for (let i = 0; i < d.length; i += 4) {
+        const on = Math.random() > 0.5
+        const v = on ? Math.floor(Math.random() * 160 + 55) : 0
+        d[i] = d[i + 1] = d[i + 2] = v
+        d[i + 3] = on ? Math.floor(Math.random() * 26 + 4) : 0
+      }
+      ctx.putImageData(img, 0, 0)
+      setTimeout(draw, 75)
+    }
+    draw()
+    return () => { active = false }
+  }, [])
+  return (
+    <canvas
+      ref={canvasRef}
+      width={100}
+      height={62}
+      className="absolute inset-0 w-full h-full pointer-events-none"
+      style={{ imageRendering: 'pixelated', opacity: 0.26 }}
+    />
+  )
+}
+
+// ─── Tuning Gauge ─────────────────────────────────────────────────────────────
+
+function TuningGauge({ color }: { color: string }) {
+  const cx = 100, cy = 105, r = 82
+  const numTicks = 13
+  const ticks = Array.from({ length: numTicks }, (_, i) => {
+    const t = (Math.PI * i) / (numTicks - 1)
+    const isMajor = i % 3 === 0
+    const innerR = r - (isMajor ? 13 : 7)
+    return {
+      x1: cx - innerR * Math.cos(t),
+      y1: cy - innerR * Math.sin(t),
+      x2: cx - r * Math.cos(t),
+      y2: cy - r * Math.sin(t),
+      isMajor,
+    }
+  })
+  return (
+    <svg width="230" height="118" viewBox="0 0 200 108" style={{ overflow: 'visible' }}>
+      {/* Arc */}
+      <path
+        d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
+        fill="none" stroke={color + '28'} strokeWidth="1"
+      />
+      {/* Baseline */}
+      <line x1={cx - r - 8} y1={cy} x2={cx + r + 8} y2={cy} stroke={color + '20'} strokeWidth="0.8" />
+      {/* Ticks */}
+      {ticks.map((t, i) => (
+        <line
+          key={i}
+          x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
+          stroke={color + (t.isMajor ? '72' : '38')}
+          strokeWidth={t.isMajor ? 1.6 : 0.8}
+        />
+      ))}
+      {/* Needle */}
+      <line
+        x1={cx} y1={cy} x2={cx} y2={cy - r + 8}
+        stroke={color} strokeWidth="2" strokeLinecap="round"
+        style={{ transformOrigin: `${cx}px ${cy}px`, animation: 'gaugeNeedle 4s ease-in-out infinite' }}
+      />
+      {/* Pivot dot */}
+      <circle cx={cx} cy={cy} r="4" fill={color} fillOpacity="0.75" />
+    </svg>
+  )
+}
+
 // ─── Rendering Overlay ───────────────────────────────────────────────────────
 
 function RenderingOverlay({ mode }: { mode: string }) {
-  const [tick, setTick] = useState(0)
-  useEffect(() => {
-    const id = setInterval(() => setTick(t => (t + 1) % 4), 700)
-    return () => clearInterval(id)
-  }, [])
-  const dots = '.'.repeat(tick)
   const info = getModeInfo(mode)
-
   return (
     <div
       className="absolute inset-0 z-20 rounded-lg overflow-hidden flex items-center justify-center"
       style={{ backgroundColor: '#19120C' }}
     >
+      {/* TV grain */}
+      <NoiseCanvas />
+
       {/* CRT scanlines */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -123,7 +231,7 @@ function RenderingOverlay({ mode }: { mode: string }) {
         }}
       />
 
-      {/* Analog tuning band — soft warm sweep */}
+      {/* Analog sweep band */}
       <div
         className="absolute left-0 right-0 pointer-events-none"
         style={{
@@ -136,9 +244,7 @@ function RenderingOverlay({ mode }: { mode: string }) {
       />
 
       {/* Content */}
-      <div className="relative flex flex-col items-center gap-4" style={{ zIndex: 3 }}>
-
-        {/* Mode name */}
+      <div className="relative flex flex-col items-center gap-0" style={{ zIndex: 3 }}>
         <div
           className="font-title animate-flicker select-none"
           style={{
@@ -146,30 +252,11 @@ function RenderingOverlay({ mode }: { mode: string }) {
             lineHeight: 1.1,
             color: '#EDE3D0',
             textShadow: `0 0 24px ${info.color}55, 0 0 60px ${info.color}22`,
-            letterSpacing: '0.01em',
           }}
         >
           {info.label}
         </div>
-
-        {/* Signal meter */}
-        <div
-          className="rounded-full overflow-hidden"
-          style={{ width: '140px', height: '3px', backgroundColor: 'rgba(241,235,217,0.08)' }}
-        >
-          <div
-            className="h-full rounded-full animate-tune-bar"
-            style={{ backgroundColor: info.color + 'BB' }}
-          />
-        </div>
-
-        {/* Tuning label */}
-        <div
-          className="font-display text-[9px] tracking-[0.55em] uppercase"
-          style={{ color: `${info.color}75` }}
-        >
-          tuning{dots}
-        </div>
+        <TuningGauge color={info.color} />
       </div>
 
       {/* Vignette */}
@@ -902,6 +989,7 @@ export default function App() {
   const qc = useQueryClient()
   const [refreshKey, setRefreshKey] = useState(Date.now())
   const [waitingSince, setWaitingSince] = useState<number | null>(null)
+  const [pendingMode, setPendingMode] = useState<string | null>(null)
   const waiting = waitingSince !== null
 
   const { data: status, isError } = useQuery({
@@ -927,6 +1015,11 @@ export default function App() {
     return () => clearTimeout(id)
   }, [waiting])
 
+  // Clear pending mode when overlay disappears
+  useEffect(() => {
+    if (!waiting) setPendingMode(null)
+  }, [waiting])
+
   const currentMode = status?.mode ?? '—'
   const playlist = status?.playlist ?? [currentMode]
   const rotationInterval = status?.rotation_interval ?? 300
@@ -936,7 +1029,7 @@ export default function App() {
   const playlistMut = useMutation({
     mutationFn: ({ modes, interval }: { modes: string[]; interval: number }) =>
       api.setPlaylist(modes, interval),
-    onMutate: () => setWaitingSince(Date.now()),
+    onMutate: ({ modes }) => { setWaitingSince(Date.now()); setPendingMode(modes[0]) },
     onSuccess: () => { void qc.invalidateQueries({ queryKey: ['status'] }) },
   })
 
@@ -961,7 +1054,7 @@ export default function App() {
             <div className="flex flex-col gap-0">
               <span className="font-title text-xl leading-tight" style={{ color: '#3B3C47' }}>TaleVision</span>
               <span className="font-display text-[10px] text-tertiary italic leading-tight">
-                the best thing a screen can do is earn its update.
+                {TAGLINE}
               </span>
             </div>
           </div>
@@ -1004,7 +1097,7 @@ export default function App() {
 
         {/* Frame Preview */}
         <section>
-          <FramePreview refreshKey={refreshKey} waiting={waiting} waitingMode={currentMode} />
+          <FramePreview refreshKey={refreshKey} waiting={waiting} waitingMode={pendingMode ?? currentMode} />
         </section>
 
         {/* Language — always visible, top priority */}
@@ -1168,8 +1261,15 @@ export default function App() {
         <footer className="pt-8 pb-4 flex flex-col items-center gap-4">
           <div style={{ borderTop: '1px solid rgba(74,75,89,0.10)', width: '100%' }} />
           <div className="flex items-center justify-between w-full pt-4">
-            <span className="label">TaleVision · Pi Zero W</span>
-            <span className="label">800 × 480 · e‑ink</span>
+            <span className="label">TaleVision · Pi Zero W · 800 × 480 · e‑ink</span>
+            <a
+              href="https://github.com/enuzzo/talevision"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="label hover:text-accent transition-colors duration-200"
+            >
+              github ↗
+            </a>
           </div>
           <div className="flex flex-col items-center gap-2 pt-6">
             <img
