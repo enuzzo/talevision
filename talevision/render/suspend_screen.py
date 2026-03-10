@@ -153,6 +153,16 @@ def _bottom(width: int) -> str:
     return f"{BL}{H * (width + 2)}{BR}"
 
 
+def _load_frame(base_dir: Path) -> "Image.Image | None":
+    p = base_dir / "assets" / "img" / "talevision-frame.png"
+    if p.exists():
+        try:
+            return Image.open(p).convert("RGBA")
+        except Exception:
+            pass
+    return None
+
+
 def render_suspend_screen(
     start: str,
     end: str,
@@ -165,6 +175,9 @@ def render_suspend_screen(
     """Render a BBS/NFO-style suspend info screen for the e-ink display."""
     W, H_px = canvas_size
     img = Image.new("RGB", (W, H_px), WHITE)
+    frame = _load_frame(base_dir)
+    if frame:
+        img.paste(frame, (0, 0), frame)
     draw = ImageDraw.Draw(img)
 
     font_lobster = _load_lobster(base_dir, 76)
@@ -186,16 +199,6 @@ def render_suspend_screen(
     lh_author  = text_h(font_author) + 3
     lh_md      = text_h(font_md) + 4
     lh_sm      = text_h(font_sm) + 3
-
-    # ── Rainbow bars ──────────────────────────────────────────────────────────
-    border_colors = [RED, ORANGE, YELLOW, GREEN, BLUE, RED, ORANGE]
-    bar_h = 4
-    segment_w = W // len(border_colors)
-    for i, color in enumerate(border_colors):
-        x0 = i * segment_w
-        x1 = (i + 1) * segment_w if i < len(border_colors) - 1 else W
-        draw.rectangle([(x0, 0), (x1, bar_h - 1)], fill=color)
-        draw.rectangle([(x0, H_px - bar_h), (x1, H_px - 1)], fill=color)
 
     now = datetime.datetime.now()
 
@@ -253,12 +256,12 @@ def render_suspend_screen(
         + 14
         + lh_sm  # now line
     )
-    y = max((H_px - total_h) // 2, bar_h + 8)
+    y = max((H_px - total_h) // 2, 28)  # 28 = frame inner top margin
 
     # ── TaleVision in Lobster ─────────────────────────────────────────────────
     title = "TaleVision"
     draw.text(((W - text_w(title, font_lobster)) // 2, y), title,
-              font=font_lobster, fill=ORANGE)
+              font=font_lobster, fill=BLACK)
     y += lh_lobster + 8
 
     # ── Quote + author ────────────────────────────────────────────────────────

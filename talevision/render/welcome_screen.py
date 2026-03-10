@@ -125,6 +125,16 @@ def _get_ip() -> str:
         return "unknown"
 
 
+def _load_frame(base_dir: Path) -> "Image.Image | None":
+    p = base_dir / "assets" / "img" / "talevision-frame.png"
+    if p.exists():
+        try:
+            return Image.open(p).convert("RGBA")
+        except Exception:
+            pass
+    return None
+
+
 def render_welcome_screen(
     port: int,
     mode: str,
@@ -134,6 +144,9 @@ def render_welcome_screen(
 ) -> Image.Image:
     W, H_px = canvas_size
     img = Image.new("RGB", (W, H_px), WHITE)
+    frame = _load_frame(base_dir)
+    if frame:
+        img.paste(frame, (0, 0), frame)
     draw = ImageDraw.Draw(img)
 
     font_lobster = _load_lobster(base_dir, 88)
@@ -176,16 +189,6 @@ def render_welcome_screen(
         _bottom(inner_w),
     ]
 
-    # ── Rainbow bars ──────────────────────────────────────────────────────────
-    # Only use high-contrast colours — GREEN/YELLOW are too faint on white e-ink
-    border_colors = [RED, ORANGE, RED, BLUE, ORANGE, RED, BLUE]
-    bar_h = 6
-    segment_w = W // len(border_colors)
-    for i, color in enumerate(border_colors):
-        x0 = i * segment_w
-        x1 = (i + 1) * segment_w if i < len(border_colors) - 1 else W
-        draw.rectangle([(x0, 0), (x1, bar_h - 1)], fill=color)
-
     import random
     tagline = random.choice(TAGLINES)
 
@@ -203,7 +206,7 @@ def render_welcome_screen(
         + lh_md                 # SYSTEM READY
         + lh_sm                 # version
     )
-    y = max((H_px - total_h) // 2, bar_h + 8)
+    y = max((H_px - total_h) // 2, 28)  # 28 = frame inner top margin
 
     # ── TaleVision in Lobster ─────────────────────────────────────────────────
     title = "TaleVision"
@@ -239,11 +242,5 @@ def render_welcome_screen(
     ver = "TaleVision v1.0  ·  Netmilk Studio"
     draw.text(((W - text_w(ver, font_sm)) // 2, y), ver,
               font=font_sm, fill=BLUE)
-
-    # ── Bottom rainbow bar ────────────────────────────────────────────────────
-    for i, color in enumerate(border_colors):
-        x0 = i * segment_w
-        x1 = (i + 1) * segment_w if i < len(border_colors) - 1 else W
-        draw.rectangle([(x0, H_px - bar_h), (x1, H_px - 1)], fill=color)
 
     return img

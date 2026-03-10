@@ -19,9 +19,9 @@ logging:
 
 suspend:
   enabled: true
-  start: "17:00"
+  start: "18:00"
   end: "08:00"
-  days: [5,6]   # 0=Mon … 6=Sun; suspend days (fully off). Active: Mon-Fri 08:00–17:00
+  days: [5,6]   # 0=Mon … 6=Sun; suspend days (fully off). Active: Mon-Fri 08:00–18:00
   message: "TaleVision — Netmilk Studio"
   logo_path: "assets/icons/logo.png"
 
@@ -70,7 +70,7 @@ litclock:
       max_width: 700
 
 slowmovie:
-  refresh_interval: 90
+  refresh_interval: 300
   media_dir: "media"
   video_file: "random"
   cache_file: "cache/video_info_cache.json"
@@ -107,7 +107,7 @@ wikipedia:
   timeout: 10
 
 weather:
-  refresh_interval: 600   # seconds between weather updates (10 min)
+  refresh_interval: 300   # seconds between weather updates (5 min)
   location: "Roma"
   timeout: 10
 
