@@ -47,9 +47,10 @@ class Orchestrator:
         self._action_queue: queue.Queue = queue.Queue()
 
         self._frame_paths: Dict[str, Path] = {
-            "litclock": base_dir / "cache" / "litclock_frame.png",
+            "litclock":  base_dir / "cache" / "litclock_frame.png",
             "slowmovie": base_dir / "cache" / "slowmovie_frame.jpg",
-            "ansi": base_dir / "cache" / "ansi_frame.png",
+            "wikipedia": base_dir / "cache" / "wikipedia_frame.png",
+            "weather":   base_dir / "cache" / "weather_frame.png",
         }
         for p in self._frame_paths.values():
             p.parent.mkdir(parents=True, exist_ok=True)
@@ -123,6 +124,13 @@ class Orchestrator:
 
     def set_language(self, lang: str) -> None:
         self._action_queue.put(("set_language", lang))
+        self._timer.interrupt()
+
+    def set_weather_location(self, location: str) -> None:
+        weather = self._modes.get("weather")
+        if weather and hasattr(weather, "set_location"):
+            weather.set_location(location)
+        self._action_queue.put(("force_refresh", None))
         self._timer.interrupt()
 
     def set_suspend_schedule(self, start: str, end: str, days: list, enabled: bool) -> None:
@@ -252,9 +260,10 @@ class Orchestrator:
                 log.info(f"Suspend toggled: enabled={new_enabled}")
 
             elif action == "set_language":
-                litclock_mode = self._modes.get("litclock")
-                if litclock_mode and hasattr(litclock_mode, "set_language"):
-                    litclock_mode.set_language(payload)
+                active = self._modes.get(self._current_mode_name)
+                if active and hasattr(active, "set_language"):
+                    active.set_language(payload)
+                    log.info(f"Language set to '{payload}' on mode '{self._current_mode_name}'")
 
     def _render_suspend_screen(self) -> Image.Image:
         from talevision.render.suspend_screen import render_suspend_screen
