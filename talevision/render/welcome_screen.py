@@ -200,11 +200,10 @@ def render_welcome_screen(
     total_h = (
         lh_lobster + TITLE_GAP
         + lh_tagline + TAGLINE_TO_BOOT_GAP
-        + lh_md + BOOT_TO_TABLE_GAP
+        + lh_md + BOOT_TO_TABLE_GAP       # [ starting in 30 seconds ]
         + len(info_lines) * lh_sm
         + 8
-        + lh_md                 # starting line
-        + lh_sm                 # version
+        + lh_sm                           # version
     )
     y = max((H_px - total_h) // 2, 28)  # 28 = frame inner top margin
 
@@ -219,9 +218,10 @@ def render_welcome_screen(
               font=font_tagline, fill=BLACK)
     y += lh_tagline + TAGLINE_TO_BOOT_GAP
 
-    # ── S Y S T E M   B O O T ────────────────────────────────────────────────
-    draw.text(((W - text_w(subhead, font_md)) // 2, y), subhead,
-              font=font_md, fill=BLACK)
+    # ── [ Starting in 30 seconds ] ───────────────────────────────────────────
+    starting = "[  S T A R T I N G   I N   3 0   S E C O N D S  ]"
+    draw.text(((W - text_w(starting, font_md)) // 2, y), starting,
+              font=font_md, fill=RED)
     y += lh_md + BOOT_TO_TABLE_GAP
 
     # ── Info box ──────────────────────────────────────────────────────────────
@@ -231,12 +231,6 @@ def render_welcome_screen(
         y += lh_sm
 
     y += 8
-
-    # ── [ Starting in 30 seconds ] ────────────────────────────────────────────
-    starting = "[  S T A R T I N G   I N   3 0   S E C O N D S  ]"
-    draw.text(((W - text_w(starting, font_md)) // 2, y), starting,
-              font=font_md, fill=RED)
-    y += lh_md + 4
 
     # ── Version / credit ──────────────────────────────────────────────────────
     ver = "TaleVision v1.5  ·  Netmilk Studio"
