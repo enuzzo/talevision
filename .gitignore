@@ -23,6 +23,9 @@ current_frame.jpg
 # Claude Code local settings
 .claude/
 
+# Git worktrees
+.worktrees/
+
 # Python
 __pycache__/
 *.py[cod]
