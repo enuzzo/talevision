@@ -214,6 +214,11 @@ class Orchestrator:
                               last_error: Optional[str], state_extra: dict) -> None:
         is_suspended = self._scheduler.is_suspended()
         next_wake = self._scheduler.next_wake_time()
+        language = state_extra.get("language")
+        weather_location = None
+        weather_mode = self._modes.get("weather")
+        if weather_mode and hasattr(weather_mode, "_location"):
+            weather_location = weather_mode._location
         with self._status_lock:
             self._status_cache = {
                 "mode": mode_name,
@@ -222,6 +227,8 @@ class Orchestrator:
                 "next_wake": next_wake.isoformat() if next_wake else None,
                 "last_error": last_error,
                 "state": state_extra,
+                "language": language,
+                "weather_location": weather_location,
             }
 
     def _process_actions(self) -> None:

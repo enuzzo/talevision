@@ -907,10 +907,11 @@ export default function App() {
           </section>
         )}
 
-        {/* Language selector — only for litclock */}
-        {currentMode === 'litclock' && (
+        {/* Language selector — litclock and wikipedia */}
+        {(currentMode === 'litclock' || currentMode === 'wikipedia') && (
           <section className="animate-fade-in bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
-            <LanguageSelector current={undefined} />
+            <div className="label mb-3">Language</div>
+            <LanguageSelector current={status?.language ?? undefined} />
           </section>
         )}
 

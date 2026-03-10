@@ -23,4 +23,6 @@ export interface Status {
   playlist?: string[]
   playlist_index?: number
   rotation_interval?: number
+  language?: string | null
+  weather_location?: string | null
 }
