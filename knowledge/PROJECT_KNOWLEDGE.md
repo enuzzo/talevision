@@ -116,11 +116,16 @@ python generate_sidecars.py --dry-run   # preview only
 - Build on Mac: `cd frontend && npm run build` → output goes directly to `talevision/web/static/dist/`.
 - Served by Flask: `views.py` uses `send_file(dist/index.html)` if built; falls back to Jinja template.
 - Data: TanStack React Query v5, polls `/api/status` every 12s (2s when waiting for frame render).
-- `ParticleBackground.tsx`: canvas RAF loop, 80 violet/cyan particles, mouse repulsion within 110px.
-- Frame waiting state: when mode switch or force-refresh is triggered, shows `RenderingOverlay` (scan line + rings + brackets) until `status.last_update` advances past the trigger timestamp. 120s safety timeout.
-- Fonts loaded from Google Fonts (Montserrat + Space Mono). No local font files needed for the web UI.
-- **Design system**: ScryBar Design System v1.4 (default theme). Deep navy backgrounds (#070D2D/#0B1437/#111C44), violet accent (#7551FF), cyan secondary (#39B8FF). Montserrat for display headings, Space Mono for monospace. Rounded corners (8px/12px/16px). Reference: `assets/netmilk_design_system/`.
-- **Footer**: Netmilk Studio SVG logo centered, loaded from `https://netmi.lk/wp-content/uploads/2024/10/netmilk.svg`.
+- Frame waiting state: when mode switch or force-refresh is triggered, shows `RenderingOverlay` until `status.last_update` advances past the trigger timestamp. 120s safety timeout.
+- Fonts loaded from Google Fonts (Lobster + Funnel Display). No local font files needed for the web UI.
+- **Design system**: warm vintage cream palette — `bg: #F1EBD9`, `primary: #3B3C47`, `accent: #CA796D` (Contessa). Lobster for logotype/headings, Funnel Display for interface text. Rounded corners (3/6/10/14/18px). No ScryBar dependency.
+- **RenderingOverlay** (CRT vintage): dark `#19120C` background, `NoiseCanvas` (100×62px canvas scaled to fill, ~13fps TV grain), CSS scanlines, amber sweep band, `TuningGauge` SVG (oscillating radio needle, Tailwind `gauge-needle` animation), mode name in Lobster + `animate-flicker`, "Tuning" label.
+- **`pendingMode` state**: set in `playlistMut.onMutate` to `modes[0]`, cleared when `waiting` goes false. Prevents overlay from briefly showing the old mode name. Pass `pendingMode ?? currentMode` to `FramePreview`.
+- **`lastSyncedRef` playlist sync**: tracks `playlist.join(',') + ':' + rotationInterval`. Prevents premature sync on preliminary `['litclock']` before server data arrives.
+- **Language selector**: always visible at top (affects LitClock + Wikipedia). Shows full language names (`Italiano`, `Español`, etc.) via `LANG_NAMES` dict. `localLang` state for instant update.
+- **Stats card**: shows Uptime (via `formatUptime(status?.uptime_seconds)`), Last render, Mode, Status. `uptime_seconds` field in `/api/status`.
+- **Taglines**: 20 rotating sardonic taglines, one chosen per page load (`Math.random()`), displayed in Lobster italic at 12px below the "TaleVision" title.
+- **Footer**: Netmilk SVG logo (full opacity, `hover:animate-shake`), GitHub repo link, MIT credit.
 - **Do not gitignore `talevision/web/static/dist/`** — exception is set in `.gitignore`. The built bundle must be in the repo so the Pi can serve it after `git pull`.
 
 ## Web Server
@@ -185,11 +190,14 @@ LOOP-step log messages in `orchestrator.py` are at **DEBUG** level (changed from
 
 ## Current Product Behaviors
 
-- **LitClock mode**: renders a literary quote for the current minute; 6 languages switchable at runtime. Refresh: 300 s (5 min).
-- **SlowMovie mode**: extracts a random film frame every 90 s with PIL enhancement and info overlay. TMDB QR (white-on-black rounded box, bottom-right). Auto-generates sidecar `.json` on first activation.
-- **Suspend schedule**: overnight window (e.g. 23:00–07:00), wraps midnight; day-of-week filtering; BBS/NFO style screen on e-ink.
+- **LitClock mode**: renders a literary quote for the current minute; 6 languages (it/es/pt/en/fr/de) switchable at runtime. Refresh: 300 s.
+- **SlowMovie mode**: extracts a random film frame every 90 s with PIL enhancement and info overlay. TMDB QR bottom-right. Auto-generates sidecar `.json` on first activation.
+- **Wikipedia mode**: fetches a random article via Wikipedia REST API, renders title + extract + thumbnail + QR. Babel-formatted date header. 6 languages. Refresh: 300 s.
+- **Weather mode**: fetches current conditions + 3-day forecast from wttr.in (HTTP). Large temperature display, condition details, forecast row. Location configurable from dashboard. Refresh: 600 s.
+- **Suspend schedule**: overnight window (e.g. 17:00–08:00), wraps midnight; day-of-week filtering; BBS/NFO style screen on e-ink.
 - **Playlist rotation**: orchestrator cycles through enabled modes in order with a unified rotation interval (default 5 min). Single-mode uses per-mode interval. Configurable from dashboard.
-- **Web dashboard**: React SPA (Vite + Tailwind) at `http://<DEVICE_IP>:<PORT>`; ScryBar Design System (deep navy + violet accent); PlaylistEditor with reorder; rendering overlay on mode switch; polling accelerates to 2s while waiting for new frame. Netmilk logo in footer.
+- **Web dashboard**: React SPA (Vite + Tailwind) at `http://<DEVICE_IP>:<PORT>`; warm vintage cream palette (bg #F1EBD9, accent #CA796D); Lobster logotype; CRT vintage RenderingOverlay (NoiseCanvas + TuningGauge SVG + scanlines); Stats card; PlaylistEditor with DnD reorder; Language selector (full names, always visible); rotating taglines. Netmilk logo in footer.
+- **`/api/status` uptime**: `uptime_seconds` field added — seconds since orchestrator started. Used in Stats card.
 - **Per-mode refresh intervals**: overridable from dashboard, persisted to `user_prefs.json` (visible in single-mode only).
 - **Physical buttons**: GPIO 5/6/16/24 (A/B/C/D on Inky Impression); remappable in `config.yaml`.
 - **Off-Pi fallback**: no Inky → saves `talevision_frame.png`; no GPIO → one warning, silent from then on.
@@ -248,18 +256,19 @@ sudo systemctl start talevision
 
 - `talevision/modes/wikipedia.py` — `WikipediaMode` class.
 - Fetch: `GET https://{lang}.wikipedia.org/api/rest_v1/page/random/summary` — random article per render call.
-- Languages: same 6 as LitClock (`it`, `en`, `de`, `es`, `fr`, `pt`). Switchable via `POST /api/language` (dispatch to active mode via duck-typing).
-- Render (800×480, white bg): time header (HH:MM + date + "Wikipedia · IT" label) → accent separator line → article title (Signika-Bold 26pt, max 2 lines) → extract body (Taviraj-Regular 22pt, word-wrapped) → thumbnail image 180×135px top-right (cropped 4:3, absent in ~30% of articles) → QR code 80×80px bottom-right linking to `content_urls.desktop.page`.
-- QR: `qrcode[pil]` (already in requirements). No fallback needed — always present if article URL exists.
-- Thumbnail fetch: separate `urllib.request` call after summary; graceful skip on timeout/error.
+- Languages: `it`, `es`, `pt`, `en`, `fr`, `de` (in that order). Switchable via `POST /api/language`.
+- Render (800×480, white bg): time+date header → accent separator → article title → extract body → thumbnail 180×135px top-right → QR 80×80px bottom-right.
+- **Header**: single line `{HH:MM} · {d MMMM} {'YY}` in Taviraj-SemiBold 32pt, black. `"Wikipedia · IT"` right-aligned in Taviraj-Regular 24pt. Date is babel-formatted (`format_date(now, "d MMMM", locale=LANG_TO_BABEL[lang])`).
+- **QR truncation message**: when body is clipped, last visible line replaced with a locale-appropriate "… scan QR to read more" message (`QR_MORE_MSG` dict, 6 languages). Rendered in `COLOR_MUTED`.
+- Article title: Signika-Bold 26pt, max 2 lines. Extract: Taviraj-Regular 22pt, word-wrapped to available width.
+- QR: `qrcode[pil]`. Thumbnail: `urllib.request`, graceful skip on timeout/error. Cropped 4:3 then resized LANCZOS.
 - Config: `wikipedia.refresh_interval` (default 300s), `wikipedia.language`, `wikipedia.timeout`.
 - `get_state()` exposes `title`, `language`, `url` in status extra.
-- `/api/status` includes `language` field (from active mode's `get_state().extra["language"]`).
 
 ## Weather Mode (wttr.in)
 
 - `talevision/modes/weather.py` — `WeatherMode` class.
-- Fetch: `GET https://wttr.in/{location}?format=j1` — structured JSON, no API key required.
+- Fetch: `GET http://wttr.in/{location}?format=j1` — structured JSON, no API key required. **HTTP not HTTPS** — HTTPS handshake times out on Pi Zero W (armv6l) due to TLS overhead.
 - Render (800×480, white bg): time header (HH:MM + date + city name) → accent separator → large current temperature (Signika-Bold 80pt) + condition/feels-like/wind/humidity → 3-day forecast (date, max/min temp, condition mid-day).
 - Location: configurable from dashboard. Persisted via `WeatherMode._location`. Set via `POST /api/weather/location`.
 - Autocomplete: `GET /api/weather/search?q=` → Nominatim OpenStreetMap, no API key, limit 5.

@@ -95,3 +95,33 @@ Entry format:
 - Context: Video info (duration, fps, frame count) is slow to fetch via ffprobe. Need a stable, content-based cache key.
 - Decision: SHA256 of the video file path used as the cache key in `VideoInfoCache`.
 - Impact/Tradeoffs: Stable across renames as long as file content is unchanged. Slight overhead on first run; negligible thereafter.
+
+## 2026-03-10 - Wikipedia and Weather as First-Class Active Modes
+
+- Context: Wikipedia and Weather were planned/upcoming modes. Wikipedia was implemented; Weather was added to complete the "useful information on the wall" concept.
+- Decision: Both promoted to first-class active modes in the playlist registry. Wikipedia fetches random articles via REST API (multi-language, PIL render, no headless browser). Weather uses wttr.in structured JSON (no API key), HTTP not HTTPS (HTTPS TLS handshake reliably times out on Pi Zero W armv6l).
+- Impact/Tradeoffs: 4 active modes total. wttr.in HTTP constraint is Pi Zero W-specific — document clearly to avoid "why are you using HTTP?" questions.
+
+## 2026-03-10 - Vintage Cream Palette Replacing ScryBar Design System
+
+- Context: ScryBar v1.4 (deep navy + violet) was applied in March 2026 for brand consistency. After implementing it, the design felt too generic/corporate for a wall-mounted literary/cinematic device.
+- Decision: Replace with a warm vintage cream palette: bg `#F1EBD9`, primary `#3B3C47`, accent `#CA796D` (Contessa rose). Tailwind config custom-extended. No ScryBar dependency.
+- Impact/Tradeoffs: More characterful, fits the "literary device on the wall" context. No external design system dependency. New team members won't find a ScryBar reference and be confused.
+
+## 2026-03-10 - Lobster as Logotype/Heading Typeface; Funnel Display as Interface Body
+
+- Context: Dashboard had Sarina (Google Fonts decorative) as the logotype font. Sarina is too quirky without being warm.
+- Decision: Lobster (Pablo Impallari, 2010) replaces Sarina for logotype and section headings (`font-title`). Funnel Display (Mirko Velimirović, 2024) replaces Montserrat/Space Mono for all interface text. OpenType ligatures and `optimizeLegibility` enabled for Lobster via CSS `font-feature-settings`.
+- Impact/Tradeoffs: Lobster is widely recognised as a "classic web font" — risk of nostalgia overload. Works here because the project has enough personality to carry it. Funnel Display is contemporary and clean without being generic.
+
+## 2026-03-10 - CRT Vintage RenderingOverlay (Replacing Cyberpunk/Sci-Fi Design)
+
+- Context: Mode-switch overlay used neon scan line + rings + brackets (cyberpunk aesthetic). Felt modern and generic; inconsistent with the warm vintage palette.
+- Decision: Replace with a CRT/radio-tuning aesthetic: dark warm `#19120C` background, animated TV grain via `NoiseCanvas` (tiny canvas scaled with `imageRendering: pixelated`), CSS CRT scanlines, amber sweep band, `TuningGauge` SVG (oscillating needle animating via Tailwind `gauge-needle` keyframe), mode name in Lobster with `animate-flicker`.
+- Impact/Tradeoffs: SVG `transform-origin` on `<line>` elements doesn't work cross-browser. Workaround: wrap needle in `<g transform="translate(cx,cy)">`, apply `transform-box: fill-box; transform-origin: 50% 100%` to the `<line>` — rotates around the line's own bottom point.
+
+## 2026-03-10 - Language Order: it / es / pt / en / fr / de
+
+- Context: Languages were listed alphabetically (de/en/es/fr/it/pt) in default config and UI. Project context is Italian-first (deployed in Italy, Netmilk is Italian).
+- Decision: Preferred order `["it", "es", "pt", "en", "fr", "de"]` — Italian first (home language), then Iberian peninsula, then English, then French/German. Applied in: `loader._LANG_ORDER`, `wikipedia.LANGS`, `schema.WikipediaConfig.languages` default.
+- Impact/Tradeoffs: Trivial preference with zero technical cost. Makes language selector more intuitive for the primary user base.

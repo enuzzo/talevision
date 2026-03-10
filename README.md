@@ -21,7 +21,11 @@ As **LitClock**, it reads the current minute and surfaces a literary quote — f
 
 As **SlowMovie**, it extracts a random frame from a film in your media folder, runs it through a PIL enhancement pipeline, fits it to the panel, and holds it for 90 seconds. There is an overlay with title, director, timecode. There is a QR code linking to TMDB. There is absolutely no hurry.
 
-Both modes share one 800×480 seven-colour e-ink panel, one Pi Zero W, one Flask dashboard, and one quiet conviction: the best thing a screen can do is earn its update.
+As **Wikipedia**, it fetches a random article every few minutes, renders the title and extract in a clean serif layout with a thumbnail and a QR code. One unexpected thing you didn't know, in Italian or five other languages, every time the e-ink decides it's ready.
+
+As **Weather**, it checks the forecast and renders the temperature very large. Below it: condition, feels-like, wind, humidity. Below that: three days ahead, for when you need to know before you open the window.
+
+All four modes share one 800×480 seven-colour e-ink panel, one Pi Zero W, one Flask dashboard, and one quiet conviction: the best thing a screen can do is earn its update.
 
 ---
 
@@ -41,6 +45,8 @@ TaleVision is the obvious outcome. One device. One config file. One dashboard. S
 
 - [LitClock](#litclock)
 - [SlowMovie](#slowmovie)
+- [Wikipedia](#wikipedia)
+- [Weather](#weather)
 - [Playlist & Rotation](#playlist--rotation)
 - [Hardware](#hardware)
 - [How It Works](#how-it-works)
@@ -67,7 +73,7 @@ The vertical position is not simply centred. It uses mathematical centre minus a
 
 If no quote exists for the current minute — coverage is good but not complete — a fallback pool is used instead. The display doesn't panic. It finds something worth saying.
 
-**Languages:** `it` · `en` · `de` · `es` · `fr` · `pt` — switchable from the dashboard without restart.
+**Languages:** `it` · `es` · `pt` · `en` · `fr` · `de` — switchable from the dashboard without restart.
 
 ---
 
@@ -87,13 +93,35 @@ Every 90 seconds: select a film from `media/`, pick a random frame somewhere in 
 
 ---
 
+## Wikipedia
+
+Every few minutes: pick a random Wikipedia article in your chosen language, render it to the display. Title in bold, extract body word-wrapped to fit, thumbnail image if the article has one (top-right, cropped to 4:3), QR code bottom-right linking to the full article.
+
+At the top: the time and date in the same Taviraj-SemiBold header used by LitClock — `14:32 · 10 marzo '26` — with the language label right-aligned (`Wikipedia · IT`). Date formatted with Babel so the month name is in the display language, not whatever the system locale happens to be.
+
+If the body text runs long, the last visible line is replaced with a language-appropriate prompt to scan the QR: *"… scansiona il QR per saperne di più"*, or the equivalent in five other languages. Wikipedia's article quality is uneven. The prompt is diplomatically vague about whether this is because the article is interesting or because it is very, very long.
+
+**Languages:** `it` · `es` · `pt` · `en` · `fr` · `de` — same six as LitClock, same language selector in the dashboard. One setting controls both.
+
+---
+
+## Weather
+
+Every 10 minutes: fetch current conditions and a 3-day forecast from [wttr.in](https://wttr.in/) — no API key, no account, no nothing. Structured JSON. The temperature is rendered very large (Signika-Bold 80pt) because that is the only information most people actually want from a weather display. Below it: condition string, feels-like, wind, humidity. Below that: a three-day forecast with date, max/min temperatures, and midday condition.
+
+Location is configurable from the dashboard, with autocomplete powered by Nominatim (OpenStreetMap, no key). Change the city, hit save. The display updates on the next render cycle.
+
+Note: wttr.in is fetched over HTTP on the Pi Zero W. The HTTPS handshake reliably times out on armv6l hardware. This is not a security oversight — the data is non-sensitive weather information from a public endpoint.
+
+---
+
 ## Playlist & Rotation
 
 TaleVision doesn't make you choose. Enable any combination of modes and the Orchestrator cycles through them in order. A unified rotation interval (default: 5 minutes, configurable 30s–60min) replaces per-mode intervals during rotation. After each render, it waits, then advances to the next mode in the playlist.
 
 Single mode? Per-mode interval applies as before. Two or more? Rotation takes over. The playlist is reorderable from the dashboard with up/down arrows. Persisted to `user_prefs.json`. Survives reboots.
 
-**API:** `POST /api/playlist` with `{"modes": ["litclock", "slowmovie", "ansi"], "rotation_interval": 300}`.
+**API:** `POST /api/playlist` with `{"modes": ["litclock", "wikipedia", "weather"], "rotation_interval": 300}`.
 
 ---
 
@@ -114,27 +142,28 @@ The display refreshes slowly on purpose. E-ink panels take ~30 seconds and hold 
 ## How It Works
 
 ```
-                        ┌─────────────────────────────────────┐
-                        │           Orchestrator              │
-                        │         (main thread)               │
-                        │                                     │
-         button press   │  _action_queue ◄── Flask API thread │
-         ─────────────► │                                     │
-                        │  ┌─────────┐       ┌─────────────┐  │
-                        │  │LitClock │  or   │  SlowMovie  │  │
-                        │  │  Mode   │       │    Mode     │  │
-                        │  └────┬────┘       └──────┬──────┘  │
-                        │       │ render()          │         │
-                        │       └────────┬──────────┘         │
-                        │                ▼                    │
-                        │          InkyCanvas                 │
-                        │     (hardware or PNG sim)           │
-                        └─────────────┬───────────────────────┘
-                                      │
-                          ┌───────────┴───────────┐
-                          │                       │
-                    Inky display           cache/frame.png
-                    (Pi only)            (served at /api/frame)
+                        ┌──────────────────────────────────────────┐
+                        │              Orchestrator                │
+                        │            (main thread)                 │
+                        │                                          │
+         button press   │  _action_queue ◄── Flask API thread      │
+         ─────────────► │                                          │
+                        │  ┌──────────┐  ┌──────────┐             │
+                        │  │ LitClock │  │SlowMovie │             │
+                        │  └────┬─────┘  └────┬─────┘             │
+                        │  ┌────┴─────┐  ┌────┴─────┐             │
+                        │  │Wikipedia │  │ Weather  │  (playlist) │
+                        │  └────┬─────┘  └────┬─────┘             │
+                        │       └──────┬───────┘                  │
+                        │              ▼ render()                  │
+                        │          InkyCanvas                      │
+                        │     (hardware or PNG sim)                │
+                        └──────────────┬───────────────────────────┘
+                                       │
+                           ┌───────────┴───────────┐
+                           │                       │
+                     Inky display           cache/frame.png
+                     (Pi only)            (served at /api/frame)
 ```
 
 The Orchestrator runs in the main thread. Flask runs in a daemon thread. They communicate through a `queue.Queue` and a `threading.Lock`. Button presses from GPIO polling go through the same queue. Nobody touches the render pipeline from outside the main thread.
@@ -213,36 +242,40 @@ Dashboard at `http://<pi-ip>:5000`.
 
 ## Web Dashboard
 
-`http://<pi-ip>:5000` — built in React (Vite + Tailwind CSS + Radix UI), themed with the ScryBar Design System (deep navy #070D2D, violet accent #7551FF, cyan secondary #39B8FF, Montserrat + Space Mono). No page reloads. Animated particle background. Netmilk Studio logo in the footer.
+`http://<pi-ip>:5000` — built in React (Vite + Tailwind CSS + Radix UI). Warm vintage cream palette (bg `#F1EBD9`, accent `#CA796D`). Lobster for the logotype and headings, Funnel Display for everything else. No page reloads. Netmilk Studio logo in the footer, shakes on hover.
 
-**Frame preview** — when you switch mode or force-refresh, the preview immediately shows a cinematic "Rendering" overlay (sweeping scan line, pulsing rings, corner brackets) and polls status every 2 s. As soon as the Pi finishes rendering, the overlay clears and the new frame fades in automatically. No manual reload needed.
+A sardonic tagline rotates with each page load. Twenty options. The display updates roughly once a minute. The tagline changes roughly once per session. Both are fine.
+
+**Frame preview** — when you switch mode or force-refresh, the preview goes dark and shows a vintage CRT overlay: TV grain, scanlines, an amber sweep band, and an oscillating radio tuner needle. The mode name appears in Lobster with a subtle flicker. As soon as the Pi finishes rendering, the overlay clears and the new frame fades in. No manual reload needed.
 
 **Layout:**
 
 ```
 ┌─────────────────────────────────────────────────┐
-│  ● TaleVision              22:17  🕐 litclock   │  ← sticky topbar
+│  TaleVision                                      │  ← Lobster logotype
+│  "The best thing on your wall since the clock."  │  ← rotating tagline (12px italic)
+├─────────────────────────────────────────────────┤
+│  Language  [ Italiano ▾ ]  ← LitClock + Wikipedia│
 ├─────────────────────────────────────────────────┤
 │  [ last rendered frame, 800×480 ]               │  ← auto-updates on render complete
-│  🕐 LitClock  🎬 SlowMovie       [ ⟳ Refresh ] │  ← mode switch + force refresh
+│  playlist: [LitClock] [Wikipedia] [Weather] ...  │  ← drag-to-reorder
+│  rotation interval: [___] min     [Save] [⟳]   │  ← save + force refresh in one row
 ├─────────────────────────────────────────────────┤
-│  Status              │  Active schedule         │
-│  Mode / Suspended    │  ▶ On from  ⏹ Off at    │
-│  Last render / Film  │  Active days  [Save]     │
+│  Stats          │  Active schedule               │
+│  Uptime         │  ▶ On from  ⏹ Off at          │
+│  Last render    │  Active days  [Save]            │
+│  Mode / Status  │                                 │
 ├─────────────────────────────────────────────────┤
-│  Refresh intervals: 🕐 litclock [___] min [Set] │
-│                     🎬 slowmovie [___] min [Set]│
-├─────────────────────────────────────────────────┤
-│  Language  [ it ▾ ]   ← LitClock only           │
+│  Refresh intervals (single-mode only)            │
 └─────────────────────────────────────────────────┘
 ```
 
 | Endpoint | Method | Body | Does |
 |---|---|---|---|
-| `/api/status` | GET | — | Mode, suspension state, intervals, last frame timestamp |
+| `/api/status` | GET | — | Mode, suspension, intervals, last frame timestamp, `uptime_seconds`, `is_suspended` |
 | `/api/mode` | POST | `{"mode": "litclock"}` | Switch mode |
 | `/api/refresh` | POST | — | Force immediate render cycle |
-| `/api/language` | POST | `{"lang": "en"}` | Change LitClock language |
+| `/api/language` | POST | `{"lang": "it"}` | Change language (LitClock + Wikipedia) |
 | `/api/languages` | GET | — | List detected language files |
 | `/api/suspend` | POST | `{"enabled": bool, "start": "HH:MM", "end": "HH:MM", "days": [...]}` | Update schedule |
 | `/api/frame` | GET | — | Last rendered frame (PNG or JPG) |
@@ -251,6 +284,8 @@ Dashboard at `http://<pi-ip>:5000`.
 | `/api/interval` | POST | `{"mode": "litclock", "seconds": 300}` | Set interval override |
 | `/api/interval/<mode>` | DELETE | — | Reset to config default |
 | `/api/playlist` | POST | `{"modes": [...], "rotation_interval": N}` | Set playlist and rotation interval |
+| `/api/weather/location` | POST | `{"location": "Roma"}` | Set weather location |
+| `/api/weather/search` | GET | `?q=rom` | Autocomplete via Nominatim (OpenStreetMap) |
 
 ---
 
@@ -312,7 +347,9 @@ talevision/
 │   ├── modes/
 │   │   ├── base.py              DisplayMode ABC + ModeState
 │   │   ├── litclock.py          LitClock — Taviraj typography, 6 languages
-│   │   └── slowmovie.py         SlowMovie — PIL chain + RGBA overlay + TMDB QR
+│   │   ├── slowmovie.py         SlowMovie — PIL chain + RGBA overlay + TMDB QR
+│   │   ├── wikipedia.py         Wikipedia — random article, babel header, QR link
+│   │   └── weather.py           Weather — wttr.in forecast, large temp display
 │   ├── render/
 │   │   ├── typography.py        FontManager, wrap_text_block, get_text_dimensions
 │   │   ├── layout.py            draw_header, draw_centered_text_block
@@ -394,23 +431,11 @@ pip-audit -r requirements.txt
 
 ---
 
-## ANSi Art Mode
-
-TaleVision can display ANSI art from the BBS artscene as a slow gallery. One piece every three minutes. Rendered via `pyte` (terminal emulator) + BlockZone.ttf — a pixel-perfect recreation of the IBM VGA CP437 font, designed specifically for this purpose. The CGA 16-colour palette is mapped to Inky's 7 native colours at render time. No dithering. No approximation. Just block characters and the quiet dignity of a scene that peaked in 1994 and has never fully admitted it.
-
-The art shown in ANSi mode comes from the archives at **[Sixteen Colors](https://16colo.rs/)** — the definitive collection of ANSI, ASCII, and artscene work. All artwork is the creation of the original artists and artgroups credited in each file. TaleVision displays these works with deep respect. If you enjoy what you see, visit [16colo.rs](https://16colo.rs/) and go deep — the talent, the craft, and the community behind this art form is extraordinary and largely unacknowledged by everyone who should know better.
-
-Drop `.ans` files into `assets/ansi/` and they cycle automatically. Sequential by default, random if you prefer chaos.
-
----
-
 ## Upcoming Modes
 
-TaleVision is designed as a multi-mode playlist system. Modes can run alone or cycle in rotation with a unified interval. These are next:
+TaleVision is a multi-mode playlist system. Modes run alone or cycle in rotation with a unified interval. One more is in the works:
 
-**Wikipedia Random** — a random Wikipedia article rendered to the display. Supports multiple languages. One unexpected fact every few minutes. The internet's largest collection of things you didn't know you needed to know, now on your wall, in a font that costs nothing and takes forever to update. Coming soon.
-
-**Teletext** — Ceefax/Oracle/Viewdata-style retro teletext pages. Mode 7 font, block graphics, 40×25 character grid. Archives of real teletext pages from the '70s–'80s rendered to the e-ink display. Coming soon.
+**Teletext** — Ceefax/Oracle/Viewdata-style retro teletext pages. Mode 7 font, block graphics, 40×25 character grid. Archives of real teletext pages from the '70s–'80s rendered to e-ink. Native PIL, no heavy dependencies, zero apologies for the aesthetic.
 
 ---
 
@@ -424,8 +449,8 @@ Use it, fork it, replace the quote database with your own obsessions, point Slow
 
 <div align="center">
 
-*A library of literary time. One frame of film every 90 seconds.*
-*One Pi Zero W. One wall. One question answered.*
+*Literature. Cinema. Wikipedia. Weather.*
+*One Pi Zero W. One wall. One question at a time.*
 
 </div>
 
