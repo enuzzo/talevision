@@ -49,6 +49,26 @@ def _fetch_article(lang: str, timeout: int = 10) -> Dict:
     return data
 
 
+def _fetch_full_extract(title: str, lang: str, timeout: int = 10) -> str:
+    """Fetch a longer plain-text extract via the MediaWiki action API."""
+    import urllib.parse
+    encoded = urllib.parse.quote(title)
+    url = (
+        f"https://{lang}.wikipedia.org/w/api.php"
+        f"?action=query&prop=extracts&titles={encoded}"
+        f"&format=json&explaintext=1&exsectionformat=plain&exchars=3000"
+    )
+    req = urllib.request.Request(url, headers={"User-Agent": "TaleVision/1.0"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    pages = data.get("query", {}).get("pages", {})
+    for page in pages.values():
+        extract = page.get("extract", "")
+        if extract:
+            return extract
+    return ""
+
+
 def _fetch_thumbnail(url: str, timeout: int = 10) -> Optional[Image.Image]:
     """Download and return thumbnail image, or None on failure."""
     try:
@@ -134,6 +154,13 @@ class WikipediaMode(DisplayMode):
 
         try:
             article = _fetch_article(self._language, timeout=timeout)
+            # Enrich with full article text (beyond the intro-only summary)
+            try:
+                full = _fetch_full_extract(article.get("title", ""), self._language, timeout=timeout)
+                if len(full) > len(article.get("extract", "")):
+                    article["extract"] = full
+            except Exception as exc:
+                log.warning(f"Wikipedia full extract fetch failed: {exc}")
             self._last_article = article
         except Exception as exc:
             log.error(f"Wikipedia fetch failed: {exc}")

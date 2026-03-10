@@ -17,7 +17,28 @@ BLUE   = (0, 0, 255)
 YELLOW = (255, 255, 0)
 ORANGE = (255, 128, 0)
 
-TAGLINE = "The best thing on your wall since the clock."
+TAGLINES = [
+    "The best thing a screen can do is earn its update.",
+    "One Pi. One wall. An unreasonable amount of thought.",
+    "Updates every five minutes. Refreshes never.",
+    "Literary quotes and slow cinema, sharing a wall politely.",
+    "A clock that reads. A cinema that waits. One device that doesn't care.",
+    "The Pis were already there. The reasoning was air-tight.",
+    "Each frame costs 30 seconds of e-ink patience.",
+    "Typeset in Taviraj. Rendered on a Tuesday.",
+    "Six languages. Seven colours. Zero hurry.",
+    "The screen earns its right to exist, one minute at a time.",
+    "Built to impress guests who didn't ask to be impressed.",
+    "A confession of over-engineering disguised as a clock.",
+    "SlowMovie: because films deserve to be watched at 1 frame per minute.",
+    "No streaming. No notifications. Just the wall, being interesting.",
+    "It updates less often than your opinions. And it's more reliable.",
+    "Borges, Calvino, Woolf — and a random Wikipedia article. Niche.",
+    "Powered by a chip the size of a stamp and a questionable amount of free time.",
+    "A dashboard for a device that doesn't need one.",
+    "The font survived the migration. Not everything does.",
+    "Four buttons on the side. None of them labelled correctly.",
+]
 
 # Box-drawing characters
 H = "═"
@@ -165,13 +186,18 @@ def render_welcome_screen(
         x1 = (i + 1) * segment_w if i < len(border_colors) - 1 else W
         draw.rectangle([(x0, 0), (x1, bar_h - 1)], fill=color)
 
+    import random
+    tagline = random.choice(TAGLINES)
+
     # ── Vertical centering ────────────────────────────────────────────────────
     subhead = "S Y S T E M   B O O T"
     TITLE_GAP = 14          # extra space between Lobster title and tagline
+    TAGLINE_TO_BOOT_GAP = 28  # generous gap: tagline → SYSTEM BOOT
+    BOOT_TO_TABLE_GAP = 6     # tight: SYSTEM BOOT sits close to its table
     total_h = (
         lh_lobster + TITLE_GAP
-        + lh_tagline + 12
-        + lh_md + 16            # subhead + gap
+        + lh_tagline + TAGLINE_TO_BOOT_GAP
+        + lh_md + BOOT_TO_TABLE_GAP
         + len(info_lines) * lh_sm
         + 12
         + lh_md                 # SYSTEM READY
@@ -182,18 +208,18 @@ def render_welcome_screen(
     # ── TaleVision in Lobster ─────────────────────────────────────────────────
     title = "TaleVision"
     draw.text(((W - text_w(title, font_lobster)) // 2, y), title,
-              font=font_lobster, fill=ORANGE)
+              font=font_lobster, fill=BLACK)
     y += lh_lobster + TITLE_GAP
 
     # ── Tagline in Taviraj Italic ─────────────────────────────────────────────
-    draw.text(((W - text_w(TAGLINE, font_tagline)) // 2, y), TAGLINE,
+    draw.text(((W - text_w(tagline, font_tagline)) // 2, y), tagline,
               font=font_tagline, fill=BLACK)
-    y += lh_tagline + 12
+    y += lh_tagline + TAGLINE_TO_BOOT_GAP
 
     # ── S Y S T E M   B O O T ────────────────────────────────────────────────
     draw.text(((W - text_w(subhead, font_md)) // 2, y), subhead,
               font=font_md, fill=BLACK)
-    y += lh_md + 16
+    y += lh_md + BOOT_TO_TABLE_GAP
 
     # ── Info box ──────────────────────────────────────────────────────────────
     for line in info_lines:
