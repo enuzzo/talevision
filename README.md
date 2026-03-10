@@ -172,7 +172,7 @@ The Orchestrator runs in the main thread. Flask runs in a daemon thread. They co
 
 ## Boot Sequence
 
-On power-up, TaleVision renders a **welcome screen** to the e-ink display before anything else — a BBS/NFO-style boot splash on a white background with a colourful ASCII art logo, hostname, LAN IP, dashboard URL, active mode, and current playlist. The seven native Inky colours (red, orange, blue, black) are used at full saturation — no dithering, no apologies.
+On power-up, TaleVision renders a **welcome screen** to the e-ink display before anything else. "TaleVision" in Lobster at 88pt, orange, centred. Below it: *"The best thing on your wall since the clock."* in Taviraj Italic. Below that: a BBS/NFO-style info box — hostname, LAN IP, dashboard URL, active mode, playlist — in DejaVuSansMono Bold with box-drawing characters. Closes with "■ SYSTEM READY ■" in red. Rainbow colour bars at top and bottom from the seven native Inky colours.
 
 The welcome screen holds for 15 seconds. Long enough to confirm the device is alive and read the IP address. Then the Orchestrator takes over and renders the first real frame.
 
@@ -234,6 +234,10 @@ Dashboard at `http://<pi-ip>:5000`.
 | `slowmovie.overlay.qr_enabled` | `true` | TMDB QR code in frame corner |
 | `slowmovie.overlay.qr_content` | `tmdb_search` | QR link pattern (`tmdb_search` or `imdb_search`) |
 | `display.saturation` | `0.6` | Inky colour saturation (0.0 – 1.0) |
+| `wikipedia.refresh_interval` | `300` | Seconds between Wikipedia article fetches |
+| `wikipedia.language` | `it` | Default language for Wikipedia (`it` · `es` · `pt` · `en` · `fr` · `de`) |
+| `weather.refresh_interval` | `600` | Seconds between weather fetches |
+| `weather.location` | `Roma` | Default city (editable from dashboard) |
 | `suspend.start` / `.end` | `17:00` / `08:00` | Sleep/wake time — overnight ranges handled correctly (start > end wraps midnight) |
 | `suspend.days` | `[5,6]` | Fully-off days (0=Mon … 6=Sun). Default: Sat+Sun fully off, Mon–Fri follow the time window |
 | `buttons.actions` | see below | Remap GPIO buttons to any action |
@@ -291,12 +295,14 @@ A sardonic tagline rotates with each page load. Twenty options. The display upda
 
 ## Web UI Fonts
 
-The control dashboard uses the following typefaces, served via Google Fonts:
+The control dashboard uses the following typefaces, **self-hosted** — no Google Fonts dependency, works fully offline:
 
 | Font | Role | Designer | Copyright |
 |---|---|---|---|
-| **[Lobster](https://fonts.google.com/specimen/Lobster)** | Logotype ("TaleVision"), section headings | Pablo Impallari | © 2010 Pablo Impallari |
+| **[Lobster](https://fonts.google.com/specimen/Lobster)** | Logotype ("TaleVision"), section headings; also used on e-ink boot and suspend screens | Pablo Impallari | © 2010 Pablo Impallari |
 | **[Funnel Display](https://fonts.google.com/specimen/Funnel+Display)** | Interface text, labels, values | Mirko Velimirović / Undercase Type | © 2024 The Funnel Project Authors |
+
+Font files (`woff2` + `ttf`) are committed to `frontend/public/fonts/` and served directly by Flask. The e-ink screens use `Lobster-Regular.ttf` from `assets/fonts/`.
 
 Both typefaces are licensed under the [SIL Open Font License 1.1](https://openfontlicense.org/) — free to use, embed, and redistribute with attribution.
 
@@ -321,7 +327,7 @@ All four remappable in `config.yaml` under `buttons.actions`. On non-Pi hardware
 
 Between `suspend.start` and `suspend.end`, TaleVision stops rendering and waits. The panel holds the last image with zero power draw. The Pi idles.
 
-On entering suspension, it renders a **BBS/NFO style screen** — white background, box-drawing characters, orange header, active hours, day-of-week markers (`[MON]` for active, ` MON ` for inactive), and the next wake time. Rainbow border bars at top and bottom, matching the boot screen. Minimal, typeset, readable.
+On entering suspension, it renders a **suspend screen**: "TaleVision" in Lobster at 76pt, orange. Below it: a random literary quote from the LitClock database, word-wrapped in Taviraj Italic, with the author below. Then the BBS info box — active hours, day-of-week markers (`[MON]` for active, ` MON ` for suspended), next wake time — in DejaVuSansMono with box-drawing characters. Rainbow border bars matching the boot screen. Timestamp at the bottom in grey.
 
 Overnight windows (`23:00 → 07:00`) are handled correctly: if `start > end`, the suspended period wraps midnight. Day-of-week filtering is supported. An empty list means every day.
 
@@ -353,8 +359,8 @@ talevision/
 │   ├── render/
 │   │   ├── typography.py        FontManager, wrap_text_block, get_text_dimensions
 │   │   ├── layout.py            draw_header, draw_centered_text_block
-│   │   ├── suspend_screen.py    BBS/NFO style e-ink suspend screen (DejaVuSansMono Bold)
-│   │   ├── welcome_screen.py    Boot splash — ASCII art logo, system info, 7-colour
+│   │   ├── suspend_screen.py    Suspend screen — Lobster title + random quote + BBS box
+│   │   ├── welcome_screen.py    Boot splash — Lobster title + tagline + BBS info box
 │   │   ├── canvas.py            InkyCanvas (hardware) + PNG simulation fallback
 │   │   └── frame_cache.py       SHA256 video cache + ffmpeg frame extraction
 │   ├── media/
@@ -378,10 +384,11 @@ talevision/
 │   │   ├── api.ts               Typed API client
 │   │   ├── types.ts             Shared TypeScript types
 │   │   └── index.css            Tailwind base + scanline/grain overlays + keyframes
+│   ├── public/fonts/            Self-hosted fonts: Lobster-Regular.{woff2,ttf}, FunnelDisplay-variable.{woff2,ttf}
 │   ├── package.json             Vite + React + Tailwind + Radix UI + TanStack Query
 │   └── vite.config.ts           Outputs to talevision/web/static/dist/
 ├── assets/
-│   ├── fonts/                   Signika + Taviraj (22 weights) + DejaVuSansMono + Bold
+│   ├── fonts/                   Signika + Taviraj (22 weights) + DejaVuSansMono + Lobster-Regular.ttf
 │   ├── lang/                    quotes-{de,en,es,fr,it,pt}.csv + fallback.csv
 │   └── icons/                   logo.png
 ├── media/                       Your .mp4 files + sidecar .json (gitignored for .mp4)

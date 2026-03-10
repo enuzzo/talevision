@@ -1,4 +1,22 @@
-@import url('https://fonts.googleapis.com/css2?family=Lobster&family=Funnel+Display:wght@300;400;500;600;700;800&display=swap');
+/* Self-hosted fonts — no Google Fonts dependency */
+@font-face {
+  font-family: 'Lobster';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/Lobster-Regular.woff2') format('woff2'),
+       url('/fonts/Lobster-Regular.ttf')   format('truetype');
+}
+
+@font-face {
+  font-family: 'Funnel Display';
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+  src: url('/fonts/FunnelDisplay-variable-ext.woff2') format('woff2'),
+       url('/fonts/FunnelDisplay-variable.woff2')     format('woff2'),
+       url('/fonts/FunnelDisplay-variable.ttf')       format('truetype');
+}
 
 @tailwind base;
 @tailwind components;

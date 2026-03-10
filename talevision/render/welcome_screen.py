@@ -9,29 +9,15 @@ from PIL import Image, ImageDraw, ImageFont
 log = logging.getLogger(__name__)
 
 # Inky Impression 7-colour native palette (pure, no dithering)
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
+BLACK  = (0, 0, 0)
+WHITE  = (255, 255, 255)
+RED    = (255, 0, 0)
+GREEN  = (0, 255, 0)
+BLUE   = (0, 0, 255)
 YELLOW = (255, 255, 0)
 ORANGE = (255, 128, 0)
 
-# ASCII art logo — backslash/pipe style with decorative strokes
-LOGO_LINES = [
-    " _________  ________  ___       _______   ___      ___ ___  ________  ___  ________  ________",
-    "|\\___   ___\\\\   __  \\|\\  \\     |\\  ___ \\ |\\  \\    /  /|\\  \\|\\   ____\\|\\  \\|\\   __  \\|\\   ___  \\",
-    "\\|___ \\  \\_\\ \\  \\|\\  \\ \\  \\    \\ \\   __/|\\ \\  \\  /  / | \\  \\ \\  \\___|\\ \\  \\ \\  \\|\\  \\ \\  \\\\ \\  \\",
-    "     \\ \\  \\ \\ \\   __  \\ \\  \\    \\ \\  \\_|/_\\ \\  \\/  / / \\ \\  \\ \\_____  \\ \\  \\ \\  \\\\\\  \\ \\  \\\\ \\  \\",
-    "      \\ \\  \\ \\ \\  \\ \\  \\ \\  \\____\\ \\  \\_|\\ \\ \\    / /   \\ \\  \\|____|\\  \\ \\  \\ \\  \\\\\\  \\ \\  \\\\ \\  \\",
-    "       \\ \\__\\ \\ \\__\\ \\__\\ \\_______\\ \\_______\\ \\__/ /     \\ \\__\\____\\_\\  \\ \\__\\ \\_______\\ \\__\\\\ \\__\\",
-    "        \\|__|  \\|__|\\|__|\\|_______|\\|_______|\\|__|/       \\|__|\\_________\\|__|\\|_______|\\|__| \\|__|",
-    "                                                              \\|_________|",
-]
-
-# Decorative strokes in red, backslash/pipe structure in blue
-LOGO_STROKE_COLOR = RED
-LOGO_FRAME_COLOR = BLUE
+TAGLINE = "The best thing on your wall since the clock."
 
 # Box-drawing characters
 H = "═"
@@ -59,6 +45,31 @@ def _load_font(base_dir: Path, size: int, bold: bool = False) -> ImageFont.FreeT
                 return ImageFont.truetype(str(p), size)
             except Exception:
                 pass
+    return ImageFont.load_default(size=size)  # type: ignore[call-arg]
+
+
+def _load_lobster(base_dir: Path, size: int) -> ImageFont.FreeTypeFont:
+    candidates = [
+        base_dir / "assets" / "fonts" / "Lobster-Regular.ttf",
+        base_dir / "assets" / "fonts" / "Taviraj-Black.ttf",
+    ]
+    for p in candidates:
+        if p.exists():
+            try:
+                return ImageFont.truetype(str(p), size)
+            except Exception:
+                pass
+    return ImageFont.load_default(size=size)  # type: ignore[call-arg]
+
+
+def _load_serif(base_dir: Path, size: int, italic: bool = False) -> ImageFont.FreeTypeFont:
+    name = "Taviraj-Italic.ttf" if italic else "Taviraj-Regular.ttf"
+    p = base_dir / "assets" / "fonts" / name
+    if p.exists():
+        try:
+            return ImageFont.truetype(str(p), size)
+        except Exception:
+            pass
     return ImageFont.load_default(size=size)  # type: ignore[call-arg]
 
 
@@ -104,9 +115,10 @@ def render_welcome_screen(
     img = Image.new("RGB", (W, H_px), WHITE)
     draw = ImageDraw.Draw(img)
 
-    font_logo = _load_font(base_dir, 11, bold=True)
-    font_md = _load_font(base_dir, 17, bold=True)
-    font_sm = _load_font(base_dir, 14, bold=True)
+    font_lobster = _load_lobster(base_dir, 88)
+    font_tagline = _load_serif(base_dir, 22, italic=True)
+    font_md      = _load_font(base_dir, 17, bold=True)
+    font_sm      = _load_font(base_dir, 14, bold=True)
 
     def text_w(txt: str, fnt: ImageFont.FreeTypeFont) -> int:
         bb = draw.textbbox((0, 0), txt, font=fnt)
@@ -116,14 +128,13 @@ def render_welcome_screen(
         bb = draw.textbbox((0, 0), "Ay", font=fnt)
         return bb[3] - bb[1]
 
-    lh_logo = text_h(font_logo) + 1
-    lh_md = text_h(font_md) + 4
-    lh_sm = text_h(font_sm) + 3
+    lh_lobster = text_h(font_lobster) + 4
+    lh_tagline = text_h(font_tagline) + 4
+    lh_md      = text_h(font_md) + 4
+    lh_sm      = text_h(font_sm) + 3
 
-    # ── Network info ──────────────────────────────────────────────────
     hostname = socket.gethostname()
     ip = _get_ip()
-
     playlist_str = " → ".join(p.upper() for p in playlist) if playlist else mode.upper()
     dashboard_url = f"http://{ip}:{port}"
 
@@ -144,7 +155,7 @@ def render_welcome_screen(
         _bottom(inner_w),
     ]
 
-    # ── Decorative top border ─────────────────────────────────────────
+    # ── Rainbow bars ──────────────────────────────────────────────────────────
     border_colors = [RED, ORANGE, YELLOW, GREEN, BLUE, RED, ORANGE]
     bar_h = 4
     segment_w = W // len(border_colors)
@@ -153,68 +164,55 @@ def render_welcome_screen(
         x1 = (i + 1) * segment_w if i < len(border_colors) - 1 else W
         draw.rectangle([(x0, 0), (x1, bar_h - 1)], fill=color)
 
-    # ── Calculate total height for vertical centering ─────────────────
-    total_h = (
-        len(LOGO_LINES) * lh_logo  # ASCII logo
-        + 10                        # gap after logo
-        + lh_md                     # subhead
-        + 20                        # gap before box
-        + len(info_lines) * lh_sm   # info box
-        + 20                        # gap before footer
-        + lh_md                     # SYSTEM READY
-        + lh_sm                     # version line
-    )
-
-    y = max((H_px - total_h) // 2, bar_h + 10)
-
-    # ── Draw ASCII art logo — two-tone (frame=blue, strokes=red) ────
-    char_w = text_w("M", font_logo)
-    for line in LOGO_LINES:
-        x_logo = (W - len(line) * char_w) // 2
-        cx = x_logo
-        for ch in line:
-            if ch in ("\\", "|", "/"):
-                draw.text((cx, y), ch, font=font_logo, fill=LOGO_FRAME_COLOR)
-            elif ch == "_":
-                draw.text((cx, y), ch, font=font_logo, fill=LOGO_STROKE_COLOR)
-            elif ch != " ":
-                draw.text((cx, y), ch, font=font_logo, fill=BLACK)
-            cx += char_w
-        y += lh_logo
-    y += 10
-
-    # Subheader
+    # ── Vertical centering ────────────────────────────────────────────────────
     subhead = "S Y S T E M   B O O T"
-    x_sub = (W - text_w(subhead, font_md)) // 2
-    draw.text((x_sub, y), subhead, font=font_md, fill=BLACK)
-    y += lh_md + 20
+    total_h = (
+        lh_lobster
+        + lh_tagline + 12
+        + lh_md + 16            # subhead + gap
+        + len(info_lines) * lh_sm
+        + 12
+        + lh_md                 # SYSTEM READY
+        + lh_sm                 # version
+    )
+    y = max((H_px - total_h) // 2, bar_h + 8)
 
-    # ── Info box (green text on white, box in black) ──────────────────
-    for i, line in enumerate(info_lines):
-        x_box = (W - text_w(line, font_sm)) // 2
-        # Box frame chars in black, content in green
-        if line.startswith(V):
-            draw.text((x_box, y), line, font=font_sm, fill=BLACK)
-        elif line.startswith(LM):
-            draw.text((x_box, y), line, font=font_sm, fill=BLACK)
-        else:
-            draw.text((x_box, y), line, font=font_sm, fill=BLACK)
+    # ── TaleVision in Lobster ─────────────────────────────────────────────────
+    title = "TaleVision"
+    draw.text(((W - text_w(title, font_lobster)) // 2, y), title,
+              font=font_lobster, fill=ORANGE)
+    y += lh_lobster
+
+    # ── Tagline in Taviraj Italic ─────────────────────────────────────────────
+    draw.text(((W - text_w(TAGLINE, font_tagline)) // 2, y), TAGLINE,
+              font=font_tagline, fill=BLACK)
+    y += lh_tagline + 12
+
+    # ── S Y S T E M   B O O T ────────────────────────────────────────────────
+    draw.text(((W - text_w(subhead, font_md)) // 2, y), subhead,
+              font=font_md, fill=BLACK)
+    y += lh_md + 16
+
+    # ── Info box ──────────────────────────────────────────────────────────────
+    for line in info_lines:
+        draw.text(((W - text_w(line, font_sm)) // 2, y), line,
+                  font=font_sm, fill=BLACK)
         y += lh_sm
 
-    y += 18
+    y += 12
 
-    # ── Footer: SYSTEM READY in red ───────────────────────────────────
+    # ── ■ SYSTEM READY ■ ──────────────────────────────────────────────────────
     ready = "■  S Y S T E M   R E A D Y  ■"
-    x_ready = (W - text_w(ready, font_md)) // 2
-    draw.text((x_ready, y), ready, font=font_md, fill=RED)
+    draw.text(((W - text_w(ready, font_md)) // 2, y), ready,
+              font=font_md, fill=RED)
     y += lh_md + 4
 
-    # Version / credit line
+    # ── Version / credit ──────────────────────────────────────────────────────
     ver = "TaleVision v1.0  ·  Netmilk Studio"
-    x_ver = (W - text_w(ver, font_sm)) // 2
-    draw.text((x_ver, y), ver, font=font_sm, fill=BLUE)
+    draw.text(((W - text_w(ver, font_sm)) // 2, y), ver,
+              font=font_sm, fill=BLUE)
 
-    # ── Bottom decorative border ──────────────────────────────────────
+    # ── Bottom rainbow bar ────────────────────────────────────────────────────
     for i, color in enumerate(border_colors):
         x0 = i * segment_w
         x1 = (i + 1) * segment_w if i < len(border_colors) - 1 else W
