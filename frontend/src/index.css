@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Sarina&family=Funnel+Display:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lobster&family=Funnel+Display:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -39,6 +39,13 @@
 }
 
 @layer components {
+  .font-title,
+  [class*="font-title"] {
+    font-feature-settings: "liga" 1, "clig" 1, "calt" 1, "kern" 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
   .label {
     @apply font-display text-[11px] uppercase tracking-[0.08em] text-tertiary;
     font-weight: 600;

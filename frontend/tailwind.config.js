@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        title:   ['"Sarina"', 'cursive'],
+        title:   ['"Lobster"', 'cursive'],
         display: ['"Funnel Display"', 'sans-serif'],
         mono:    ['"Funnel Display"', 'sans-serif'],
       },
