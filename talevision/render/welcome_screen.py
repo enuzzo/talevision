@@ -172,7 +172,7 @@ def render_welcome_screen(
     playlist_str = " → ".join(p.upper() for p in playlist) if playlist else mode.upper()
     dashboard_url = f"http://{ip}:{port}"
 
-    inner_w = 52
+    inner_w = 64  # wide enough for 4-mode playlist + 6 chars breathing room per side
 
     info_lines = [
         _top(inner_w),
@@ -202,8 +202,8 @@ def render_welcome_screen(
         + lh_tagline + TAGLINE_TO_BOOT_GAP
         + lh_md + BOOT_TO_TABLE_GAP
         + len(info_lines) * lh_sm
-        + 12
-        + lh_md                 # SYSTEM READY
+        + 8
+        + lh_md                 # starting line
         + lh_sm                 # version
     )
     y = max((H_px - total_h) // 2, 28)  # 28 = frame inner top margin
@@ -230,16 +230,16 @@ def render_welcome_screen(
                   font=font_sm, fill=BLACK)
         y += lh_sm
 
-    y += 12
+    y += 8
 
-    # ── ■ SYSTEM READY ■ ──────────────────────────────────────────────────────
-    ready = "■  S Y S T E M   R E A D Y  ■"
-    draw.text(((W - text_w(ready, font_md)) // 2, y), ready,
+    # ── [ Starting in 30 seconds ] ────────────────────────────────────────────
+    starting = "[  S T A R T I N G   I N   3 0   S E C O N D S  ]"
+    draw.text(((W - text_w(starting, font_md)) // 2, y), starting,
               font=font_md, fill=RED)
     y += lh_md + 4
 
     # ── Version / credit ──────────────────────────────────────────────────────
-    ver = "TaleVision v1.0  ·  Netmilk Studio"
+    ver = "TaleVision v1.5  ·  Netmilk Studio"
     draw.text(((W - text_w(ver, font_sm)) // 2, y), ver,
               font=font_sm, fill=BLUE)
 
