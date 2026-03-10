@@ -103,45 +103,83 @@ function useClock() {
 function RenderingOverlay({ mode }: { mode: string }) {
   const [tick, setTick] = useState(0)
   useEffect(() => {
-    const id = setInterval(() => setTick(t => (t + 1) % 4), 500)
+    const id = setInterval(() => setTick(t => (t + 1) % 4), 700)
     return () => clearInterval(id)
   }, [])
   const dots = '.'.repeat(tick)
   const info = getModeInfo(mode)
 
   return (
-    <div className="absolute inset-0 z-20 bg-bg flex items-center justify-center overflow-hidden rounded-lg">
+    <div
+      className="absolute inset-0 z-20 rounded-lg overflow-hidden flex items-center justify-center"
+      style={{ backgroundColor: '#19120C' }}
+    >
+      {/* CRT scanlines */}
       <div
-        className="absolute left-0 right-0 h-px pointer-events-none"
+        className="absolute inset-0 pointer-events-none"
         style={{
-          background: `linear-gradient(to right, transparent, ${info.color}90, transparent)`,
-          boxShadow: `0 0 18px 6px ${info.color}30`,
-          animation: 'scanSweep 2.6s linear infinite',
+          backgroundImage: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0px, rgba(0,0,0,0.18) 1px, transparent 1px, transparent 3px)',
+          zIndex: 1,
         }}
       />
-      {(['top-5 left-5 border-t-2 border-l-2', 'top-5 right-5 border-t-2 border-r-2',
-         'bottom-5 left-5 border-b-2 border-l-2', 'bottom-5 right-5 border-b-2 border-r-2'] as const
-      ).map((cls, i) => (
-        <div key={i} className={`absolute w-7 h-7 ${cls}`} style={{ borderColor: `${info.color}65` }} />
-      ))}
-      <div className="flex flex-col items-center gap-5">
-        <div className="relative w-14 h-14 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border"
-            style={{ borderColor: `${info.color}45`, animation: 'ringPulse 2s ease-out infinite' }} />
-          <div className="absolute inset-2 rounded-full border"
-            style={{ borderColor: `${info.color}25`, animation: 'ringPulse 2s ease-out infinite 0.55s' }} />
-          <div className="w-2 h-2 rounded-full"
-            style={{ backgroundColor: info.color, animation: 'dotBlink 1.2s ease-in-out infinite' }} />
+
+      {/* Analog tuning band — soft warm sweep */}
+      <div
+        className="absolute left-0 right-0 pointer-events-none"
+        style={{
+          height: '80px',
+          background: 'linear-gradient(to bottom, transparent, rgba(232,202,162,0.06) 30%, rgba(232,202,162,0.13) 50%, rgba(232,202,162,0.06) 70%, transparent)',
+          top: '-80px',
+          animation: 'scanSweep 3.2s linear infinite',
+          zIndex: 2,
+        }}
+      />
+
+      {/* Content */}
+      <div className="relative flex flex-col items-center gap-4" style={{ zIndex: 3 }}>
+
+        {/* Mode name */}
+        <div
+          className="font-title animate-flicker select-none"
+          style={{
+            fontSize: '3.2rem',
+            lineHeight: 1.1,
+            color: '#EDE3D0',
+            textShadow: `0 0 24px ${info.color}55, 0 0 60px ${info.color}22`,
+            letterSpacing: '0.01em',
+          }}
+        >
+          {info.label}
         </div>
-        <div className="text-center">
-          <div className="font-display text-xs font-semibold tracking-[0.6em] uppercase" style={{ color: info.color }}>
-            Rendering
-          </div>
-          <div className="font-display text-[10px] tracking-[0.25em] text-tertiary mt-1">
-            {info.icon} {mode}{dots}
-          </div>
+
+        {/* Signal meter */}
+        <div
+          className="rounded-full overflow-hidden"
+          style={{ width: '140px', height: '3px', backgroundColor: 'rgba(241,235,217,0.08)' }}
+        >
+          <div
+            className="h-full rounded-full animate-tune-bar"
+            style={{ backgroundColor: info.color + 'BB' }}
+          />
+        </div>
+
+        {/* Tuning label */}
+        <div
+          className="font-display text-[9px] tracking-[0.55em] uppercase"
+          style={{ color: `${info.color}75` }}
+        >
+          tuning{dots}
         </div>
       </div>
+
+      {/* Vignette */}
+      <div
+        className="absolute inset-0 pointer-events-none rounded-lg"
+        style={{
+          background: 'radial-gradient(ellipse at center, transparent 40%, rgba(10,7,4,0.65) 100%)',
+          zIndex: 4,
+        }}
+      />
     </div>
   )
 }
