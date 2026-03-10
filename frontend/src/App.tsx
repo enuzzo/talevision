@@ -166,12 +166,13 @@ function NoiseCanvas() {
 // ─── Tuning Gauge ─────────────────────────────────────────────────────────────
 
 function TuningGauge({ color }: { color: string }) {
-  const cx = 100, cy = 105, r = 82
-  const numTicks = 13
+  // Smaller gauge: pivot at (80, 76), radius 58
+  const cx = 80, cy = 76, r = 58
+  const numTicks = 11
   const ticks = Array.from({ length: numTicks }, (_, i) => {
     const t = (Math.PI * i) / (numTicks - 1)
-    const isMajor = i % 3 === 0
-    const innerR = r - (isMajor ? 13 : 7)
+    const isMajor = i % 2 === 0
+    const innerR = r - (isMajor ? 10 : 6)
     return {
       x1: cx - innerR * Math.cos(t),
       y1: cy - innerR * Math.sin(t),
@@ -181,31 +182,37 @@ function TuningGauge({ color }: { color: string }) {
     }
   })
   return (
-    <svg width="230" height="118" viewBox="0 0 200 108" style={{ overflow: 'visible' }}>
+    <svg width="160" height="86" viewBox="0 0 160 82" style={{ overflow: 'visible' }}>
       {/* Arc */}
       <path
         d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
-        fill="none" stroke={color + '28'} strokeWidth="1"
+        fill="none" stroke={color + '30'} strokeWidth="1"
       />
       {/* Baseline */}
-      <line x1={cx - r - 8} y1={cy} x2={cx + r + 8} y2={cy} stroke={color + '20'} strokeWidth="0.8" />
+      <line x1={cx - r - 5} y1={cy} x2={cx + r + 5} y2={cy} stroke={color + '22'} strokeWidth="0.8" />
       {/* Ticks */}
       {ticks.map((t, i) => (
         <line
           key={i}
           x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
-          stroke={color + (t.isMajor ? '72' : '38')}
-          strokeWidth={t.isMajor ? 1.6 : 0.8}
+          stroke={color + (t.isMajor ? '70' : '38')}
+          strokeWidth={t.isMajor ? 1.4 : 0.8}
         />
       ))}
-      {/* Needle */}
-      <line
-        x1={cx} y1={cy} x2={cx} y2={cy - r + 8}
-        stroke={color} strokeWidth="2" strokeLinecap="round"
-        style={{ transformOrigin: `${cx}px ${cy}px`, animation: 'gaugeNeedle 4s ease-in-out infinite' }}
-      />
+      {/* Needle — wrapped in translate group so rotation origin = pivot (0,0 in group coords) */}
+      <g transform={`translate(${cx}, ${cy})`}>
+        <line
+          x1={0} y1={0} x2={0} y2={-(r - 7)}
+          stroke={color} strokeWidth="1.8" strokeLinecap="round"
+          style={{
+            transformBox: 'fill-box',
+            transformOrigin: '50% 100%',
+            animation: 'gaugeNeedle 4s ease-in-out infinite',
+          }}
+        />
+      </g>
       {/* Pivot dot */}
-      <circle cx={cx} cy={cy} r="4" fill={color} fillOpacity="0.75" />
+      <circle cx={cx} cy={cy} r="3.5" fill={color} fillOpacity="0.80" />
     </svg>
   )
 }
@@ -244,7 +251,7 @@ function RenderingOverlay({ mode }: { mode: string }) {
       />
 
       {/* Content */}
-      <div className="relative flex flex-col items-center gap-0" style={{ zIndex: 3 }}>
+      <div className="relative flex flex-col items-center gap-1" style={{ zIndex: 3 }}>
         <div
           className="font-title animate-flicker select-none"
           style={{
@@ -257,6 +264,12 @@ function RenderingOverlay({ mode }: { mode: string }) {
           {info.label}
         </div>
         <TuningGauge color={info.color} />
+        <div
+          className="font-display text-[11px] tracking-[0.35em]"
+          style={{ color: `${info.color}85`, marginTop: '-2px' }}
+        >
+          Tuning
+        </div>
       </div>
 
       {/* Vignette */}
