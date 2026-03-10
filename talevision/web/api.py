@@ -1,5 +1,8 @@
 """API Blueprint — /api/* JSON endpoints."""
+import json
 import logging
+import urllib.parse
+import urllib.request
 from pathlib import Path
 
 from flask import Blueprint, current_app, jsonify, request, send_file
@@ -154,6 +157,60 @@ def reset_interval(mode: str):
     except Exception as exc:
         log.error(f"Reset interval error: {exc}")
         return jsonify({"error": str(exc)}), 500
+
+
+@api_bp.get("/weather/location")
+def get_weather_location():
+    """GET /api/weather/location — current location setting."""
+    weather = _orchestrator()._modes.get("weather")
+    location = weather._location if weather and hasattr(weather, "_location") else ""
+    return jsonify({"location": location})
+
+
+@api_bp.post("/weather/location")
+def set_weather_location():
+    """POST /api/weather/location — {"location": "Milano"}"""
+    body = request.get_json(silent=True) or {}
+    location = body.get("location", "").strip()
+    if not location:
+        return jsonify({"error": "Missing 'location' field"}), 400
+    try:
+        _orchestrator().set_weather_location(location)
+        return jsonify({"ok": True, "location": location})
+    except Exception as exc:
+        log.error(f"Set weather location error: {exc}")
+        return jsonify({"error": str(exc)}), 500
+
+
+@api_bp.get("/weather/search")
+def search_weather_location():
+    """GET /api/weather/search?q=Milano — city autocomplete via Nominatim."""
+    q = request.args.get("q", "").strip()
+    if not q or len(q) < 2:
+        return jsonify({"results": []})
+    try:
+        encoded = urllib.parse.quote(q)
+        url = (
+            f"https://nominatim.openstreetmap.org/search"
+            f"?q={encoded}&format=json&limit=5&addressdetails=1"
+        )
+        req = urllib.request.Request(url, headers={"User-Agent": "TaleVision/1.0"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        results = []
+        for item in data:
+            addr = item.get("address", {})
+            name = (
+                addr.get("city")
+                or addr.get("town")
+                or addr.get("village")
+                or item.get("display_name", "").split(",")[0]
+            )
+            results.append({"name": name, "display": item.get("display_name", "")})
+        return jsonify({"results": results})
+    except Exception as exc:
+        log.error(f"Weather search error: {exc}")
+        return jsonify({"results": []})
 
 
 @api_bp.get("/frame")

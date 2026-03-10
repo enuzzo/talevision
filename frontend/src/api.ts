@@ -52,4 +52,19 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ modes, rotation_interval }),
     }).then(r => json<{ ok: boolean }>(r)),
+
+  getWeatherLocation: () =>
+    fetch('/api/weather/location').then(r => json<{ location: string }>(r)),
+
+  setWeatherLocation: (location: string) =>
+    fetch('/api/weather/location', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ location }),
+    }).then(r => json<{ ok: boolean }>(r)),
+
+  searchWeatherLocation: (q: string) =>
+    fetch(`/api/weather/search?${new URLSearchParams({ q })}`).then(
+      r => json<{ results: Array<{ name: string; display: string }> }>(r)
+    ),
 }

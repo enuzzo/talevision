@@ -150,7 +150,7 @@ waitress is included in `requirements.txt` (`waitress==3.0.2`). Always install i
 - API: `POST /api/playlist` with `{modes: ["litclock", "slowmovie"], rotation_interval: 300}`.
 - `GET /api/status` returns `playlist`, `playlist_index`, `rotation_interval` fields.
 - Dashboard `PlaylistEditor`: checkboxes to enable/disable modes, up/down arrows to reorder, rotation interval input when 2+ modes enabled.
-- 5 modes in registry: `litclock` (active), `slowmovie` (active), `ansi` (active), `wikipedia` (planned), `teletext` (planned). Coming-soon modes shown in UI but disabled.
+- 4 modes in registry: `litclock` (active), `slowmovie` (active), `wikipedia` (active), `weather` (active). ANSi and Teletext removed.
 
 ## Per-mode Interval Overrides
 
@@ -242,25 +242,30 @@ sudo systemctl start talevision
 3. No `media/*.mp4` staged: `git status | grep media/`
 4. Static analysis: `bandit -r talevision/ -ll`
 5. Dependency CVEs: `pip-audit -r requirements.txt`
-6. Render smoke test: `python main.py --render-only --mode litclock && python main.py --render-only --mode slowmovie`
+6. Render smoke test: `python main.py --render-only --mode litclock && python main.py --render-only --mode slowmovie && python main.py --render-only --mode wikipedia && python main.py --render-only --mode weather`
 
-## ANSi Art Mode
+## Wikipedia Mode
 
-- `talevision/modes/ansi.py` — `AnsiMode` class. Reads `*.ans` from `assets/ansi/`, cycles sequentially.
-- Rendering: `data.decode('cp437', errors='replace')` → `pyte.Stream` (not `ByteStream`) → cell grid → PIL draw per cell → contain-fit to 800×480 on black background.
-- Font: `assets/BlockZone-master/BlockZone.ttf` — IBM VGA CP437, SIL OFL 1.1. Size 16 → ~8×16px cells.
-- CGA→Inky mapping: hardcoded list `CGA_TO_INKY[0..15]`. Cyan/magenta approximate to Green/Red. Tunable.
-- SAUCE strip: removes CP437 EOF (`0x1A`) and trailing SAUCE record (last 200 bytes) before parsing.
-- `pyte` dep: `pyte==0.8.1` in `requirements.txt`. Pure Python, install with `pip install pyte==0.8.1` on Pi.
-- **Open TODO**: layout/scaling needs tuning — art dimensions vs cell measurements sometimes produce misaligned or undersized output. `_measure_cell()` uses `font.getbbox("M")` which may not match actual advance width. Consider using `font.getlength("M")` for width.
+- `talevision/modes/wikipedia.py` — `WikipediaMode` class.
+- Fetch: `GET https://{lang}.wikipedia.org/api/rest_v1/page/random/summary` — random article per render call.
+- Languages: same 6 as LitClock (`it`, `en`, `de`, `es`, `fr`, `pt`). Switchable via `POST /api/language` (dispatch to active mode via duck-typing).
+- Render (800×480, white bg): time header (HH:MM + date + "Wikipedia · IT" label) → accent separator line → article title (Signika-Bold 26pt, max 2 lines) → extract body (Taviraj-Regular 22pt, word-wrapped) → thumbnail image 180×135px top-right (cropped 4:3, absent in ~30% of articles) → QR code 80×80px bottom-right linking to `content_urls.desktop.page`.
+- QR: `qrcode[pil]` (already in requirements). No fallback needed — always present if article URL exists.
+- Thumbnail fetch: separate `urllib.request` call after summary; graceful skip on timeout/error.
+- Config: `wikipedia.refresh_interval` (default 300s), `wikipedia.language`, `wikipedia.timeout`.
+- `get_state()` exposes `title`, `language`, `url` in status extra.
+- `/api/status` includes `language` field (from active mode's `get_state().extra["language"]`).
 
-## Wikipedia Random Mode (planned)
+## Weather Mode (wttr.in)
 
-- Fetch: `GET https://{lang}.wikipedia.org/api/rest_v1/page/random/summary` — returns JSON with `title`, `extract`, `thumbnail`.
-- Languages: same 6 as LitClock (`it`, `en`, `de`, `es`, `fr`, `pt`).
-- Render: title in bold header, extract body wrapped at 700px, PIL only — no headless browser.
-- Refresh: ~300s default.
-- No external deps beyond `urllib` (already stdlib) or `requests` (already available if needed).
+- `talevision/modes/weather.py` — `WeatherMode` class.
+- Fetch: `GET https://wttr.in/{location}?format=j1` — structured JSON, no API key required.
+- Render (800×480, white bg): time header (HH:MM + date + city name) → accent separator → large current temperature (Signika-Bold 80pt) + condition/feels-like/wind/humidity → 3-day forecast (date, max/min temp, condition mid-day).
+- Location: configurable from dashboard. Persisted via `WeatherMode._location`. Set via `POST /api/weather/location`.
+- Autocomplete: `GET /api/weather/search?q=` → Nominatim OpenStreetMap, no API key, limit 5.
+- Config: `weather.refresh_interval` (default 600s), `weather.location`, `weather.timeout`.
+- `/api/status` includes `weather_location` field (always reflects current `WeatherMode._location`).
+- Graceful fallback: if fetch fails, shows last cached data or "Weather unavailable" message.
 
 ## Known Open TODOs
 

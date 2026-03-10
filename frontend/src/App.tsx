@@ -4,7 +4,6 @@ import * as Switch from '@radix-ui/react-switch'
 import * as Select from '@radix-ui/react-select'
 import { api } from './api'
 import type { SuspendConfig, ModeInterval } from './types'
-import ParticleBackground from './ParticleBackground'
 
 // ─── Utilities ──────────────────────────────────────────────────────────────
 
@@ -48,16 +47,16 @@ interface ModeInfo {
 }
 
 const ALL_MODES: ModeInfo[] = [
-  { id: 'litclock',  label: 'LitClock',  icon: '🕐', color: '#39B8FF', available: true },
-  { id: 'slowmovie', label: 'SlowMovie', icon: '🎬', color: '#FFB547', available: true },
-  { id: 'teletext',  label: 'Teletext',  icon: '📺', color: '#01B574', available: false },
-  { id: 'ansi',      label: 'ANSi Art',  icon: '▓',  color: '#7551FF', available: false },
+  { id: 'litclock',  label: 'LitClock',  icon: '🕐', color: '#7AB8D4', available: true },
+  { id: 'slowmovie', label: 'SlowMovie', icon: '🎬', color: '#D4A050', available: true },
+  { id: 'wikipedia', label: 'Wikipedia', icon: '📖', color: '#C8A84B', available: true },
+  { id: 'weather',   label: 'Weather',   icon: '🌤', color: '#7AB87A', available: true },
 ]
 
 const MODE_MAP = Object.fromEntries(ALL_MODES.map(m => [m.id, m]))
 
 function getModeInfo(id: string): ModeInfo {
-  return MODE_MAP[id] ?? { id, label: id, icon: '?', color: '#707EAE', available: false }
+  return MODE_MAP[id] ?? { id, label: id, icon: '?', color: '#5C5850', available: false }
 }
 
 // ─── Live Clock ─────────────────────────────────────────────────────────────
@@ -288,7 +287,7 @@ function PlaylistEditor({
                 )}
                 style={{
                   border: isEnabled ? `1px solid ${info.color}` : '1px solid rgba(255,255,255,0.1)',
-                  backgroundColor: isEnabled ? info.color : '#0B1437',
+                  backgroundColor: isEnabled ? info.color : '#111310',
                 }}
               >
                 {isEnabled && (
@@ -299,7 +298,7 @@ function PlaylistEditor({
               </button>
 
               {/* Icon + Name */}
-              <span className="text-sm flex-shrink-0 w-5 text-center" style={{ color: isEnabled ? info.color : '#707EAE' }}>
+              <span className="text-sm flex-shrink-0 w-5 text-center" style={{ color: isEnabled ? info.color : '#5C5850' }}>
                 {info.icon}
               </span>
               <span
@@ -369,11 +368,11 @@ function PlaylistEditor({
             onChange={e => setIntervalVal(Math.max(1, parseInt(e.target.value) || 1))}
             className="w-16 bg-deep rounded-sm text-primary font-mono text-sm px-2 py-1.5 outline-none transition-all duration-200 text-center"
             style={{ border: '1px solid rgba(255,255,255,0.1)' }}
-            onFocus={e => e.target.style.borderColor = '#7551FF'}
+            onFocus={e => e.target.style.borderColor = '#C8A84B'}
             onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
           />
           <span className="label">min</span>
-          <span className="label ml-auto" style={{ color: '#39B8FF' }}>
+          <span className="label ml-auto" style={{ color: '#7AB8D4' }}>
             {enabledCount} modes · {interval * enabledCount} min cycle
           </span>
         </div>
@@ -385,12 +384,12 @@ function PlaylistEditor({
           onClick={handleSave}
           disabled={saving}
           className="font-mono text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-sm bg-accent text-white hover:bg-accent-hover transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
-          style={{ boxShadow: '0 0 20px rgba(117,81,255,0.15)' }}
+          style={{ boxShadow: '0 0 20px rgba(200,168,75,0.15)' }}
         >
           {saving ? 'Saving…' : 'Save playlist'}
         </button>
         {saved && (
-          <span className="label animate-fade-in" style={{ color: '#01B574' }}>Saved</span>
+          <span className="label animate-fade-in" style={{ color: '#7AB87A' }}>Saved</span>
         )}
       </div>
     </div>
@@ -470,11 +469,11 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
             onChange={e => setActiveFrom(e.target.value)}
             className="w-full bg-deep rounded-sm text-primary font-mono text-sm px-3 py-2 outline-none transition-all duration-200"
             style={{ border: '1px solid rgba(255,255,255,0.1)' }}
-            onFocus={e => e.target.style.borderColor = '#7551FF'}
+            onFocus={e => e.target.style.borderColor = '#C8A84B'}
             onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
           />
         </div>
-        <span className="label pb-2" style={{ color: '#7551FF' }}>→</span>
+        <span className="label pb-2" style={{ color: '#C8A84B' }}>→</span>
         <div>
           <div className="label mb-1">⏹ Off at</div>
           <input
@@ -483,7 +482,7 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
             onChange={e => setActiveTo(e.target.value)}
             className="w-full bg-deep rounded-sm text-primary font-mono text-sm px-3 py-2 outline-none transition-all duration-200"
             style={{ border: '1px solid rgba(255,255,255,0.1)' }}
-            onFocus={e => e.target.style.borderColor = '#7551FF'}
+            onFocus={e => e.target.style.borderColor = '#C8A84B'}
             onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
           />
         </div>
@@ -502,7 +501,7 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
                   ? 'bg-accent text-white'
                   : 'bg-deep text-tertiary hover:text-primary cursor-pointer',
               )}
-              style={{ border: days.includes(i) ? '1px solid #7551FF' : '1px solid rgba(255,255,255,0.1)' }}
+              style={{ border: days.includes(i) ? '1px solid #C8A84B' : '1px solid rgba(255,255,255,0.1)' }}
             >
               {d}
             </button>
@@ -515,12 +514,12 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
           onClick={() => mut.mutate()}
           disabled={mut.isPending}
           className="font-mono text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-sm bg-accent text-white hover:bg-accent-hover transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
-          style={{ boxShadow: '0 0 20px rgba(117,81,255,0.15)' }}
+          style={{ boxShadow: '0 0 20px rgba(200,168,75,0.15)' }}
         >
           {mut.isPending ? 'Saving…' : 'Save schedule'}
         </button>
         {saved && (
-          <span className="label animate-fade-in" style={{ color: '#01B574' }}>Saved</span>
+          <span className="label animate-fade-in" style={{ color: '#7AB87A' }}>Saved</span>
         )}
       </div>
     </div>
@@ -579,7 +578,7 @@ function IntervalRow({
         onChange={e => setMinutes(Math.max(1, parseInt(e.target.value) || 1))}
         className="w-16 bg-deep rounded-sm text-primary font-mono text-sm px-2 py-1.5 outline-none transition-all duration-200 text-center"
         style={{ border: '1px solid rgba(255,255,255,0.1)' }}
-        onFocus={e => e.target.style.borderColor = '#7551FF'}
+        onFocus={e => e.target.style.borderColor = '#C8A84B'}
         onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
       />
       <span className="label">min</span>
@@ -596,8 +595,8 @@ function IntervalRow({
           onClick={() => resetMut.mutate()}
           disabled={resetMut.isPending}
           className="label hover:text-danger transition-colors"
-          style={{ color: '#EE5D50' }}
           title={`Reset to default (${fmtInterval(data.default)})`}
+          style={{ color: '#D45858' }}
         >
           reset
         </button>
@@ -669,6 +668,105 @@ function LanguageSelector({ current }: { current?: string }) {
   )
 }
 
+// ─── Weather Settings ────────────────────────────────────────────────────────
+
+function WeatherSettings({ currentLocation }: { currentLocation?: string }) {
+  const qc = useQueryClient()
+  const [input, setInput] = useState(currentLocation ?? '')
+  const [suggestions, setSuggestions] = useState<Array<{ name: string; display: string }>>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+
+  useEffect(() => {
+    if (currentLocation && !input) setInput(currentLocation)
+  }, [currentLocation])
+
+  const searchMut = useMutation({
+    mutationFn: (q: string) => api.searchWeatherLocation(q),
+    onSuccess: (data) => {
+      setSuggestions(data.results)
+      setShowSuggestions(data.results.length > 0)
+    },
+  })
+
+  const saveMut = useMutation({
+    mutationFn: () => api.setWeatherLocation(input),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['status'] })
+      setSaved(true)
+      clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => setSaved(false), 2500)
+    },
+  })
+
+  const handleInputChange = (val: string) => {
+    setInput(val)
+    clearTimeout(debounceRef.current)
+    if (val.length >= 2) {
+      debounceRef.current = setTimeout(() => searchMut.mutate(val), 400)
+    } else {
+      setSuggestions([])
+      setShowSuggestions(false)
+    }
+  }
+
+  const selectSuggestion = (name: string) => {
+    setInput(name)
+    setSuggestions([])
+    setShowSuggestions(false)
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <span className="label flex-shrink-0">Location</span>
+        <div className="relative flex-1">
+          <input
+            type="text"
+            value={input}
+            onChange={e => handleInputChange(e.target.value)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+            placeholder="City name…"
+            className="w-full bg-deep rounded-sm text-primary font-mono text-sm px-3 py-2 outline-none transition-all duration-200"
+            style={{ border: '1px solid rgba(255,255,255,0.1)' }}
+            onFocus={e => { e.target.style.borderColor = '#C8A84B' }}
+          />
+          {showSuggestions && suggestions.length > 0 && (
+            <div
+              className="absolute top-full left-0 right-0 mt-1 bg-surface rounded-sm z-50 overflow-hidden"
+              style={{ border: '1px solid rgba(255,255,255,0.1)' }}
+            >
+              {suggestions.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={() => selectSuggestion(s.name)}
+                  className="w-full text-left px-3 py-2 font-mono text-sm text-secondary hover:bg-surface-hover hover:text-accent transition-colors"
+                >
+                  <span className="text-primary">{s.name}</span>
+                  <span className="text-muted text-xs ml-2">{s.display.slice(0, 55)}…</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => saveMut.mutate()}
+          disabled={saveMut.isPending || !input.trim()}
+          className="font-mono text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-sm bg-accent text-white hover:bg-accent-hover transition-all duration-200 disabled:opacity-50"
+          style={{ boxShadow: '0 0 20px rgba(200,168,75,0.15)' }}
+        >
+          {saveMut.isPending ? 'Saving…' : 'Set location'}
+        </button>
+        {saved && <span className="label animate-fade-in" style={{ color: '#7AB87A' }}>Saved</span>}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main App ─────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -726,13 +824,12 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-bg text-primary font-mono animate-fade-in">
-      <ParticleBackground />
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 backdrop-blur-sm relative" style={{ backgroundColor: 'rgba(7,13,45,0.92)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <header className="sticky top-0 z-40 backdrop-blur-sm relative" style={{ backgroundColor: 'rgba(11,12,10,0.92)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="w-2.5 h-2.5 rounded-full bg-accent" style={{ boxShadow: '0 0 12px rgba(117,81,255,0.4)' }} />
+            <span className="w-2.5 h-2.5 rounded-full bg-accent" style={{ boxShadow: '0 0 12px rgba(200,168,75,0.4)' }} />
             <span className="font-display text-lg font-bold tracking-wide">TaleVision</span>
           </div>
           <div className="flex items-center gap-5">
@@ -746,15 +843,15 @@ export default function App() {
                   'bg-success',
                 )}
                 style={{
-                  boxShadow: isError ? '0 0 8px rgba(238,93,80,0.5)' :
-                             !isSuspended && !isError ? '0 0 8px rgba(1,181,116,0.5)' : undefined,
+                  boxShadow: isError ? '0 0 8px rgba(212,88,88,0.5)' :
+                             !isSuspended && !isError ? '0 0 8px rgba(122,184,122,0.5)' : undefined,
                 }}
               />
               <span
                 className="label"
                 style={{
-                  color: isError ? '#EE5D50' :
-                         isSuspended ? '#707EAE' :
+                  color: isError ? '#D45858' :
+                         isSuspended ? '#5C5850' :
                          currentModeInfo.color,
                 }}
               >
@@ -838,7 +935,7 @@ export default function App() {
                 <StatusRow
                   label="Rotation"
                   value={
-                    <span style={{ color: '#39B8FF' }}>
+                    <span style={{ color: '#7AB8D4' }}>
                       {playlist.map(id => getModeInfo(id).icon).join(' → ')} · {fmtInterval(rotationInterval)}
                     </span>
                   }
@@ -847,7 +944,7 @@ export default function App() {
               <StatusRow
                 label="Suspended"
                 value={
-                  <span style={{ color: isSuspended ? '#FFB547' : '#01B574' }}>
+                  <span style={{ color: isSuspended ? '#D4A050' : '#7AB87A' }}>
                     {isSuspended ? '⏸ yes' : '▶ no'}
                   </span>
                 }
@@ -865,7 +962,7 @@ export default function App() {
               {status?.video && (
                 <StatusRow
                   label="🎬 Film"
-                  value={<span className="font-display text-base font-semibold" style={{ color: '#FFB547' }}>{status.video}</span>}
+                  value={<span className="font-display text-base font-semibold" style={{ color: '#D4A050' }}>{status.video}</span>}
                 />
               )}
               {status?.quote && (
@@ -907,10 +1004,19 @@ export default function App() {
           </section>
         )}
 
-        {/* Language selector — only for litclock */}
-        {currentMode === 'litclock' && (
+        {/* Language selector — litclock and wikipedia */}
+        {(currentMode === 'litclock' || currentMode === 'wikipedia') && (
           <section className="animate-fade-in bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
-            <LanguageSelector current={undefined} />
+            <div className="label mb-3">Language</div>
+            <LanguageSelector current={status?.language ?? undefined} />
+          </section>
+        )}
+
+        {/* Weather location — only for weather mode */}
+        {currentMode === 'weather' && (
+          <section className="animate-fade-in bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="label mb-3">Weather location</div>
+            <WeatherSettings currentLocation={status?.weather_location ?? undefined} />
           </section>
         )}
 

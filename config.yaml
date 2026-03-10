@@ -1,5 +1,5 @@
 app:
-  default_mode: ansi   # litclock | slowmovie | ansi
+  default_mode: litclock   # litclock | slowmovie | wikipedia | weather
 
 display:
   width: 800
@@ -100,6 +100,16 @@ ansi:
   refresh_interval: 180    # seconds between art changes (3 min)
   art_dir: "assets/ansi"
   order: "sequential"      # sequential | random
+
+wikipedia:
+  refresh_interval: 300   # seconds between article changes
+  language: "it"
+  timeout: 10
+
+weather:
+  refresh_interval: 600   # seconds between weather updates (10 min)
+  location: "Roma"
+  timeout: 10
 
 buttons:
   enabled: true

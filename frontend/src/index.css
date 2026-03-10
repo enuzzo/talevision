@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Syne+Mono&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,13 +6,13 @@
 
 @layer base {
   html {
-    background-color: #070D2D;
-    color: #FFFFFF;
+    background-color: #0B0C0A;
+    color: #EDE8DC;
   }
 
   body {
     margin: 0;
-    font-family: 'Space Mono', monospace;
+    font-family: 'Syne Mono', 'SF Mono', 'Fira Code', monospace;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -23,34 +22,18 @@
   }
 
   ::selection {
-    background: rgba(117, 81, 255, 0.35);
-    color: #FFFFFF;
-  }
-
-  @keyframes scanSweep {
-    0%   { top: -4px; }
-    100% { top: calc(100% + 4px); }
-  }
-
-  @keyframes ringPulse {
-    0%   { transform: scale(0.8); opacity: 1; }
-    70%  { transform: scale(1.65); opacity: 0; }
-    100% { transform: scale(1.65); opacity: 0; }
-  }
-
-  @keyframes dotBlink {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50%       { opacity: 0.25; transform: scale(0.6); }
+    background: rgba(200, 168, 75, 0.28);
+    color: #EDE8DC;
   }
 
   ::-webkit-scrollbar {
     width: 4px;
   }
   ::-webkit-scrollbar-track {
-    background: #070D2D;
+    background: #0B0C0A;
   }
   ::-webkit-scrollbar-thumb {
-    background: #1A2558;
+    background: #252722;
     border-radius: 4px;
   }
 }
@@ -65,11 +48,11 @@
     @apply font-mono text-sm text-primary;
   }
 
-  /* Radix Switch — ScryBar toggle */
+  /* Radix Switch */
   [data-radix-switch-root] {
     width: 44px !important;
     height: 24px !important;
-    background-color: #1A2558 !important;
+    background-color: #1F211C !important;
     border-radius: 9999px !important;
     border: 1px solid rgba(255,255,255,0.1) !important;
     transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -78,36 +61,36 @@
   }
 
   [data-radix-switch-root][data-state='checked'] {
-    background-color: #7551FF !important;
-    border-color: #7551FF !important;
+    background-color: #C8A84B !important;
+    border-color: #C8A84B !important;
   }
 
   [data-radix-switch-thumb] {
     display: block !important;
     width: 18px !important;
     height: 18px !important;
-    background-color: #FFFFFF !important;
+    background-color: #EDE8DC !important;
     border-radius: 9999px !important;
     transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1) !important;
     transform: translateX(3px) !important;
     will-change: transform !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
   }
 
   [data-radix-switch-thumb][data-state='checked'] {
     transform: translateX(23px) !important;
   }
 
-  /* Radix Select — ScryBar dropdown */
+  /* Radix Select */
   [data-radix-select-trigger] {
-    font-family: 'Space Mono', monospace;
-    font-size: 14px;
-    color: #FFFFFF;
-    background: #0B1437;
+    font-family: 'Syne Mono', 'SF Mono', monospace;
+    font-size: 13px;
+    color: #EDE8DC;
+    background: #111310;
     border: 1px solid rgba(255,255,255,0.1);
     padding: 0 16px;
-    height: 44px;
-    border-radius: 8px;
+    height: 40px;
+    border-radius: 6px;
     width: 100%;
     display: flex;
     align-items: center;
@@ -115,43 +98,43 @@
     gap: 8px;
     cursor: pointer;
     outline: none;
-    transition: border-color 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition: border-color 200ms ease;
   }
   [data-radix-select-trigger]:hover {
-    border-color: #7551FF;
+    border-color: #C8A84B;
   }
   [data-radix-select-trigger]:focus {
-    border-color: #7551FF;
-    box-shadow: 0 0 0 3px rgba(117, 81, 255, 0.15);
+    border-color: #C8A84B;
+    box-shadow: 0 0 0 3px rgba(200, 168, 75, 0.12);
   }
 
   [data-radix-select-content] {
-    background: #1A2558;
+    background: #1F211C;
     border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 12px;
+    border-radius: 10px;
     overflow: hidden;
     z-index: 100;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.45);
   }
 
   [data-radix-select-item] {
-    font-family: 'Space Mono', monospace;
-    font-size: 14px;
-    color: #FFFFFF;
+    font-family: 'Syne Mono', 'SF Mono', monospace;
+    font-size: 13px;
+    color: #EDE8DC;
     padding: 0 16px;
-    height: 40px;
+    height: 38px;
     display: flex;
     align-items: center;
     cursor: pointer;
     outline: none;
-    transition: background 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background 120ms ease;
   }
   [data-radix-select-item]:hover,
   [data-radix-select-item][data-highlighted] {
-    background: #1E2D66;
-    color: #7551FF;
+    background: #252722;
+    color: #C8A84B;
   }
   [data-radix-select-item][data-state='checked'] {
-    color: #7551FF;
+    color: #C8A84B;
   }
 }

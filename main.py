@@ -111,12 +111,14 @@ def main():
     # ── Display modes ─────────────────────────────────────────────────────────
     from talevision.modes.litclock import LitClockMode
     from talevision.modes.slowmovie import SlowMovieMode
-    from talevision.modes.ansi import AnsiMode
+    from talevision.modes.wikipedia import WikipediaMode
+    from talevision.modes.weather import WeatherMode
 
     modes = {
-        "litclock": LitClockMode(config, base_dir=BASE_DIR),
+        "litclock":  LitClockMode(config, base_dir=BASE_DIR),
         "slowmovie": SlowMovieMode(config, base_dir=BASE_DIR),
-        "ansi": AnsiMode(config, base_dir=BASE_DIR),
+        "wikipedia": WikipediaMode(config, base_dir=BASE_DIR),
+        "weather":   WeatherMode(config, base_dir=BASE_DIR),
     }
 
     # ── Render-only mode (dev/CI) ─────────────────────────────────────────────
