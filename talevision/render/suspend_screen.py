@@ -180,7 +180,7 @@ def render_suspend_screen(
         img.paste(frame, (0, 0), frame)
     draw = ImageDraw.Draw(img)
 
-    font_lobster = _load_lobster(base_dir, 76)
+    font_lobster = _load_lobster(base_dir, 65)
     font_quote   = _load_serif(base_dir, 21, italic=True)
     font_author  = _load_serif(base_dir, 17)
     font_md      = _load_font(base_dir, 19, bold=True)

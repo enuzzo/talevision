@@ -51,6 +51,7 @@ class Orchestrator:
             "slowmovie": base_dir / "cache" / "slowmovie_frame.jpg",
             "wikipedia": base_dir / "cache" / "wikipedia_frame.png",
             "weather":   base_dir / "cache" / "weather_frame.png",
+            "welcome":   base_dir / "cache" / "welcome_frame.png",
         }
         for p in self._frame_paths.values():
             p.parent.mkdir(parents=True, exist_ok=True)
@@ -325,8 +326,9 @@ class Orchestrator:
             log.info("Rendering welcome screen…")
             welcome = self._render_welcome_screen()
             self._canvas.show(welcome)
-            log.info("Welcome screen displayed, waiting 15 s…")
-            self._timer.wait(15)
+            self._save_frame(welcome, "welcome")
+            log.info("Welcome screen displayed, waiting 30 s…")
+            self._timer.wait(30)
         except Exception as exc:
             log.error(f"Welcome screen error: {exc}", exc_info=True)
 

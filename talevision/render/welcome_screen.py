@@ -149,7 +149,7 @@ def render_welcome_screen(
         img.paste(frame, (0, 0), frame)
     draw = ImageDraw.Draw(img)
 
-    font_lobster = _load_lobster(base_dir, 88)
+    font_lobster = _load_lobster(base_dir, 75)
     font_tagline = _load_serif(base_dir, 22, italic=True)
     font_md      = _load_font(base_dir, 17, bold=True)
     font_sm      = _load_font(base_dir, 14, bold=True)
