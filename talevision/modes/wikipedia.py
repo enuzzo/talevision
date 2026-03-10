@@ -158,10 +158,11 @@ class WikipediaMode(DisplayMode):
         img = Image.new("RGB", (w, h), COLOR_WHITE)
         draw = ImageDraw.Draw(img)
 
-        font_bold  = _load_font(self._font_dir / "Signika-Bold.ttf", 32)
+        font_time  = _load_font(self._font_dir / "Taviraj-Bold.ttf", 46)
+        font_date  = _load_font(self._font_dir / "Taviraj-SemiBold.ttf", 30)
+        font_lang  = _load_font(self._font_dir / "Taviraj-Regular.ttf", 24)
         font_title = _load_font(self._font_dir / "Signika-Bold.ttf", 26)
         font_body  = _load_font(self._font_dir / "Taviraj-Regular.ttf", 22)
-        font_meta  = _load_font(self._font_dir / "Taviraj-Regular.ttf", 18)
 
         pad = 30
         now = datetime.datetime.now()
@@ -169,22 +170,32 @@ class WikipediaMode(DisplayMode):
 
         # ── Time header ───────────────────────────────────────────────────────
         time_str = now.strftime("%H:%M")
+        year_short = now.strftime("'%y")
         try:
             from babel.dates import format_date
             locale = LANG_TO_BABEL.get(self._language, "en_US")
             date_str = format_date(now, format="d MMMM", locale=locale)
         except Exception:
             date_str = now.strftime("%d %B")
+        full_date_str = f"{date_str} {year_short}"
         lang_label = f"Wikipedia · {self._language.upper()}"
 
-        draw.text((pad, y), time_str, font=font_bold, fill=COLOR_BLACK)
-        time_w = int(draw.textlength(time_str, font=font_bold))
-        draw.text((pad + time_w + 18, y + 10), date_str, font=font_meta, fill=COLOR_MUTED)
-        draw.text(
-            (w - pad - draw.textlength(lang_label, font=font_meta), y + 8),
-            lang_label, font=font_meta, fill=COLOR_ACCENT,
-        )
-        y += 38
+        # Time (large serif bold)
+        draw.text((pad, y), time_str, font=font_time, fill=COLOR_BLACK)
+        time_w = int(draw.textlength(time_str, font=font_time))
+
+        # Date + year (same baseline area, slightly lower to align visually)
+        date_offset = 12
+        draw.text((pad + time_w + 20, y + date_offset), full_date_str,
+                  font=font_date, fill=COLOR_BLACK)
+
+        # Wikipedia · LANG (right, vertically centered)
+        lang_w = int(draw.textlength(lang_label, font=font_lang))
+        lang_offset = 16
+        draw.text((w - pad - lang_w, y + lang_offset), lang_label,
+                  font=font_lang, fill=COLOR_BLACK)
+
+        y += 60
         draw.line([(pad, y), (w - pad, y)], fill=COLOR_ACCENT, width=2)
         y += 14
 
