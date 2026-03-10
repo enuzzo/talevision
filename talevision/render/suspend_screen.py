@@ -212,7 +212,7 @@ def render_suspend_screen(
 
     _h_prefix = f"  ACTIVE HOURS   {start}  "
     _h_suffix = f"  {end}"
-    _dashes = "─" * max(inner_w - len(_h_prefix) - len(_h_suffix), 4)
+    _dashes = "─" * max(inner_w - len(_h_prefix) - len(_h_suffix) - 3, 4)
     hours_line = _h_prefix + _dashes + _h_suffix
 
     if next_wake:

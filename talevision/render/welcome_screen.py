@@ -181,11 +181,6 @@ def render_welcome_screen(
         _box_line(f"  IP ADDRESS   {ip}", inner_w),
         _box_line(f"  DASHBOARD    {dashboard_url}", inner_w),
         _box_line("", inner_w),
-        _separator(inner_w),
-        _box_line("", inner_w),
-        _box_line(f"  MODE         {mode.upper()}", inner_w),
-        _box_line(f"  PLAYLIST     {playlist_str}", inner_w),
-        _box_line("", inner_w),
         _bottom(inner_w),
     ]
 
