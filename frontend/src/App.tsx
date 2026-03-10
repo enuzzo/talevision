@@ -141,10 +141,10 @@ function NoiseCanvas() {
       const img = ctx.createImageData(W, H)
       const d = img.data
       for (let i = 0; i < d.length; i += 4) {
-        const on = Math.random() > 0.5
-        const v = on ? Math.floor(Math.random() * 160 + 55) : 0
+        const on = Math.random() > 0.42
+        const v = on ? Math.floor(Math.random() * 180 + 60) : 0
         d[i] = d[i + 1] = d[i + 2] = v
-        d[i + 3] = on ? Math.floor(Math.random() * 26 + 4) : 0
+        d[i + 3] = on ? Math.floor(Math.random() * 55 + 18) : 0
       }
       ctx.putImageData(img, 0, 0)
       setTimeout(draw, 75)
@@ -221,7 +221,6 @@ function RenderingOverlay({ mode }: { mode: string }) {
 
       {/* Content */}
       <div className="relative flex flex-col items-center gap-3" style={{ zIndex: 3 }}>
-        <RadioWaves color={info.color} />
         <div
           className="font-title animate-flicker select-none"
           style={{
@@ -235,10 +234,11 @@ function RenderingOverlay({ mode }: { mode: string }) {
         </div>
         <div
           className="font-display tracking-[0.4em] uppercase"
-          style={{ fontSize: '15px', color: `${info.color}99`, marginTop: '2px' }}
+          style={{ fontSize: '15px', color: `${info.color}99` }}
         >
           TUNING
         </div>
+        <RadioWaves color={info.color} />
       </div>
 
       {/* Vignette */}
@@ -1026,7 +1026,7 @@ export default function App() {
   const isSuspended = status?.is_suspended ?? false
 
   return (
-    <div className="min-h-screen bg-bg text-primary font-display animate-fade-in">
+    <div className="min-h-screen bg-transparent text-primary font-display animate-fade-in">
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 backdrop-blur-sm" style={{ backgroundColor: 'rgba(241,235,217,0.93)', borderBottom: '1px solid rgba(74,75,89,0.10)' }}>
