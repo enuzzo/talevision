@@ -50,8 +50,8 @@ interface ModeInfo {
 const ALL_MODES: ModeInfo[] = [
   { id: 'litclock',  label: 'LitClock',  icon: '🕐', color: '#39B8FF', available: true },
   { id: 'slowmovie', label: 'SlowMovie', icon: '🎬', color: '#FFB547', available: true },
-  { id: 'teletext',  label: 'Teletext',  icon: '📺', color: '#01B574', available: false },
-  { id: 'ansi',      label: 'ANSi Art',  icon: '▓',  color: '#7551FF', available: false },
+  { id: 'wikipedia', label: 'Wikipedia', icon: '📖', color: '#7551FF', available: true },
+  { id: 'weather',   label: 'Weather',   icon: '🌤', color: '#01B574', available: true },
 ]
 
 const MODE_MAP = Object.fromEntries(ALL_MODES.map(m => [m.id, m]))

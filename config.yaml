@@ -1,5 +1,5 @@
 app:
-  default_mode: ansi   # litclock | slowmovie | ansi
+  default_mode: litclock   # litclock | slowmovie | wikipedia | weather
 
 display:
   width: 800
