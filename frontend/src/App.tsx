@@ -1053,7 +1053,7 @@ export default function App() {
             <span className="w-2.5 h-2.5 rounded-full bg-accent" style={{ boxShadow: '0 0 12px rgba(202,121,109,0.4)' }} />
             <div className="flex flex-col gap-0">
               <span className="font-title text-xl leading-tight" style={{ color: '#3B3C47' }}>TaleVision</span>
-              <span className="font-display text-[10px] text-tertiary italic leading-tight">
+              <span className="font-display text-[12px] text-tertiary italic leading-tight">
                 {TAGLINE}
               </span>
             </div>
