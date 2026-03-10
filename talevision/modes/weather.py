@@ -24,7 +24,7 @@ COLOR_BLUE   = (57,  184, 255)
 def _fetch_weather(location: str, timeout: int = 10) -> Dict:
     """Fetch current weather from wttr.in for the given location (format=j1)."""
     encoded = urllib.parse.quote(location)
-    url = f"https://wttr.in/{encoded}?format=j1"
+    url = f"http://wttr.in/{encoded}?format=j1"
     req = urllib.request.Request(url, headers={"User-Agent": "TaleVision/1.0"})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return json.loads(resp.read().decode("utf-8"))
