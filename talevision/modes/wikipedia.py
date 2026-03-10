@@ -196,25 +196,19 @@ class WikipediaMode(DisplayMode):
 
         # ── Thumbnail (right column) ──────────────────────────────────────────
         thumb_x = w - pad - THUMB_W
+        actual_thumb_h = 0
 
         if thumbnail is not None:
             orig_w, orig_h = thumbnail.size
-            target_ratio = THUMB_W / THUMB_H
-            orig_ratio = orig_w / orig_h
-            if orig_ratio > target_ratio:
-                new_w = int(orig_h * target_ratio)
-                left = (orig_w - new_w) // 2
-                thumb = thumbnail.crop((left, 0, left + new_w, orig_h))
-            else:
-                new_h = int(orig_w / target_ratio)
-                thumb = thumbnail.crop((0, 0, orig_w, new_h))
-            thumb = thumb.resize((THUMB_W, THUMB_H), Image.LANCZOS)
+            actual_thumb_h = int(THUMB_W * orig_h / orig_w)
+            thumb = thumbnail.resize((THUMB_W, actual_thumb_h), Image.LANCZOS)
             img.paste(thumb, (thumb_x, content_top))
 
         # ── Article title ─────────────────────────────────────────────────────
         title = article.get("title", "")
-        text_max_w = (thumb_x - pad - 16) if thumbnail is not None else (w - 2 * pad)
-        title_lines = _wrap_text(title, font_title, draw, text_max_w)
+        narrow_w = (thumb_x - pad - 16) if thumbnail is not None else (w - 2 * pad)
+        full_w = w - 2 * pad
+        title_lines = _wrap_text(title, font_title, draw, narrow_w)
 
         y = content_top
         for line in title_lines[:2]:
@@ -224,11 +218,34 @@ class WikipediaMode(DisplayMode):
 
         # ── Extract body ──────────────────────────────────────────────────────
         extract = article.get("extract", "")
-        body_lines = _wrap_text(extract, font_body, draw, text_max_w)
-
-        qr_reserved = QR_SIZE + 20 if qr_img else pad
-        avail_h = h - y - qr_reserved
         line_h = 28
+
+        # Wrap in two sections: beside thumbnail (narrow), then below (full width)
+        body_start_y = y
+        thumb_end_y = content_top + actual_thumb_h
+        lines_beside = max(0, (thumb_end_y - body_start_y + line_h - 1) // line_h) if actual_thumb_h > 0 else 0
+
+        words = extract.split()
+        body_lines: List[str] = []
+        word_idx = 0
+        for _ in range(lines_beside):
+            if word_idx >= len(words):
+                break
+            current = ""
+            while word_idx < len(words):
+                candidate = (current + " " + words[word_idx]).strip()
+                if draw.textlength(candidate, font=font_body) <= narrow_w:
+                    current = candidate
+                    word_idx += 1
+                else:
+                    break
+            if current:
+                body_lines.append(current)
+        remaining_extract = " ".join(words[word_idx:])
+        body_lines += _wrap_text(remaining_extract, font_body, draw, full_w)
+
+        # QR sits in the bottom-right corner; text is left-aligned — no overlap
+        avail_h = h - body_start_y - pad
         max_lines = max(0, avail_h // line_h)
 
         displayed = list(body_lines[:max_lines])

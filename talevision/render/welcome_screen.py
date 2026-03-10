@@ -156,8 +156,9 @@ def render_welcome_screen(
     ]
 
     # ── Rainbow bars ──────────────────────────────────────────────────────────
-    border_colors = [RED, ORANGE, YELLOW, GREEN, BLUE, RED, ORANGE]
-    bar_h = 4
+    # Only use high-contrast colours — GREEN/YELLOW are too faint on white e-ink
+    border_colors = [RED, ORANGE, RED, BLUE, ORANGE, RED, BLUE]
+    bar_h = 6
     segment_w = W // len(border_colors)
     for i, color in enumerate(border_colors):
         x0 = i * segment_w
@@ -166,8 +167,9 @@ def render_welcome_screen(
 
     # ── Vertical centering ────────────────────────────────────────────────────
     subhead = "S Y S T E M   B O O T"
+    TITLE_GAP = 14          # extra space between Lobster title and tagline
     total_h = (
-        lh_lobster
+        lh_lobster + TITLE_GAP
         + lh_tagline + 12
         + lh_md + 16            # subhead + gap
         + len(info_lines) * lh_sm
@@ -181,7 +183,7 @@ def render_welcome_screen(
     title = "TaleVision"
     draw.text(((W - text_w(title, font_lobster)) // 2, y), title,
               font=font_lobster, fill=ORANGE)
-    y += lh_lobster
+    y += lh_lobster + TITLE_GAP
 
     # ── Tagline in Taviraj Italic ─────────────────────────────────────────────
     draw.text(((W - text_w(TAGLINE, font_tagline)) // 2, y), TAGLINE,
