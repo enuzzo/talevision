@@ -163,57 +163,26 @@ function NoiseCanvas() {
   )
 }
 
-// ─── Tuning Gauge ─────────────────────────────────────────────────────────────
+// ─── Radio Waves ──────────────────────────────────────────────────────────────
 
-function TuningGauge({ color }: { color: string }) {
-  // Smaller gauge: pivot at (80, 76), radius 58
-  const cx = 80, cy = 76, r = 58
-  const numTicks = 11
-  const ticks = Array.from({ length: numTicks }, (_, i) => {
-    const t = (Math.PI * i) / (numTicks - 1)
-    const isMajor = i % 2 === 0
-    const innerR = r - (isMajor ? 10 : 6)
-    return {
-      x1: cx - innerR * Math.cos(t),
-      y1: cy - innerR * Math.sin(t),
-      x2: cx - r * Math.cos(t),
-      y2: cy - r * Math.sin(t),
-      isMajor,
-    }
-  })
+function RadioWaves({ color }: { color: string }) {
   return (
-    <svg width="160" height="86" viewBox="0 0 160 82" style={{ overflow: 'visible' }}>
-      {/* Arc */}
-      <path
-        d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
-        fill="none" stroke={color + '30'} strokeWidth="1"
-      />
-      {/* Baseline */}
-      <line x1={cx - r - 5} y1={cy} x2={cx + r + 5} y2={cy} stroke={color + '22'} strokeWidth="0.8" />
-      {/* Ticks */}
-      {ticks.map((t, i) => (
-        <line
+    <div className="relative flex items-center justify-center" style={{ width: 56, height: 56 }}>
+      {[0, 1, 2, 3].map(i => (
+        <div
           key={i}
-          x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
-          stroke={color + (t.isMajor ? '70' : '38')}
-          strokeWidth={t.isMajor ? 1.4 : 0.8}
-        />
-      ))}
-      {/* Needle — wrapped in translate group so rotation origin = pivot (0,0 in group coords) */}
-      <g transform={`translate(${cx}, ${cy})`}>
-        <line
-          x1={0} y1={0} x2={0} y2={-(r - 7)}
-          stroke={color} strokeWidth="1.8" strokeLinecap="round"
+          className="absolute rounded-full animate-radio-expand"
           style={{
-            transformBox: 'fill-box',
-            transformOrigin: '50% 100%',
-            animation: 'gaugeNeedle 4s ease-in-out infinite',
+            width: 12,
+            height: 12,
+            border: `1.5px solid ${color}`,
+            animationDelay: `${i * 0.55}s`,
+            opacity: 0,
           }}
         />
-      </g>
-      {/* Pivot dot */}
-      <circle cx={cx} cy={cy} r="3.5" fill={color} fillOpacity="0.80" />
-    </svg>
+      ))}
+      <div className="rounded-full" style={{ width: 7, height: 7, backgroundColor: color, opacity: 0.85 }} />
+    </div>
   )
 }
 
@@ -251,7 +220,8 @@ function RenderingOverlay({ mode }: { mode: string }) {
       />
 
       {/* Content */}
-      <div className="relative flex flex-col items-center gap-1" style={{ zIndex: 3 }}>
+      <div className="relative flex flex-col items-center gap-3" style={{ zIndex: 3 }}>
+        <RadioWaves color={info.color} />
         <div
           className="font-title animate-flicker select-none"
           style={{
@@ -263,12 +233,11 @@ function RenderingOverlay({ mode }: { mode: string }) {
         >
           {info.label}
         </div>
-        <TuningGauge color={info.color} />
         <div
-          className="font-display text-[11px] tracking-[0.35em]"
-          style={{ color: `${info.color}85`, marginTop: '-2px' }}
+          className="font-display tracking-[0.4em] uppercase"
+          style={{ fontSize: '15px', color: `${info.color}99`, marginTop: '2px' }}
         >
-          Tuning
+          TUNING
         </div>
       </div>
 
