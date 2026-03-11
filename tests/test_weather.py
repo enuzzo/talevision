@@ -82,3 +82,39 @@ def test_set_units():
     mode = WeatherMode(cfg, base_dir=Path("."))
     mode.set_units("u")
     assert mode._units == "u"
+
+
+FAKE_ANSI_WITH_FORECAST = (
+    "     \\  /       \033[1;33mPartly cloudy\033[0m\n"
+    "   _ /\"\".-.     \033[1;33m+18(16) °C\033[0m\n"
+    "     \\_(   ).   \033[32m↗ 15 km/h\033[0m\n"
+    "\u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n"
+    "\u2502   Morning    \u2502\n"
+    "\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518\n"
+)
+
+
+def test_find_forecast_start_with_box_drawing():
+    from talevision.modes.weather import _parse_ansi, _find_forecast_start
+    parsed = _parse_ansi(FAKE_ANSI_WITH_FORECAST)
+    idx = _find_forecast_start(parsed)
+    assert idx == 3
+
+
+def test_find_forecast_start_no_forecast():
+    from talevision.modes.weather import _parse_ansi, _find_forecast_start
+    parsed = _parse_ansi(FAKE_ANSI)
+    idx = _find_forecast_start(parsed)
+    assert idx == len(parsed)
+
+
+def test_render_two_zone_with_forecast():
+    cfg = _make_config()
+    from talevision.modes.weather import WeatherMode
+    mode = WeatherMode(cfg, base_dir=Path("."))
+
+    with patch("talevision.modes.weather._fetch_ansi", return_value=FAKE_ANSI_WITH_FORECAST):
+        img = mode.render()
+
+    assert isinstance(img, Image.Image)
+    assert img.size == (800, 480)

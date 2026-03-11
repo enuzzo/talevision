@@ -1,4 +1,5 @@
 """Weather display mode — renders wttr.in ANSI output on e-ink via PIL."""
+import datetime
 import logging
 import re
 import urllib.parse
@@ -38,7 +39,9 @@ ANSI_COLOR_MAP = {
 
 ANSI_RE = re.compile(r"\033\[([0-9;]*)m")
 
-FONT_SIZE = 12
+FONT_SIZE_CC = 14
+FONT_SIZE_FC = 12
+HEADER_FONT_SIZE = 16
 LINE_GAP = 0
 
 
@@ -46,7 +49,7 @@ def _fetch_ansi(lat: float, lon: float, lang: str = "it",
                 units: str = "m", timeout: int = 10) -> str:
     loc = f"{lat:.4f},{lon:.4f}"
     encoded = urllib.parse.quote(loc)
-    url = f"http://wttr.in/{encoded}?A&F&lang={lang}&{units}"
+    url = f"http://wttr.in/{encoded}?AQF&lang={lang}&{units}"
     req = urllib.request.Request(url, headers={"User-Agent": "curl/7.0"})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return resp.read().decode("utf-8")
@@ -97,6 +100,14 @@ def _parse_ansi(text: str) -> List[List[Cell]]:
         lines_out.append(cells)
 
     return lines_out
+
+
+def _find_forecast_start(parsed: List[List[Cell]]) -> int:
+    for i, line in enumerate(parsed):
+        for ch, _, _ in line:
+            if ch == "\u250c":
+                return i
+    return len(parsed)
 
 
 def _load_font(font_path: Path, size: int) -> ImageFont.FreeTypeFont:
@@ -171,34 +182,76 @@ class WeatherMode(DisplayMode):
             draw.text((30, 200), "Weather unavailable", font=font_err, fill=COLOR_BLACK)
             return img
 
-        font_regular = _load_font(
-            self._font_dir / "InconsolataNerdFontMono-Bold.ttf", FONT_SIZE)
-        font_bold = font_regular
-
         parsed = _parse_ansi(ansi_text)
 
-        bbox = font_regular.getbbox("M")
-        char_w = bbox[2] - bbox[0]
-        char_h = FONT_SIZE + LINE_GAP
+        fc_start = _find_forecast_start(parsed)
+        cc_lines = parsed[:fc_start]
+        fc_lines = parsed[fc_start:]
 
-        max_cols = max((len(line) for line in parsed), default=0)
-        total_w = max_cols * char_w
-        total_h = len(parsed) * char_h
-        offset_x = max(0, (w - total_w) // 2)
-        offset_y = max(0, (h - total_h) // 2)
+        while cc_lines and not any(ch != " " for ch, _, _ in cc_lines[0]):
+            cc_lines.pop(0)
+        while cc_lines and not any(ch != " " for ch, _, _ in cc_lines[-1]):
+            cc_lines.pop()
 
-        for row_idx, line_cells in enumerate(parsed):
-            y = offset_y + row_idx * char_h
-            if y > h:
+        font_header = _load_font(
+            self._font_dir / "Signika-Bold.ttf", HEADER_FONT_SIZE)
+        font_cc = _load_font(
+            self._font_dir / "InconsolataNerdFontMono-Bold.ttf", FONT_SIZE_CC)
+        font_fc = _load_font(
+            self._font_dir / "InconsolataNerdFontMono-Bold.ttf", FONT_SIZE_FC)
+
+        cc_bbox = font_cc.getbbox("M")
+        cc_char_w = cc_bbox[2] - cc_bbox[0]
+        cc_char_h = FONT_SIZE_CC + LINE_GAP
+
+        fc_bbox = font_fc.getbbox("M")
+        fc_char_w = fc_bbox[2] - fc_bbox[0]
+        fc_char_h = FONT_SIZE_FC + LINE_GAP
+
+        now = datetime.datetime.now()
+        header_text = f"{self._city} \u00b7 {now.strftime('%H:%M')}"
+        h_bbox = font_header.getbbox(header_text)
+        header_w = h_bbox[2] - h_bbox[0]
+        header_h = h_bbox[3] - h_bbox[1]
+
+        y = 4
+        draw.text(((w - header_w) // 2, y), header_text,
+                  font=font_header, fill=COLOR_BLACK)
+        y += header_h + 6
+
+        cc_max_cols = max((len(line) for line in cc_lines), default=0)
+        cc_total_w = cc_max_cols * cc_char_w
+        cc_offset_x = max(0, (w - cc_total_w) // 2)
+
+        for row_idx, line_cells in enumerate(cc_lines):
+            row_y = y + row_idx * cc_char_h
+            if row_y > h:
                 break
             for col_idx, (ch, color, bold) in enumerate(line_cells):
-                x = offset_x + col_idx * char_w
+                x = cc_offset_x + col_idx * cc_char_w
                 if x > w:
                     break
                 if ch == " ":
                     continue
-                font = font_bold if bold else font_regular
-                draw.text((x, y), ch, font=font, fill=color)
+                draw.text((x, row_y), ch, font=font_cc, fill=color)
+
+        y += len(cc_lines) * cc_char_h + 4
+
+        fc_max_cols = max((len(line) for line in fc_lines), default=0)
+        fc_total_w = fc_max_cols * fc_char_w
+        fc_offset_x = max(0, (w - fc_total_w) // 2)
+
+        for row_idx, line_cells in enumerate(fc_lines):
+            row_y = y + row_idx * fc_char_h
+            if row_y > h:
+                break
+            for col_idx, (ch, color, bold) in enumerate(line_cells):
+                x = fc_offset_x + col_idx * fc_char_w
+                if x > w:
+                    break
+                if ch == " ":
+                    continue
+                draw.text((x, row_y), ch, font=font_fc, fill=color)
 
         return img
 
