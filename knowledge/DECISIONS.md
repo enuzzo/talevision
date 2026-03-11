@@ -138,6 +138,30 @@ Entry format:
 - Decision: (1) Resize thumbnail to `THUMB_W=180px` maintaining original aspect ratio — no crop. (2) Make a second API call (`action=query&prop=extracts&exchars=3000`) to fetch full article text beyond the intro. (3) Per-line width calculation: beside thumbnail → `narrow_w`, in QR zone → `qr_safe_w`, otherwise → `full_w`. Last clipped line gets ` …`; QR message in Signika 16pt grey centred in the QR zone.
 - Impact/Tradeoffs: Two HTTP calls per render (summary + extract) — both fast, Pi Zero W handles it within the 10s timeout. Text now fills the panel and visually respects the QR code.
 
+## 2026-03-11 - Weather Mode: ANSI Terminal Rendering with Two-Zone Layout
+
+- Context: Weather mode used wttr.in JSON (`?format=j1`) with a custom PIL layout (large temperature in Signika-Bold 80pt, custom forecast table). The result looked generic and didn't capture the charm of wttr.in's native terminal output with ASCII art weather icons.
+- Decision: Rewrite Weather to fetch raw ANSI output from wttr.in, parse SGR escape codes char-by-char, map 16 ANSI colours to 7 e-ink colours (inverted: white bg, green→blue, yellow→orange), and render with Inconsolata Nerd Font Mono (125/125 Unicode glyph coverage verified). Two-zone layout: custom header ("City · HH:MM" in Signika-Bold 16pt) + current conditions at 14pt + forecast tables at 12pt. Location stored as city + lat/lon coordinates; autocomplete via Open-Meteo free geocoding API (replacing Nominatim). Metric/Imperial toggle.
+- Impact/Tradeoffs: More visually distinctive — ASCII art icons + monospace terminal aesthetic on e-ink. Depends on wttr.in ANSI format stability. 6 Inconsolata font files added to assets. Open-Meteo geocoding is free with no key (Nominatim had rate limits).
+
+## 2026-03-11 - SlowMovie: Re-pick Video on Each Playlist Rotation
+
+- Context: SlowMovie selected a random video on first render and kept it forever in-memory (`_current_video`). In a 4-mode playlist, the same film replayed every rotation cycle indefinitely.
+- Decision: Reset `_current_video = None` in `on_activate()`, so each time the playlist rotates back to SlowMovie, a new random video is picked.
+- Impact/Tradeoffs: Truly random film experience in rotation. Within a single activation, the video is still sticky (consistent frames from the same film). Could theoretically pick the same film twice in a row by chance — acceptable with small media libraries.
+
+## 2026-03-11 - Wikipedia: Remove QR Hint Text
+
+- Context: Wikipedia mode showed a locale-specific "scan the QR to read more" message (`QR_MORE_MSG` dict, 6 languages) in the QR zone. The ellipsis and QR code are self-explanatory; the text was redundant.
+- Decision: Remove `QR_MORE_MSG` dictionary, `font_qr_msg` font loading, and the QR message rendering block entirely.
+- Impact/Tradeoffs: Cleaner layout, more space for article text. QR code is universally understood without instruction.
+
+## 2026-03-11 - Welcome Screen Refinements
+
+- Context: Welcome screen had `[ S T A R T I N G  I N  3 0  S E C O N D S ]` with letter-spacing and square brackets. Hostname showed bare name without `.local` mDNS suffix.
+- Decision: Simplify to `— STARTING IN 30 SECONDS —` (em dashes, no letter-spacing). Append `.local` to hostname for mDNS discoverability.
+- Impact/Tradeoffs: Cleaner typography. Hostname is now directly usable as a network address.
+
 ## 2026-03-10 - Language Order: it / es / pt / en / fr / de
 
 - Context: Languages were listed alphabetically (de/en/es/fr/it/pt) in default config and UI. Project context is Italian-first (deployed in Italy, Netmilk is Italian).

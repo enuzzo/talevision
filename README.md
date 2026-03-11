@@ -23,7 +23,7 @@ As **SlowMovie**, it extracts a random frame from a film in your media folder, r
 
 As **Wikipedia**, it fetches a random article every few minutes, renders the title and extract in a clean serif layout with a thumbnail and a QR code. One unexpected thing you didn't know, in Italian or five other languages, every time the e-ink decides it's ready.
 
-As **Weather**, it checks the forecast and renders the temperature very large. Below it: condition, feels-like, wind, humidity. Below that: three days ahead, for when you need to know before you open the window.
+As **Weather**, it fetches wttr.in's native ANSI terminal output — ASCII art clouds, coloured temperatures, wind arrows — parses the escape codes, and renders them character by character in Inconsolata Nerd Font Mono, mapped to seven e-ink colours. It looks like a terminal printout from the future's past.
 
 All four modes share one 800×480 seven-colour e-ink panel, one Pi Zero W, one Flask dashboard, and one quiet conviction: the best thing a screen can do is earn its update.
 
@@ -99,7 +99,7 @@ Every 5 minutes: pick a random Wikipedia article in your chosen language, render
 
 At the top: the time and date in the same Taviraj-SemiBold header used by LitClock — `14:32 · 10 marzo '26` — with the language label right-aligned (`Wikipedia · IT`). Date formatted with Babel so the month name is in the display language, not whatever the system locale happens to be.
 
-The body text uses a full second API call (`action=query&prop=extracts`) to fetch up to 3000 characters of article content beyond the intro — internal sections included. Text fills the panel intelligently: lines beside the thumbnail use a narrower wrap, lines below it use full width, and lines that descend into the QR zone auto-narrow to avoid overdrawing the code. If the text still runs long, the last body line ends with ` …` and a smaller sans-serif caption (`Signika-Regular 16pt`, grey) appears centred in the QR area: *"… scansiona il QR per saperne di più"*, or the equivalent in five other languages.
+The body text uses a full second API call (`action=query&prop=extracts`) to fetch up to 3000 characters of article content beyond the intro — internal sections included. Text fills the panel intelligently: lines beside the thumbnail use a narrower wrap, lines below it use full width, and lines that descend into the QR zone auto-narrow to avoid overdrawing the code. If the text still runs long, the last body line ends with ` …`. The QR code is self-explanatory — no hint text needed.
 
 **Languages:** `it` · `es` · `pt` · `en` · `fr` · `de` — same six as LitClock, same language selector in the dashboard. One setting controls both.
 
@@ -107,9 +107,13 @@ The body text uses a full second API call (`action=query&prop=extracts`) to fetc
 
 ## Weather
 
-Every 5 minutes: fetch current conditions and a 3-day forecast from [wttr.in](https://wttr.in/) — no API key, no account, no nothing. Structured JSON. The temperature is rendered very large (Signika-Bold 80pt) because that is the only information most people actually want from a weather display. Below it: condition string, feels-like, wind, humidity. Below that: a three-day forecast with date, max/min temperatures, and midday condition.
+Every 5 minutes: fetch current conditions and a 3-day forecast from [wttr.in](https://wttr.in/) — no API key, no account, no nothing. But not as JSON. As raw ANSI terminal output — the same colourful ASCII art you'd see if you ran `curl wttr.in` in a terminal.
 
-Location is configurable from the dashboard, with autocomplete powered by Nominatim (OpenStreetMap, no key). Change the city, hit save. The display updates on the next render cycle.
+The ANSI escape codes are parsed character by character and rendered onto the e-ink panel with Inconsolata Nerd Font Mono. ANSI colours are mapped to the 7-colour e-ink palette — green becomes blue, yellow becomes orange, everything inverted for a white background. The result is a weather display that looks like a vintage terminal printout, complete with ASCII art clouds and sun icons.
+
+Two rendering zones: at the top, the current conditions with a larger font (14pt) — the ASCII art weather icon alongside temperature, wind, humidity. Below, the 3-day forecast tables at a compact 12pt. A custom header shows the city name and fetch timestamp.
+
+Location is configurable from the dashboard, with autocomplete powered by Open-Meteo geocoding (free, no key). Coordinates are stored as lat/lon for precision. Metric and Imperial units are toggleable from the dashboard.
 
 Note: wttr.in is fetched over HTTP on the Pi Zero W. The HTTPS handshake reliably times out on armv6l hardware. This is not a security oversight — the data is non-sensitive weather information from a public endpoint.
 
@@ -172,7 +176,7 @@ The Orchestrator runs in the main thread. Flask runs in a daemon thread. They co
 
 ## Boot Sequence
 
-On power-up, TaleVision renders a **welcome screen** to the e-ink display before anything else. A vintage TV frame graphic (800×480, transparent centre) is composited as background. Inside it: "TaleVision" in Lobster at 75pt, black, centred. Below it: a randomly chosen sardonic tagline from a pool of twenty, in Taviraj Italic. Below that: `[ STARTING IN 30 SECONDS ]` in red spaced caps. Then a compact BBS/NFO-style info box — hostname, LAN IP, dashboard URL — in DejaVuSansMono Bold with box-drawing characters. Closes with "TaleVision v1.5 · Netmilk Studio" in blue.
+On power-up, TaleVision renders a **welcome screen** to the e-ink display before anything else. A vintage TV frame graphic (800×480, transparent centre) is composited as background. Inside it: "TaleVision" in Lobster at 75pt, black, centred. Below it: a randomly chosen sardonic tagline from a pool of twenty, in Taviraj Italic. Below that: `— STARTING IN 30 SECONDS —` in red. Then a compact BBS/NFO-style info box — hostname (with `.local` mDNS suffix), LAN IP, dashboard URL — in DejaVuSansMono Bold with box-drawing characters. Closes with "TaleVision v1.5 · Netmilk Studio" in blue.
 
 The welcome screen holds for 30 seconds. Long enough to confirm the device is alive, read the IP address, and actually look at it. The rendered frame is saved to `cache/welcome_frame.png` on every boot. Then the Orchestrator takes over and renders the first real frame.
 
@@ -237,7 +241,9 @@ Dashboard at `http://<pi-ip>:5000`.
 | `wikipedia.refresh_interval` | `300` | Seconds between Wikipedia article fetches |
 | `wikipedia.language` | `it` | Default language for Wikipedia (`it` · `es` · `pt` · `en` · `fr` · `de`) |
 | `weather.refresh_interval` | `300` | Seconds between weather fetches |
-| `weather.location` | `Roma` | Default city (editable from dashboard) |
+| `weather.city` | `Roma` | Default city name (editable from dashboard) |
+| `weather.lat` / `weather.lon` | `41.89` / `12.48` | Coordinates for wttr.in (set via dashboard autocomplete) |
+| `weather.units` | `m` | `m` (metric), `u` (imperial), `M` (metric + m/s wind) |
 | `suspend.start` / `.end` | `18:00` / `08:00` | Sleep/wake time — overnight ranges handled correctly (start > end wraps midnight) |
 | `suspend.days` | `[5,6]` | Fully-off days (0=Mon … 6=Sun). Default: Sat+Sun fully off, Mon–Fri follow the time window |
 | `buttons.actions` | see below | Remap GPIO buttons to any action |
@@ -288,8 +294,11 @@ A sardonic tagline rotates with each page load. Twenty options. The display upda
 | `/api/interval` | POST | `{"mode": "litclock", "seconds": 300}` | Set interval override |
 | `/api/interval/<mode>` | DELETE | — | Reset to config default |
 | `/api/playlist` | POST | `{"modes": [...], "rotation_interval": N}` | Set playlist and rotation interval |
-| `/api/weather/location` | POST | `{"location": "Roma"}` | Set weather location |
-| `/api/weather/search` | GET | `?q=rom` | Autocomplete via Nominatim (OpenStreetMap) |
+| `/api/weather/location` | GET | — | Current city, lat, lon |
+| `/api/weather/location` | POST | `{"city": "Roma", "lat": 41.89, "lon": 12.48}` | Set weather location |
+| `/api/weather/search` | GET | `?q=rom&lang=it` | Autocomplete via Open-Meteo geocoding |
+| `/api/weather/units` | GET | — | Current units (`m`/`u`/`M`) |
+| `/api/weather/units` | POST | `{"units": "m"}` | Set metric/imperial |
 
 ---
 
@@ -355,7 +364,7 @@ talevision/
 │   │   ├── litclock.py          LitClock — Taviraj typography, 6 languages
 │   │   ├── slowmovie.py         SlowMovie — PIL chain + RGBA overlay + TMDB QR
 │   │   ├── wikipedia.py         Wikipedia — random article, babel header, QR link
-│   │   └── weather.py           Weather — wttr.in forecast, large temp display
+│   │   └── weather.py           Weather — wttr.in ANSI parser + two-zone PIL render
 │   ├── render/
 │   │   ├── typography.py        FontManager, wrap_text_block, get_text_dimensions
 │   │   ├── layout.py            draw_header, draw_centered_text_block
@@ -388,7 +397,7 @@ talevision/
 │   ├── package.json             Vite + React + Tailwind + Radix UI + TanStack Query
 │   └── vite.config.ts           Outputs to talevision/web/static/dist/
 ├── assets/
-│   ├── fonts/                   Signika + Taviraj (22 weights) + DejaVuSansMono + Lobster-Regular.ttf
+│   ├── fonts/                   Signika + Taviraj (22 weights) + DejaVuSansMono + Lobster-Regular.ttf + InconsolataNerdFontMono (6 variants)
 │   ├── lang/                    quotes-{de,en,es,fr,it,pt}.csv + fallback.csv
 │   └── icons/                   logo.png
 ├── media/                       Your .mp4 files + sidecar .json (gitignored for .mp4)

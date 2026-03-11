@@ -19,7 +19,7 @@ Stable technical context for all assistants.
 - Web: Flask 3.x, served by **waitress 3.0.2** (production WSGI; Flask dev server is the fallback)
 - Image: Pillow 10+, ffmpeg (system-installed via apt on Pi)
 - Config: PyYAML + dacite dataclasses
-- Typography: Babel (locale formatting), Signika + Taviraj TTF fonts
+- Typography: Babel (locale formatting), Signika + Taviraj + Inconsolata Nerd Font Mono TTF fonts
 - Display: Pimoroni Inky Impression 7-colour, 800×480 px, 7-colour e-ink (SPI). Driver: `inky.inky_ac073tc1a.Inky` (NOT `inky.auto` — no EEPROM on this board). Init: `Inky(resolution=(800, 480))`.
 - Target platform: Raspberry Pi Zero W (armv6l, 512MB RAM), Raspbian Trixie (Debian 13)
 - Dev platform: macOS or Linux (no hardware required for render pipeline)
@@ -92,7 +92,7 @@ python generate_sidecars.py --dry-run   # preview only
 - Overlay: RGBA layer, `rounded_rectangle(radius=8, fill=(0,0,0,190))`, `alpha_composite` at the end.
 - QR URL patterns: `imdb_search` → `https://www.imdb.com/find?q={title}`; `tmdb_search` → `https://www.themoviedb.org/search?query={title}`.
 - Metadata source: `{video}.json` sidecar file with `title`, `director`, `year` keys; fallback to filename stem.
-- Current video is remembered in-memory across render cycles (`_current_video`); only re-selected if removed from `media/`.
+- Video selection resets on every `on_activate()` call — each playlist rotation picks a new random video. Within one activation, the selection is sticky (re-selected only if removed from `media/`).
 - Frame skip: `skip_start_seconds=120`, `skip_end_seconds=240` (avoids cold-open slates and end credits).
 - Cached frames: `cache/current_frame.jpg` (raw extract) and `cache/slowmovie_frame.jpg` (final processed).
 
@@ -192,8 +192,8 @@ LOOP-step log messages in `orchestrator.py` are at **DEBUG** level (changed from
 
 - **LitClock mode**: renders a literary quote for the current minute; 6 languages (it/es/pt/en/fr/de) switchable at runtime. Refresh: 300 s.
 - **SlowMovie mode**: extracts a random film frame every 90 s with PIL enhancement and info overlay. TMDB QR bottom-right. Auto-generates sidecar `.json` on first activation.
-- **Wikipedia mode**: fetches a random article via Wikipedia REST API (summary) + MediaWiki action API (full extract up to 3000 chars). Renders title + body + thumbnail (proportional width, no forced crop) + QR. Text wraps in three zones: beside thumbnail (narrow), below thumbnail (full width), in QR zone (qr_safe_w). Last line gets ` …` ellipsis if clipped; QR message in Signika-Regular 16pt grey. Babel-formatted date header. 6 languages. Refresh: 300 s.
-- **Weather mode**: fetches current conditions + 3-day forecast from wttr.in (HTTP). Large temperature display, condition details, forecast row. Location configurable from dashboard. Refresh: 300 s.
+- **Wikipedia mode**: fetches a random article via Wikipedia REST API (summary) + MediaWiki action API (full extract up to 3000 chars). Renders title + body + thumbnail (proportional width, no forced crop) + QR. Text wraps in three zones: beside thumbnail (narrow), below thumbnail (full width), in QR zone (qr_safe_w). Last line gets ` …` ellipsis if clipped. Babel-formatted date header. 6 languages. Refresh: 300 s.
+- **Weather mode**: fetches wttr.in native ANSI terminal output (flag `AQF`), parses SGR escape codes char-by-char, and renders on PIL with Inconsolata Nerd Font Mono. Two-zone layout: custom header (`City · HH:MM` in Signika-Bold 16pt) + current conditions at 14pt (ASCII art cloud/sun + weather data) + forecast tables at 12pt. ANSI colours mapped to e-ink 7-colour palette. Location configurable with lat/lon coordinates (Open-Meteo geocoding). Metric/Imperial toggle. Refresh: 300 s.
 - **Suspend schedule**: overnight window (e.g. 17:00–08:00), wraps midnight; day-of-week filtering; BBS/NFO style screen on e-ink.
 - **Playlist rotation**: orchestrator cycles through enabled modes in order with a unified rotation interval (default 5 min). Single-mode uses per-mode interval. Configurable from dashboard.
 - **Web dashboard**: React SPA (Vite + Tailwind) at `http://<DEVICE_IP>:<PORT>`; warm vintage cream palette (bg #F1EBD9, accent #CA796D); Lobster logotype; CRT vintage RenderingOverlay (NoiseCanvas + TuningGauge SVG + scanlines); Stats card; PlaylistEditor with DnD reorder; Language selector (full names, always visible); rotating taglines. Netmilk logo in footer.
@@ -214,7 +214,7 @@ LOOP-step log messages in `orchestrator.py` are at **DEBUG** level (changed from
 - **Inky 7-colour native palette**: Black (0,0,0), White (255,255,255), Red (255,0,0), Green (0,255,0), Blue (0,0,255), Yellow (255,255,0), Orange (255,128,0). Pure colours render crisp; intermediate colours get dithered.
 - **Inky "Busy Wait" warnings**: `Busy Wait: Timed out after N.NNs` warnings from the ac073tc1a driver are normal during e-ink refresh. The display takes ~30–60 s to fully update. These are not errors.
 - **E-ink colour contrast**: Green text on white e-ink background is too faint to read. For white backgrounds, use Black for body text. Red, Blue, Orange work well for accents/headers. Yellow is faint on white — use only on dark backgrounds.
-- **Welcome screen**: TV frame graphic (`assets/img/talevision-frame.png`, RGBA composited on white) boot splash, shown for **30 s**. Lobster 75pt BLACK title, random tagline (20 options), `[ STARTING IN 30 SECONDS ]` in red, compact BBS info box (HOSTNAME/IP/DASHBOARD only, `inner_w=64`), `TaleVision v1.5 · Netmilk Studio` footer in blue. Saved to `cache/welcome_frame.png` on every boot. Rendered by `talevision/render/welcome_screen.py`, triggered from `orchestrator.run()`.
+- **Welcome screen**: TV frame graphic (`assets/img/talevision-frame.png`, RGBA composited on white) boot splash, shown for **30 s**. Lobster 75pt BLACK title, random tagline (20 options), `— STARTING IN 30 SECONDS —` in red, compact BBS info box (HOSTNAME.local/IP/DASHBOARD only, `inner_w=64`), `TaleVision v1.5 · Netmilk Studio` footer in blue. Saved to `cache/welcome_frame.png` on every boot. Rendered by `talevision/render/welcome_screen.py`, triggered from `orchestrator.run()`.
 - **Suspend screen**: TV frame graphic (same as welcome screen) composited on white. Lobster 65pt BLACK title, `· DISPLAY SUSPENDED ·` in ORANGE, random literary quote in Taviraj Italic, BBS info box (active hours/days/resume time) in DejaVuSansMono Bold 19/16pt, timestamp in grey. Rendered once on suspend entry and held — no periodic refresh.
 - **Suspend timer sleep**: when suspended, the orchestrator sleeps until `next_wake_time()` (the actual resume time), not for `effective_interval`. This prevents unnecessary loop cycles and display refreshes during the suspend window.
 - **`set_suspend_schedule()` must interrupt the timer**: if the schedule changes via API while suspended, the loop is sleeping until the old `next_wake_time`. Without `timer.interrupt()` + `_suspended_displayed = False` in `set_suspend_schedule()`, the new schedule takes effect only when the old sleep expires — which can be hours away.
@@ -259,27 +259,32 @@ sudo systemctl start talevision
 - Languages: `it`, `es`, `pt`, `en`, `fr`, `de` (in that order). Switchable via `POST /api/language`.
 - Render (800×480, white bg): time+date header → accent separator → article title → extract body → thumbnail 180×135px top-right → QR 80×80px bottom-right.
 - **Header**: single line `{HH:MM} · {d MMMM} {'YY}` in Taviraj-SemiBold 32pt, black. `"Wikipedia · IT"` right-aligned in Taviraj-Regular 24pt. Date is babel-formatted (`format_date(now, "d MMMM", locale=LANG_TO_BABEL[lang])`).
-- **QR truncation message**: when body is clipped, last visible line replaced with a locale-appropriate "… scan QR to read more" message (`QR_MORE_MSG` dict, 6 languages). Rendered in `COLOR_MUTED`.
+- **Text clipping**: when body is clipped, last visible line gets ` …` ellipsis. QR code is self-explanatory — no additional hint text.
 - Article title: Signika-Bold 26pt, max 2 lines. Extract: Taviraj-Regular 22pt, word-wrapped to available width.
 - QR: `qrcode[pil]`. Thumbnail: `urllib.request`, graceful skip on timeout/error. Cropped 4:3 then resized LANCZOS.
 - Config: `wikipedia.refresh_interval` (default 300s), `wikipedia.language`, `wikipedia.timeout`.
 - `get_state()` exposes `title`, `language`, `url` in status extra.
 
-## Weather Mode (wttr.in)
+## Weather Mode (wttr.in ANSI)
 
 - `talevision/modes/weather.py` — `WeatherMode` class.
-- Fetch: `GET http://wttr.in/{location}?format=j1` — structured JSON, no API key required. **HTTP not HTTPS** — HTTPS handshake times out on Pi Zero W (armv6l) due to TLS overhead.
-- Render (800×480, white bg): time header (HH:MM + date + city name) → accent separator → large current temperature (Signika-Bold 80pt) + condition/feels-like/wind/humidity → 3-day forecast (date, max/min temp, condition mid-day).
-- Location: configurable from dashboard. Persisted via `WeatherMode._location`. Set via `POST /api/weather/location`.
-- Autocomplete: `GET /api/weather/search?q=` → Nominatim OpenStreetMap, no API key, limit 5.
-- Config: `weather.refresh_interval` (default 600s), `weather.location`, `weather.timeout`.
-- `/api/status` includes `weather_location` field (always reflects current `WeatherMode._location`).
-- Graceful fallback: if fetch fails, shows last cached data or "Weather unavailable" message.
+- Fetch: `GET http://wttr.in/{lat},{lon}?AQF&lang={lang}&{units}` — raw ANSI terminal output, no API key. Flags: `A` (force ANSI), `Q` (superquiet — removes coordinate header), `F` (no follow). **HTTP not HTTPS** — HTTPS handshake times out on Pi Zero W (armv6l).
+- ANSI parsing: `_parse_ansi()` extracts characters with SGR colour codes and bold flags. `ANSI_COLOR_MAP` maps 16 ANSI colours to 7 e-ink native colours (green→blue, yellow→orange, white→black for inverted bg).
+- Font: Inconsolata Nerd Font Mono (Bold variant). 125/125 Unicode glyph coverage (arrows ↑↓←→↗↘, degree °, box-drawing ┌─┐│└┘, etc.). 6 font files in `assets/fonts/`.
+- Two-zone rendering:
+  - **Header**: `"{city} · {HH:MM}"` in Signika-Bold 16pt, centred.
+  - **Current conditions** (above `┌`): ASCII art weather icon + temperature/wind/humidity at 14pt. Split detected via `_find_forecast_start()` (first line with `┌` box-drawing char).
+  - **Forecast tables** (from `┌` onwards): 3-day forecast at 12pt. `LINE_GAP=0` to fit all 37 lines.
+- Location: configurable from dashboard with autocomplete. Stored as `city` + `lat` + `lon`. Set via `POST /api/weather/location` with `{city, lat, lon}`.
+- Autocomplete: `GET /api/weather/search?q=&lang=` → Open-Meteo free geocoding API (no key), returns `[{name, display, lat, lon}]`.
+- Units: `m` (metric), `u` (imperial), `M` (metric + m/s wind). Toggle via `POST /api/weather/units`.
+- Config: `weather.refresh_interval` (default 300s), `weather.city`, `weather.lat`, `weather.lon`, `weather.units`, `weather.language`, `weather.timeout`.
+- `/api/status` includes `weather_units` field.
+- Graceful fallback: if fetch fails, shows last cached ANSI data or "Weather unavailable" message.
 
 ## Known Open TODOs
 
 - `generate_sidecars.py` lives in repo root; should move to `scripts/`.
-- SlowMovie picks the same video until removed — no rotation between multiple films yet.
 - Web dashboard has no HTTP basic auth — LAN-only deployment assumed.
 
 ## Open Questions
