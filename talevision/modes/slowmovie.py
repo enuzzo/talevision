@@ -122,6 +122,8 @@ class SlowMovieMode(DisplayMode):
         return self._cfg.refresh_interval
 
     def on_activate(self) -> None:
+        self._current_video = None
+        self._current_video_info = None
         log.info("SlowMovie activated")
         available = self._get_available_videos()
         if available:
