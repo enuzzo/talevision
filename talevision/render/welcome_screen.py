@@ -214,7 +214,7 @@ def render_welcome_screen(
     y += lh_tagline + TAGLINE_TO_BOOT_GAP
 
     # ── [ Starting in 30 seconds ] ───────────────────────────────────────────
-    starting = "[ STARTING IN 30 SECONDS ]"
+    starting = "\u2014 STARTING IN 30 SECONDS \u2014"
     draw.text(((W - text_w(starting, font_md)) // 2, y), starting,
               font=font_md, fill=RED)
     y += lh_md + BOOT_TO_TABLE_GAP
