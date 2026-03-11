@@ -1,11 +1,10 @@
-"""Weather display mode — fetches current conditions from wttr.in and renders with PIL."""
-import datetime
-import json
+"""Weather display mode — renders wttr.in ANSI output on e-ink via PIL."""
 import logging
+import re
 import urllib.parse
 import urllib.request
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -14,20 +13,90 @@ from talevision.modes.base import DisplayMode, ModeState
 
 log = logging.getLogger(__name__)
 
-COLOR_WHITE  = (255, 255, 255)
-COLOR_BLACK  = (0,   0,   0)
-COLOR_ACCENT = (0,   181, 116)   # green — weather mode color
-COLOR_MUTED  = (110, 110, 110)
-COLOR_BLUE   = (57,  184, 255)
+COLOR_WHITE = (255, 255, 255)
+COLOR_BLACK = (0, 0, 0)
+
+ANSI_COLOR_MAP = {
+    30: COLOR_BLACK,
+    31: (255, 0, 0),
+    32: (0, 0, 255),
+    33: (255, 165, 0),
+    34: (0, 0, 255),
+    35: (255, 0, 0),
+    36: (0, 0, 255),
+    37: COLOR_BLACK,
+    39: COLOR_BLACK,
+    90: (110, 110, 110),
+    91: (255, 0, 0),
+    92: (0, 0, 255),
+    93: (255, 165, 0),
+    94: (0, 0, 255),
+    95: (255, 0, 0),
+    96: (0, 0, 255),
+    97: COLOR_BLACK,
+}
+
+ANSI_RE = re.compile(r"\033\[([0-9;]*)m")
+
+FONT_SIZE = 12
+LINE_GAP = 2
 
 
-def _fetch_weather(location: str, timeout: int = 10) -> Dict:
-    """Fetch current weather from wttr.in for the given location (format=j1)."""
-    encoded = urllib.parse.quote(location)
-    url = f"http://wttr.in/{encoded}?format=j1"
-    req = urllib.request.Request(url, headers={"User-Agent": "TaleVision/1.0"})
+def _fetch_ansi(lat: float, lon: float, lang: str = "it",
+                units: str = "m", timeout: int = 10) -> str:
+    loc = f"{lat:.4f},{lon:.4f}"
+    encoded = urllib.parse.quote(loc)
+    url = f"http://wttr.in/{encoded}?A&F&2&lang={lang}&{units}"
+    req = urllib.request.Request(url, headers={"User-Agent": "curl/7.0"})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+        return resp.read().decode("utf-8")
+
+
+Cell = Tuple[str, Tuple[int, int, int], bool]
+
+
+def _parse_ansi(text: str) -> List[List[Cell]]:
+    lines_out: List[List[Cell]] = []
+    current_color = COLOR_BLACK
+    current_bold = False
+
+    lines = text.split("\n")
+    while lines and lines[-1].strip() == "":
+        lines.pop()
+    if lines and ("Località:" in lines[-1] or "Location:" in lines[-1]
+                  or "Ubicación:" in lines[-1] or "Localisation:" in lines[-1]
+                  or "Standort:" in lines[-1] or "Localização:" in lines[-1]):
+        lines.pop()
+
+    for raw_line in lines:
+        cells: List[Cell] = []
+        pos = 0
+        for m in ANSI_RE.finditer(raw_line):
+            before = raw_line[pos:m.start()]
+            for ch in before:
+                cells.append((ch, current_color, current_bold))
+            params_str = m.group(1)
+            if not params_str:
+                params = [0]
+            else:
+                params = [int(p) for p in params_str.split(";") if p.isdigit()]
+            for p in params:
+                if p == 0:
+                    current_color = COLOR_BLACK
+                    current_bold = False
+                elif p == 1:
+                    current_bold = True
+                elif p == 4:
+                    pass
+                elif p in ANSI_COLOR_MAP:
+                    current_color = ANSI_COLOR_MAP[p]
+            pos = m.end()
+        remainder = raw_line[pos:]
+        for ch in remainder:
+            cells.append((ch, current_color, current_bold))
+        lines_out.append(cells)
+
+    return lines_out
 
 
 def _load_font(font_path: Path, size: int) -> ImageFont.FreeTypeFont:
@@ -37,32 +106,19 @@ def _load_font(font_path: Path, size: int) -> ImageFont.FreeTypeFont:
         return ImageFont.load_default(size=size)
 
 
-def _wrap_text(text: str, font, draw: ImageDraw.Draw, max_width: int) -> List[str]:
-    words = text.split()
-    lines: List[str] = []
-    current = ""
-    for word in words:
-        candidate = f"{current} {word}".strip()
-        if draw.textlength(candidate, font=font) <= max_width:
-            current = candidate
-        else:
-            if current:
-                lines.append(current)
-            current = word
-    if current:
-        lines.append(current)
-    return lines
-
-
 class WeatherMode(DisplayMode):
-    """Displays current weather and 3-day forecast from wttr.in."""
+    """Displays wttr.in ANSI weather output rendered with monospace font."""
 
     def __init__(self, config: AppConfig, base_dir: Path = Path(".")):
         self._cfg = config.weather
         self._display = config.display
         self._base_dir = base_dir
-        self._location = self._cfg.location
-        self._last_data: Optional[Dict] = None
+        self._city = self._cfg.city
+        self._lat = self._cfg.lat
+        self._lon = self._cfg.lon
+        self._units = self._cfg.units
+        self._language = self._cfg.language
+        self._last_ansi: Optional[str] = None
         self._font_dir = base_dir / "assets" / "fonts"
 
     @property
@@ -74,111 +130,87 @@ class WeatherMode(DisplayMode):
         return self._cfg.refresh_interval
 
     def on_activate(self) -> None:
-        log.info(f"Weather mode activated (location={self._location})")
+        log.info(f"Weather mode activated (city={self._city}, "
+                 f"lat={self._lat}, lon={self._lon})")
 
-    def set_location(self, location: str) -> None:
-        self._location = location.strip()
-        log.info(f"Weather location set to: {self._location}")
+    def set_location(self, city: str, lat: float, lon: float) -> None:
+        self._city = city.strip()
+        self._lat = lat
+        self._lon = lon
+        log.info(f"Weather location set to: {self._city} ({self._lat}, {self._lon})")
+
+    def set_units(self, units: str) -> None:
+        if units in ("m", "u", "M"):
+            self._units = units
+            log.info(f"Weather units set to: {self._units}")
+
+    def set_language(self, lang: str) -> None:
+        self._language = lang
+        log.info(f"Weather language set to: {self._language}")
 
     def render(self) -> Image.Image:
         w, h = self._display.width, self._display.height
+
         try:
-            data = _fetch_weather(self._location, timeout=self._cfg.timeout)
-            self._last_data = data
+            ansi_text = _fetch_ansi(
+                self._lat, self._lon,
+                lang=self._language,
+                units=self._units,
+                timeout=self._cfg.timeout,
+            )
+            self._last_ansi = ansi_text
         except Exception as exc:
-            log.error(f"Weather fetch failed ({self._location}): {exc}")
-            data = self._last_data
+            log.error(f"Weather ANSI fetch failed: {exc}")
+            ansi_text = self._last_ansi
 
         img = Image.new("RGB", (w, h), COLOR_WHITE)
         draw = ImageDraw.Draw(img)
 
-        if data is None:
-            font = _load_font(self._font_dir / "Signika-Bold.ttf", 28)
-            draw.text((30, 200), "Weather unavailable", font=font, fill=COLOR_BLACK)
+        if ansi_text is None:
+            font_err = _load_font(self._font_dir / "Signika-Bold.ttf", 28)
+            draw.text((30, 200), "Weather unavailable", font=font_err, fill=COLOR_BLACK)
             return img
 
-        font_bold  = _load_font(self._font_dir / "Signika-Bold.ttf", 32)
-        font_large = _load_font(self._font_dir / "Signika-Bold.ttf", 80)
-        font_body  = _load_font(self._font_dir / "Taviraj-Regular.ttf", 22)
-        font_small = _load_font(self._font_dir / "Taviraj-Regular.ttf", 18)
+        font_regular = _load_font(
+            self._font_dir / "InconsolataNerdFontMono-Regular.ttf", FONT_SIZE)
+        font_bold = _load_font(
+            self._font_dir / "InconsolataNerdFontMono-Bold.ttf", FONT_SIZE)
 
-        pad = 30
-        now = datetime.datetime.now()
+        parsed = _parse_ansi(ansi_text)
 
-        # ── Header: time + location ───────────────────────────────────────────
-        y = pad
-        time_str = now.strftime("%H:%M")
-        date_str = now.strftime("%A, %d %B %Y")
+        bbox = font_regular.getbbox("M")
+        char_w = bbox[2] - bbox[0]
+        char_h = FONT_SIZE + LINE_GAP
 
-        draw.text((pad, y), time_str, font=font_bold, fill=COLOR_BLACK)
-        loc_w = draw.textlength(self._location, font=font_body)
-        draw.text((w - pad - loc_w, y + 6), self._location, font=font_body, fill=COLOR_ACCENT)
-        y += 38
-        draw.text((pad, y), date_str, font=font_small, fill=COLOR_MUTED)
-        y += 26
-        draw.line([(pad, y), (w - pad, y)], fill=COLOR_ACCENT, width=2)
-        y += 16
+        max_cols = max((len(line) for line in parsed), default=0)
+        total_w = max_cols * char_w
+        total_h = len(parsed) * char_h
+        offset_x = max(0, (w - total_w) // 2)
+        offset_y = max(0, (h - total_h) // 2)
 
-        # ── Current conditions ────────────────────────────────────────────────
-        cond = data.get("current_condition", [{}])[0]
-        temp_c = cond.get("temp_C", "?")
-        feels  = cond.get("FeelsLikeC", "?")
-        desc   = (cond.get("weatherDesc") or [{}])[0].get("value", "")
-        wind   = cond.get("windspeedKmph", "?")
-        humidity = cond.get("humidity", "?")
-
-        # Big temperature on left
-        temp_str = f"{temp_c}°"
-        draw.text((pad, y), temp_str, font=font_large, fill=COLOR_BLACK)
-        temp_w = int(draw.textlength(temp_str, font=font_large))
-
-        # Condition + details to the right of temp
-        rx = pad + temp_w + 20
-        ry = y + 10
-        draw.text((rx, ry),      desc,                          font=font_bold,  fill=COLOR_BLACK)
-        draw.text((rx, ry + 40), f"Feels like {feels}°C",      font=font_body,  fill=COLOR_MUTED)
-        draw.text((rx, ry + 66), f"Wind {wind} km/h  ·  Humidity {humidity}%",
-                  font=font_small, fill=COLOR_MUTED)
-
-        # Move y below the current-conditions block (large font is ~90px)
-        y += 106
-
-        # ── 3-day forecast ────────────────────────────────────────────────────
-        draw.line([(pad, y), (w - pad, y)], fill=(210, 210, 210), width=1)
-        y += 14
-
-        forecast = data.get("weather", [])[:3]
-        col_w = (w - 2 * pad) // max(len(forecast), 1)
-
-        for i, day in enumerate(forecast):
-            cx = pad + i * col_w
-            try:
-                d = datetime.datetime.strptime(day["date"], "%Y-%m-%d")
-                day_label = d.strftime("%a %d %b")
-            except Exception:
-                day_label = day.get("date", "")
-
-            mx = day.get("maxtempC", "?")
-            mn = day.get("mintempC", "?")
-            hourly = day.get("hourly", [])
-            mid = hourly[len(hourly) // 2] if hourly else {}
-            day_desc = (mid.get("weatherDesc") or [{}])[0].get("value", "")[:14]
-
-            draw.text((cx, y),      day_label,        font=font_body,  fill=COLOR_BLACK)
-            draw.text((cx, y + 28), f"{mx}° / {mn}°", font=font_bold,  fill=COLOR_BLUE)
-            draw.text((cx, y + 58), day_desc,          font=font_small, fill=COLOR_MUTED)
+        for row_idx, line_cells in enumerate(parsed):
+            y = offset_y + row_idx * char_h
+            if y > h:
+                break
+            for col_idx, (ch, color, bold) in enumerate(line_cells):
+                x = offset_x + col_idx * char_w
+                if x > w:
+                    break
+                if ch == " ":
+                    continue
+                font = font_bold if bold else font_regular
+                draw.text((x, y), ch, font=font, fill=color)
 
         return img
 
     def get_state(self) -> ModeState:
-        cond = {}
-        if self._last_data:
-            cond = (self._last_data.get("current_condition") or [{}])[0]
         return ModeState(
             mode="weather",
             extra={
-                "location": self._location,
-                "temp_c": cond.get("temp_C"),
-                "desc": (cond.get("weatherDesc") or [{}])[0].get("value"),
+                "city": self._city,
+                "lat": self._lat,
+                "lon": self._lon,
+                "units": self._units,
+                "language": self._language,
             },
         )

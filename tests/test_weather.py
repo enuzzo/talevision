@@ -1,5 +1,5 @@
-"""Tests for WeatherMode."""
-import json
+"""Tests for WeatherMode ANSI redesign."""
+import re
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 from PIL import Image
@@ -10,50 +10,36 @@ def _make_config():
     return load_config(Path("config.yaml"))
 
 
-FAKE_WTTR = {
-    "current_condition": [{
-        "temp_C": "18",
-        "FeelsLikeC": "16",
-        "weatherDesc": [{"value": "Partly cloudy"}],
-        "windspeedKmph": "15",
-        "humidity": "60",
-    }],
-    "weather": [
-        {
-            "date": "2026-03-10",
-            "maxtempC": "20",
-            "mintempC": "12",
-            "hourly": [{"weatherDesc": [{"value": "Sunny"}]}],
-        },
-        {
-            "date": "2026-03-11",
-            "maxtempC": "17",
-            "mintempC": "10",
-            "hourly": [{"weatherDesc": [{"value": "Cloudy"}]}],
-        },
-        {
-            "date": "2026-03-12",
-            "maxtempC": "15",
-            "mintempC": "9",
-            "hourly": [{"weatherDesc": [{"value": "Rain"}]}],
-        },
-    ],
-    "nearest_area": [{"areaName": [{"value": "Rome"}], "country": [{"value": "Italy"}]}],
-}
+# Sample ANSI output (minimal, simulates wttr.in structure)
+FAKE_ANSI = (
+    "\033[37mWeather report: Roma\033[0m\n"
+    "\n"
+    "     \\  /       \033[1;33mPartly cloudy\033[0m\n"
+    "   _ /\"\".-.     \033[1;33m+18(16) °C\033[0m\n"
+    "     \\_(   ).   \033[32m↗ 15 km/h\033[0m\n"
+)
 
 
-def test_fetch_weather_returns_structured_data():
-    fake_resp = MagicMock()
-    fake_resp.read.return_value = json.dumps(FAKE_WTTR).encode()
-    fake_resp.__enter__ = lambda s: s
-    fake_resp.__exit__ = MagicMock(return_value=False)
+def test_parse_ansi_extracts_chars_and_colors():
+    from talevision.modes.weather import _parse_ansi
+    cells = _parse_ansi(FAKE_ANSI)
+    assert len(cells) >= 3
+    first_line_text = "".join(ch for ch, _, _ in cells[0])
+    assert "Weather report" in first_line_text
 
-    with patch("urllib.request.urlopen", return_value=fake_resp):
-        from talevision.modes.weather import _fetch_weather
-        result = _fetch_weather("Roma", timeout=5)
 
-    assert result["current_condition"][0]["temp_C"] == "18"
-    assert len(result["weather"]) == 3
+def test_parse_ansi_maps_colors():
+    from talevision.modes.weather import _parse_ansi
+    cells = _parse_ansi(FAKE_ANSI)
+    line2_colors = set(color for _, color, _ in cells[2] if color != (0, 0, 0))
+    assert (255, 165, 0) in line2_colors
+
+
+def test_parse_ansi_bold_flag():
+    from talevision.modes.weather import _parse_ansi
+    cells = _parse_ansi(FAKE_ANSI)
+    bold_chars = [(ch, bold) for ch, _, bold in cells[2] if bold]
+    assert len(bold_chars) > 0
 
 
 def test_render_returns_correct_size():
@@ -61,7 +47,7 @@ def test_render_returns_correct_size():
     from talevision.modes.weather import WeatherMode
     mode = WeatherMode(cfg, base_dir=Path("."))
 
-    with patch("talevision.modes.weather._fetch_weather", return_value=FAKE_WTTR):
+    with patch("talevision.modes.weather._fetch_ansi", return_value=FAKE_ANSI):
         img = mode.render()
 
     assert isinstance(img, Image.Image)
@@ -69,9 +55,30 @@ def test_render_returns_correct_size():
     assert img.mode == "RGB"
 
 
-def test_set_location_updates_config():
+def test_render_white_background():
     cfg = _make_config()
     from talevision.modes.weather import WeatherMode
     mode = WeatherMode(cfg, base_dir=Path("."))
-    mode.set_location("Milano")
-    assert mode._location == "Milano"
+
+    with patch("talevision.modes.weather._fetch_ansi", return_value=FAKE_ANSI):
+        img = mode.render()
+
+    assert img.getpixel((0, 0)) == (255, 255, 255)
+
+
+def test_set_location_updates_all_fields():
+    cfg = _make_config()
+    from talevision.modes.weather import WeatherMode
+    mode = WeatherMode(cfg, base_dir=Path("."))
+    mode.set_location("Milano", 45.4642, 9.1900)
+    assert mode._city == "Milano"
+    assert mode._lat == 45.4642
+    assert mode._lon == 9.1900
+
+
+def test_set_units():
+    cfg = _make_config()
+    from talevision.modes.weather import WeatherMode
+    mode = WeatherMode(cfg, base_dir=Path("."))
+    mode.set_units("u")
+    assert mode._units == "u"
