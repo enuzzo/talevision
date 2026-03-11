@@ -54,17 +54,27 @@ export const api = {
     }).then(r => json<{ ok: boolean }>(r)),
 
   getWeatherLocation: () =>
-    fetch('/api/weather/location').then(r => json<{ location: string }>(r)),
+    fetch('/api/weather/location').then(r => json<{ city: string; lat: number; lon: number }>(r)),
 
-  setWeatherLocation: (location: string) =>
+  setWeatherLocation: (city: string, lat: number, lon: number) =>
     fetch('/api/weather/location', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ location }),
+      body: JSON.stringify({ city, lat, lon }),
     }).then(r => json<{ ok: boolean }>(r)),
 
-  searchWeatherLocation: (q: string) =>
-    fetch(`/api/weather/search?${new URLSearchParams({ q })}`).then(
-      r => json<{ results: Array<{ name: string; display: string }> }>(r)
+  searchWeatherLocation: (q: string, lang?: string) =>
+    fetch(`/api/weather/search?${new URLSearchParams({ q, lang: lang ?? 'en' })}`).then(
+      r => json<{ results: Array<{ name: string; display: string; lat: number; lon: number }> }>(r)
     ),
+
+  getWeatherUnits: () =>
+    fetch('/api/weather/units').then(r => json<{ units: string }>(r)),
+
+  setWeatherUnits: (units: string) =>
+    fetch('/api/weather/units', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ units }),
+    }).then(r => json<{ ok: boolean }>(r)),
 }

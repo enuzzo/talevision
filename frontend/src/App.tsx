@@ -870,15 +870,21 @@ function LanguageSelector({ current }: { current?: string }) {
 function WeatherSettings({ currentLocation }: { currentLocation?: string }) {
   const qc = useQueryClient()
   const [input, setInput] = useState(currentLocation ?? '')
-  const [suggestions, setSuggestions] = useState<Array<{ name: string; display: string }>>([])
+  const [suggestions, setSuggestions] = useState<Array<{ name: string; display: string; lat: number; lon: number }>>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lon: number } | null>(null)
   const [saved, setSaved] = useState(false)
+  const [units, setUnits] = useState('m')
   const timerRef = useRef<ReturnType<typeof setTimeout>>()
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
 
   useEffect(() => {
     if (currentLocation && !input) setInput(currentLocation)
   }, [currentLocation])
+
+  useEffect(() => {
+    api.getWeatherUnits().then(d => setUnits(d.units)).catch(() => {})
+  }, [])
 
   const searchMut = useMutation({
     mutationFn: (q: string) => api.searchWeatherLocation(q),
@@ -889,7 +895,10 @@ function WeatherSettings({ currentLocation }: { currentLocation?: string }) {
   })
 
   const saveMut = useMutation({
-    mutationFn: () => api.setWeatherLocation(input),
+    mutationFn: () => {
+      if (!selectedCoords) return Promise.reject(new Error('No city selected'))
+      return api.setWeatherLocation(input, selectedCoords.lat, selectedCoords.lon)
+    },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['status'] })
       setSaved(true)
@@ -898,8 +907,14 @@ function WeatherSettings({ currentLocation }: { currentLocation?: string }) {
     },
   })
 
+  const unitsMut = useMutation({
+    mutationFn: (u: string) => api.setWeatherUnits(u),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['status'] }),
+  })
+
   const handleInputChange = (val: string) => {
     setInput(val)
+    setSelectedCoords(null)
     clearTimeout(debounceRef.current)
     if (val.length >= 2) {
       debounceRef.current = setTimeout(() => searchMut.mutate(val), 400)
@@ -909,10 +924,17 @@ function WeatherSettings({ currentLocation }: { currentLocation?: string }) {
     }
   }
 
-  const selectSuggestion = (name: string) => {
-    setInput(name)
+  const selectSuggestion = (s: { name: string; display: string; lat: number; lon: number }) => {
+    setInput(s.name)
+    setSelectedCoords({ lat: s.lat, lon: s.lon })
     setSuggestions([])
     setShowSuggestions(false)
+  }
+
+  const toggleUnits = () => {
+    const next = units === 'm' ? 'u' : 'm'
+    setUnits(next)
+    unitsMut.mutate(next)
   }
 
   return (
@@ -938,11 +960,11 @@ function WeatherSettings({ currentLocation }: { currentLocation?: string }) {
               {suggestions.map((s, i) => (
                 <button
                   key={i}
-                  onClick={() => selectSuggestion(s.name)}
+                  onClick={() => selectSuggestion(s)}
                   className="w-full text-left px-3 py-2 font-display text-sm text-secondary hover:bg-surface-hover hover:text-accent transition-colors"
                 >
                   <span className="text-primary">{s.name}</span>
-                  <span className="text-muted text-xs ml-2">{s.display.slice(0, 55)}…</span>
+                  <span className="text-muted text-xs ml-2">{s.display}</span>
                 </button>
               ))}
             </div>
@@ -952,11 +974,18 @@ function WeatherSettings({ currentLocation }: { currentLocation?: string }) {
       <div className="flex items-center gap-3">
         <button
           onClick={() => saveMut.mutate()}
-          disabled={saveMut.isPending || !input.trim()}
+          disabled={saveMut.isPending || !input.trim() || !selectedCoords}
           className="font-display text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-sm bg-accent text-cream hover:bg-accent-hover transition-all duration-200 disabled:opacity-50"
           style={{ boxShadow: '0 0 20px rgba(202,121,109,0.20)' }}
         >
           {saveMut.isPending ? 'Saving…' : 'Set location'}
+        </button>
+        <button
+          onClick={toggleUnits}
+          className="font-display text-xs font-bold uppercase tracking-widest px-4 py-2.5 rounded-sm bg-deep text-secondary hover:text-accent transition-all duration-200"
+          style={{ border: '1px solid rgba(74,75,89,0.15)' }}
+        >
+          {units === 'm' ? '°C · km/h' : '°F · mph'}
         </button>
         {saved && <span className="label animate-fade-in" style={{ color: '#8DA495' }}>Saved</span>}
       </div>
