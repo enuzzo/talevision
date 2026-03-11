@@ -142,7 +142,11 @@ class WikipediaConfig:
 @dataclass
 class WeatherConfig:
     refresh_interval: int = 600
-    location: str = "Roma"
+    city: str = "Roma"
+    lat: float = 41.8935
+    lon: float = 12.4826
+    units: str = "m"
+    language: str = "it"
     timeout: int = 10
 
 

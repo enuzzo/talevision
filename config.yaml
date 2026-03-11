@@ -108,7 +108,11 @@ wikipedia:
 
 weather:
   refresh_interval: 300   # seconds between weather updates (5 min)
-  location: "Roma"
+  city: "Ponte Capriasca"
+  lat: 46.0667
+  lon: 8.9667
+  units: "m"
+  language: "it"
   timeout: 10
 
 buttons:
