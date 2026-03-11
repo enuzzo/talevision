@@ -168,6 +168,8 @@ def render_welcome_screen(
     lh_sm      = text_h(font_sm) + 3
 
     hostname = socket.gethostname()
+    if not hostname.endswith(".local"):
+        hostname += ".local"
     ip = _get_ip()
     playlist_str = " → ".join(p.upper() for p in playlist) if playlist else mode.upper()
     dashboard_url = f"http://{ip}:{port}"
