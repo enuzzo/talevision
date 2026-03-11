@@ -25,15 +25,6 @@ LANG_TO_BABEL = {
     "es": "es_ES", "fr": "fr_FR", "pt": "pt_PT",
 }
 
-QR_MORE_MSG = {
-    "it": "… scansiona il QR per saperne di più",
-    "en": "… scan QR to read more",
-    "de": "… QR scannen für mehr",
-    "es": "… escanea el QR para leer más",
-    "fr": "… scannez le QR pour lire la suite",
-    "pt": "… digitalize o QR para ler mais",
-}
-
 THUMB_W = 180
 THUMB_H = 135
 QR_SIZE = 80
@@ -246,8 +237,6 @@ class WikipediaMode(DisplayMode):
         # ── Extract body ──────────────────────────────────────────────────────
         extract = article.get("extract", "")
         line_h = 28
-        font_qr_msg = _load_font(self._font_dir / "Signika-Regular.ttf", 16)
-
         body_start_y = y
         thumb_end_y = content_top + actual_thumb_h
         qr_x = w - pad - QR_SIZE
@@ -303,13 +292,6 @@ class WikipediaMode(DisplayMode):
         for line in body_lines:
             draw.text((pad, y), line, font=font_body, fill=COLOR_BLACK)
             y += line_h
-
-        # QR message: sans-serif, smaller, vertically centred in QR zone
-        if qr_img and was_clipped:
-            qr_msg = QR_MORE_MSG.get(self._language, QR_MORE_MSG["en"])
-            qr_msg_h = font_qr_msg.size
-            qr_msg_y = qr_y + (QR_SIZE - qr_msg_h) // 2
-            draw.text((pad, qr_msg_y), qr_msg, font=font_qr_msg, fill=COLOR_MUTED)
 
         # ── QR code (bottom right) ────────────────────────────────────────────
         if qr_img:
