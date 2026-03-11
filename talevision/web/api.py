@@ -161,22 +161,29 @@ def reset_interval(mode: str):
 
 @api_bp.get("/weather/location")
 def get_weather_location():
-    """GET /api/weather/location — current location setting."""
+    """GET /api/weather/location — current city + coordinates."""
     weather = _orchestrator()._modes.get("weather")
-    location = weather._location if weather and hasattr(weather, "_location") else ""
-    return jsonify({"location": location})
+    if not weather:
+        return jsonify({"city": "", "lat": 0, "lon": 0})
+    return jsonify({
+        "city": weather._city,
+        "lat": weather._lat,
+        "lon": weather._lon,
+    })
 
 
 @api_bp.post("/weather/location")
 def set_weather_location():
-    """POST /api/weather/location — {"location": "Milano"}"""
+    """POST /api/weather/location — {"city": "Milano", "lat": 45.46, "lon": 9.19}"""
     body = request.get_json(silent=True) or {}
-    location = body.get("location", "").strip()
-    if not location:
-        return jsonify({"error": "Missing 'location' field"}), 400
+    city = body.get("city", "").strip()
+    lat = body.get("lat")
+    lon = body.get("lon")
+    if not city or lat is None or lon is None:
+        return jsonify({"error": "Missing city, lat, or lon"}), 400
     try:
-        _orchestrator().set_weather_location(location)
-        return jsonify({"ok": True, "location": location})
+        _orchestrator().set_weather_location(city, float(lat), float(lon))
+        return jsonify({"ok": True, "city": city})
     except Exception as exc:
         log.error(f"Set weather location error: {exc}")
         return jsonify({"error": str(exc)}), 500
@@ -184,33 +191,63 @@ def set_weather_location():
 
 @api_bp.get("/weather/search")
 def search_weather_location():
-    """GET /api/weather/search?q=Milano — city autocomplete via Nominatim."""
+    """GET /api/weather/search?q=Milano — city autocomplete via Open-Meteo."""
     q = request.args.get("q", "").strip()
+    lang = request.args.get("lang", "en")
     if not q or len(q) < 2:
         return jsonify({"results": []})
     try:
         encoded = urllib.parse.quote(q)
         url = (
-            f"https://nominatim.openstreetmap.org/search"
-            f"?q={encoded}&format=json&limit=5&addressdetails=1"
+            f"https://geocoding-api.open-meteo.com/v1/search"
+            f"?count=6&language={lang}&format=json&name={encoded}"
         )
         req = urllib.request.Request(url, headers={"User-Agent": "TaleVision/1.0"})
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read().decode("utf-8"))
         results = []
-        for item in data:
-            addr = item.get("address", {})
-            name = (
-                addr.get("city")
-                or addr.get("town")
-                or addr.get("village")
-                or item.get("display_name", "").split(",")[0]
-            )
-            results.append({"name": name, "display": item.get("display_name", "")})
+        for item in data.get("results", []):
+            name = item.get("name", "")
+            admin1 = item.get("admin1", "")
+            country = item.get("country", "")
+            display = ", ".join(p for p in [name, admin1, country] if p)
+            results.append({
+                "name": name,
+                "display": display,
+                "lat": round(item.get("latitude", 0), 4),
+                "lon": round(item.get("longitude", 0), 4),
+            })
         return jsonify({"results": results})
     except Exception as exc:
         log.error(f"Weather search error: {exc}")
         return jsonify({"results": []})
+
+
+@api_bp.get("/weather/units")
+def get_weather_units():
+    """GET /api/weather/units — current unit system."""
+    weather = _orchestrator()._modes.get("weather")
+    units = weather._units if weather else "m"
+    return jsonify({"units": units})
+
+
+@api_bp.post("/weather/units")
+def set_weather_units():
+    """POST /api/weather/units — {"units": "m"|"u"}"""
+    body = request.get_json(silent=True) or {}
+    units = body.get("units", "")
+    if units not in ("m", "u", "M"):
+        return jsonify({"error": "Invalid units (m, u, or M)"}), 400
+    try:
+        weather = _orchestrator()._modes.get("weather")
+        if weather and hasattr(weather, "set_units"):
+            weather.set_units(units)
+        _orchestrator()._action_queue.put(("force_refresh", None))
+        _orchestrator()._timer.interrupt()
+        return jsonify({"ok": True, "units": units})
+    except Exception as exc:
+        log.error(f"Set weather units error: {exc}")
+        return jsonify({"error": str(exc)}), 500
 
 
 @api_bp.get("/frame")
