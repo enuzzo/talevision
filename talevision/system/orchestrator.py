@@ -129,10 +129,10 @@ class Orchestrator:
         self._action_queue.put(("set_language", lang))
         self._timer.interrupt()
 
-    def set_weather_location(self, location: str) -> None:
+    def set_weather_location(self, city: str, lat: float, lon: float) -> None:
         weather = self._modes.get("weather")
         if weather and hasattr(weather, "set_location"):
-            weather.set_location(location)
+            weather.set_location(city, lat, lon)
         self._action_queue.put(("force_refresh", None))
         self._timer.interrupt()
 
@@ -219,9 +219,11 @@ class Orchestrator:
         next_wake = self._scheduler.next_wake_time()
         language = state_extra.get("language")
         weather_location = None
+        weather_units = None
         weather_mode = self._modes.get("weather")
-        if weather_mode and hasattr(weather_mode, "_location"):
-            weather_location = weather_mode._location
+        if weather_mode:
+            weather_location = getattr(weather_mode, "_city", None)
+            weather_units = getattr(weather_mode, "_units", None)
         with self._status_lock:
             self._status_cache = {
                 "mode": mode_name,
@@ -232,6 +234,7 @@ class Orchestrator:
                 "state": state_extra,
                 "language": language,
                 "weather_location": weather_location,
+                "weather_units": weather_units,
             }
 
     def _process_actions(self) -> None:
