@@ -39,14 +39,14 @@ ANSI_COLOR_MAP = {
 ANSI_RE = re.compile(r"\033\[([0-9;]*)m")
 
 FONT_SIZE = 12
-LINE_GAP = 2
+LINE_GAP = 0
 
 
 def _fetch_ansi(lat: float, lon: float, lang: str = "it",
                 units: str = "m", timeout: int = 10) -> str:
     loc = f"{lat:.4f},{lon:.4f}"
     encoded = urllib.parse.quote(loc)
-    url = f"http://wttr.in/{encoded}?A&F&2&lang={lang}&{units}"
+    url = f"http://wttr.in/{encoded}?A&F&lang={lang}&{units}"
     req = urllib.request.Request(url, headers={"User-Agent": "curl/7.0"})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return resp.read().decode("utf-8")
@@ -172,9 +172,8 @@ class WeatherMode(DisplayMode):
             return img
 
         font_regular = _load_font(
-            self._font_dir / "InconsolataNerdFontMono-Regular.ttf", FONT_SIZE)
-        font_bold = _load_font(
             self._font_dir / "InconsolataNerdFontMono-Bold.ttf", FONT_SIZE)
+        font_bold = font_regular
 
         parsed = _parse_ansi(ansi_text)
 
