@@ -62,6 +62,7 @@ Generate TMDB sidecar JSON files for SlowMovie:
 # Requires tmdb_api_key in secrets.yaml
 python generate_sidecars.py
 python generate_sidecars.py --dry-run   # preview only
+python generate_sidecars.py --verify    # validate all sidecars
 ```
 
 ## Configuration Boundaries
@@ -92,8 +93,8 @@ python generate_sidecars.py --dry-run   # preview only
 - Overlay: RGBA layer, `rounded_rectangle(radius=8, fill=(0,0,0,190))`, `alpha_composite` at the end.
 - QR URL patterns: `imdb_search` → `https://www.imdb.com/find?q={title}`; `tmdb_search` → `https://www.themoviedb.org/search?query={title}`.
 - Metadata source: `{video}.json` sidecar file with `title`, `director`, `year` keys; fallback to filename stem.
-- Video selection resets on every `on_activate()` call — each playlist rotation picks a new random video. Within one activation, the selection is sticky (re-selected only if removed from `media/`).
-- Frame skip: `skip_start_seconds=120`, `skip_end_seconds=240` (avoids cold-open slates and end credits).
+- Video selection: when `video_file=random` (default), a new random video is picked on **every render cycle** — each frame shows a different film. When a specific filename is configured, the selection is sticky (re-selected only if removed from `media/`). This changed from the previous behaviour where random selection was sticky within one activation.
+- Frame skip: `skip_start_seconds=30`, `skip_end_seconds=120` (avoids cold-open slates and end credits; reduced from 120/240 to support short films).
 - Cached frames: `cache/current_frame.jpg` (raw extract) and `cache/slowmovie_frame.jpg` (final processed).
 
 ## Sidecar Metadata Files
@@ -104,7 +105,7 @@ python generate_sidecars.py --dry-run   # preview only
 - Parses title and year from common filename patterns (`Title - YEAR__suffix.mp4`, `Title (YEAR).mp4`).
 - Queries TMDB API (`/search/movie` + `/movie/{id}/credits`) for canonical title, year, director.
 - Writes `{videoname}.json` with `title`, `year`, `director`, `tmdb_id`, `imdb_url`.
-- Requires `tmdb_api_key` in `secrets.yaml`; supports `--dry-run`.
+- Requires `tmdb_api_key` in `secrets.yaml`; supports `--dry-run` and `--verify` (validates all sidecars have required fields).
 - Example sidecar: `media/Koyaanisqatsi - 1982__slowmovie.json` → title "Koyaanisqatsi", year "1983", director "Godfrey Reggio".
 
 **Auto-generation on SlowMovie activation:** `talevision/media/sidecars.py` (no `rich` dependency) is called from `SlowMovie.on_activate()` in a daemon thread. Scans `media/` for videos without `.json`, calls TMDB silently. Module-level lock prevents concurrent runs. Silent no-op if no API key.
@@ -191,7 +192,7 @@ LOOP-step log messages in `orchestrator.py` are at **DEBUG** level (changed from
 ## Current Product Behaviors
 
 - **LitClock mode**: renders a literary quote for the current minute; 6 languages (it/es/pt/en/fr/de) switchable at runtime. Refresh: 300 s.
-- **SlowMovie mode**: extracts a random film frame every 90 s with PIL enhancement and info overlay. TMDB QR bottom-right. Auto-generates sidecar `.json` on first activation.
+- **SlowMovie mode**: picks a random film and extracts a random frame every 5 min with PIL enhancement and info overlay. Each render picks a new random film (not sticky). TMDB QR bottom-right. Auto-generates sidecar `.json` on first activation.
 - **Wikipedia mode**: fetches a random article via Wikipedia REST API (summary) + MediaWiki action API (full extract up to 3000 chars). Renders title + body + thumbnail (proportional width, no forced crop) + QR. Text wraps in three zones: beside thumbnail (narrow), below thumbnail (full width), in QR zone (qr_safe_w). Last line gets ` …` ellipsis if clipped. Babel-formatted date header. 6 languages. Refresh: 300 s.
 - **Weather mode**: fetches wttr.in native ANSI terminal output (flag `AQF`), parses SGR escape codes char-by-char, and renders on PIL with Inconsolata Nerd Font Mono. Two-zone layout: custom header (`City · HH:MM` in Signika-Bold 16pt) + current conditions at 14pt (ASCII art cloud/sun + weather data) + forecast tables at 12pt. ANSI colours mapped to e-ink 7-colour palette. Location configurable with lat/lon coordinates (Open-Meteo geocoding). Metric/Imperial toggle. Refresh: 300 s.
 - **Suspend schedule**: overnight window (e.g. 17:00–08:00), wraps midnight; day-of-week filtering; BBS/NFO style screen on e-ink.

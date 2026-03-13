@@ -79,7 +79,7 @@ If no quote exists for the current minute — coverage is good but not complete 
 
 ## SlowMovie
 
-Every 5 minutes: select a film from `media/`, pick a random frame somewhere in the middle (skipping the first 2 minutes and the last 4 — credits and cold-open black slates are not cinema), extract it with ffmpeg, run it through the PIL pipeline, fit it to the panel, composite the overlay.
+Every 5 minutes: pick a random film from `media/`, extract a random frame from somewhere in the middle (skipping the first 30 seconds and the last 2 minutes — credits and cold-open black slates are not cinema), run it through the PIL pipeline, fit it to the panel, composite the overlay. Each render picks a different film — every frame on the wall is a still from a different movie.
 
 **PIL pipeline, in order:** Brightness → Gamma (custom LUT via `point()`, not an ImageEnhance filter) → Contrast → Color saturation → cover or contain fit.
 

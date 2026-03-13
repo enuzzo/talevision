@@ -162,6 +162,18 @@ Entry format:
 - Decision: Simplify to `— STARTING IN 30 SECONDS —` (em dashes, no letter-spacing). Append `.local` to hostname for mDNS discoverability.
 - Impact/Tradeoffs: Cleaner typography. Hostname is now directly usable as a network address.
 
+## 2026-03-13 - SlowMovie: Random Video Per Render + Reduced Skip Margins
+
+- Context: SlowMovie picked a random video only once per `on_activate()` call. In single-mode operation (no playlist rotation), the same film played indefinitely — always "sticky" across render cycles. Additionally, `skip_start_seconds=120` and `skip_end_seconds=240` were too aggressive for short films (< 6 min), causing the valid frame range to collapse and fall back to full range (including credits/slates).
+- Decision: When `video_file=random`, `_select_video()` now re-picks a random video on every render cycle (not just on activation). When a specific filename is configured, the selection remains sticky. Skip margins reduced to `skip_start_seconds=30`, `skip_end_seconds=120` — still avoids cold-open slates and end credits but works for short films too.
+- Impact/Tradeoffs: Every 5-minute render shows a different film — more variety, but no continuity within a single film. Acceptable for e-ink "slow cinema" where each frame is a standalone photograph. Users wanting to watch one film can set `video_file` to a specific filename.
+
+## 2026-03-13 - generate_sidecars.py: --verify Mode
+
+- Context: After bulk-copying new films to `media/`, there was no quick way to verify all sidecar `.json` files existed and had valid content (title, year, director fields).
+- Decision: Add `--verify` flag to `generate_sidecars.py`. Scans all videos, checks each has a `.json` with required fields, reports OK/MISSING/INVALID in a rich table. Exit code 0 if all valid, 1 if problems found.
+- Impact/Tradeoffs: Dev-side verification tool only (not run on Pi in production). Uses `rich` for formatted output.
+
 ## 2026-03-10 - Language Order: it / es / pt / en / fr / de
 
 - Context: Languages were listed alphabetically (de/en/es/fr/it/pt) in default config and UI. Project context is Italian-first (deployed in Italy, Netmilk is Italian).
