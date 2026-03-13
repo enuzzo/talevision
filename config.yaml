@@ -75,8 +75,8 @@ slowmovie:
   video_file: "random"
   cache_file: "cache/video_info_cache.json"
   frame_selection:
-    skip_start_seconds: 120
-    skip_end_seconds: 240
+    skip_start_seconds: 30
+    skip_end_seconds: 120
   image:
     fit_mode: cover
     brightness: 1.1
