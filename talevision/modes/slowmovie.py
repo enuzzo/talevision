@@ -182,24 +182,25 @@ class SlowMovieMode(DisplayMode):
         return sorted([f for ext in extensions for f in media_dir.glob(ext) if f.is_file()])
 
     def _select_video(self) -> Optional[Path]:
-        """Select video, reusing current if still valid."""
+        """Select video. Re-picks randomly each render when configured as random."""
         available = self._get_available_videos()
         if not available:
             log.error("No video files found in media/")
             return None
 
-        if self._current_video is None or self._current_video not in available:
-            video_choice = self._cfg.video_file
-            if video_choice.lower() != "random":
-                candidate = self._base_dir / self._cfg.media_dir / video_choice
-                if candidate.is_file():
-                    self._current_video = candidate
-                else:
-                    log.warning(f"Configured video '{video_choice}' not found; picking random")
-                    self._current_video = random.choice(available)
-            else:
-                self._current_video = random.choice(available)
+        video_choice = self._cfg.video_file
 
+        if video_choice.lower() == "random":
+            self._current_video = random.choice(available)
+            self._current_video_info = None
+            log.info(f"Video selected: {self._current_video.name}  [{_format_size(self._current_video)}]")
+        elif self._current_video is None or self._current_video not in available:
+            candidate = self._base_dir / self._cfg.media_dir / video_choice
+            if candidate.is_file():
+                self._current_video = candidate
+            else:
+                log.warning(f"Configured video '{video_choice}' not found; picking random")
+                self._current_video = random.choice(available)
             self._current_video_info = None
             log.info(f"Video selected: {self._current_video.name}  [{_format_size(self._current_video)}]")
 
