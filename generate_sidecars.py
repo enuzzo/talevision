@@ -8,6 +8,7 @@ Usage:
   python generate_sidecars.py                    # usa media/ nella cartella corrente
   python generate_sidecars.py --media /path/to   # cartella custom
   python generate_sidecars.py --dry-run          # mostra senza scrivere
+  python generate_sidecars.py --verify           # verifica integrita' sidecar
 """
 import argparse
 import json
@@ -151,15 +152,70 @@ def build_sidecar(video_path: Path, api_key: str) -> dict | None:
     }
 
 
+REQUIRED_SIDECAR_FIELDS = {"title", "year", "director"}
+
+
+def verify_sidecars(media_dir: Path) -> bool:
+    """Check all video files have valid JSON sidecars with required fields."""
+    videos = sorted([f for f in media_dir.iterdir() if f.suffix.lower() in VIDEO_EXTENSIONS])
+    if not videos:
+        console.print("[yellow]No video files found.[/yellow]")
+        return True
+
+    table = Table(show_header=True, header_style="bold cyan", border_style="dim")
+    table.add_column("File")
+    table.add_column("Status")
+    table.add_column("Details")
+
+    problems = 0
+    for video in videos:
+        sidecar = video.with_suffix(".json")
+        if not sidecar.exists():
+            table.add_row(video.name, "[red]MISSING[/red]", "no .json sidecar")
+            problems += 1
+            continue
+        try:
+            with open(sidecar, encoding="utf-8") as f:
+                data = json.load(f)
+            missing_fields = REQUIRED_SIDECAR_FIELDS - set(data.keys())
+            if missing_fields:
+                table.add_row(video.name, "[red]INVALID[/red]",
+                              f"missing fields: {', '.join(sorted(missing_fields))}")
+                problems += 1
+            else:
+                source = "TMDB" if data.get("tmdb_id") else "minimal"
+                table.add_row(video.name, "[green]OK[/green]",
+                              f"{data['title']} ({data['year']}) [{source}]")
+        except (json.JSONDecodeError, KeyError) as exc:
+            table.add_row(video.name, "[red]INVALID[/red]", str(exc))
+            problems += 1
+
+    console.print(table)
+    if problems:
+        console.print(f"\n[red]{problems} problem(s) found.[/red]")
+        return False
+    console.print(f"\n[green]All {len(videos)} video(s) have valid sidecars.[/green]")
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generate TMDB sidecar .json files for SlowMovie")
     parser.add_argument("--media", default="media", help="Path to media folder")
     parser.add_argument("--secrets", default="secrets.yaml", help="Path to secrets.yaml")
     parser.add_argument("--dry-run", action="store_true", help="Show results without writing files")
+    parser.add_argument("--verify", action="store_true", help="Verify all videos have valid sidecars")
     args = parser.parse_args()
 
     media_dir = Path(args.media)
     secrets_path = Path(args.secrets)
+
+    if not media_dir.is_dir():
+        console.print(f"[red]Media folder not found: {media_dir}[/red]")
+        sys.exit(1)
+
+    if args.verify:
+        ok = verify_sidecars(media_dir)
+        sys.exit(0 if ok else 1)
 
     console.print(Panel.fit(
         "[bold white]🎬 generate_sidecars[/bold white]\n"
@@ -175,10 +231,6 @@ def main():
         sys.exit(1)
 
     # Find videos
-    if not media_dir.is_dir():
-        console.print(f"[red]Media folder not found: {media_dir}[/red]")
-        sys.exit(1)
-
     videos = sorted([f for f in media_dir.iterdir() if f.suffix.lower() in VIDEO_EXTENSIONS])
     if not videos:
         console.print("[yellow]No video files found.[/yellow]")
