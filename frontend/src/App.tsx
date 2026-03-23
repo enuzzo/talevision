@@ -82,16 +82,17 @@ interface ModeInfo {
 }
 
 const ALL_MODES: ModeInfo[] = [
-  { id: 'litclock',  label: 'LitClock',  icon: '🕐', color: '#39B8FF', available: true },
-  { id: 'slowmovie', label: 'SlowMovie', icon: '🎬', color: '#FBBF24', available: true },
-  { id: 'wikipedia', label: 'Wikipedia', icon: '📖', color: '#7551FF', available: true },
-  { id: 'weather',   label: 'Weather',   icon: '🌤', color: '#4ADE80', available: true },
+  { id: 'litclock',  label: 'LitClock',  icon: '🕐', color: '#6A9FBF', available: true },
+  { id: 'slowmovie', label: 'SlowMovie', icon: '🎬', color: '#E8A838', available: true },
+  { id: 'wikipedia', label: 'Wikipedia', icon: '📖', color: '#D06B50', available: true },
+  { id: 'weather',   label: 'Weather',   icon: '🌤', color: '#7FA87F', available: true },
+  { id: 'museo',     label: 'Museo',     icon: '🎨', color: '#B8860B', available: true },
 ]
 
 const MODE_MAP = Object.fromEntries(ALL_MODES.map(m => [m.id, m]))
 
 function getModeInfo(id: string): ModeInfo {
-  return MODE_MAP[id] ?? { id, label: id, icon: '?', color: '#6B7396', available: false }
+  return MODE_MAP[id] ?? { id, label: id, icon: '?', color: '#5E5044', available: false }
 }
 
 // ─── Language names ──────────────────────────────────────────────────────────
@@ -193,7 +194,7 @@ function RenderingOverlay({ mode }: { mode: string }) {
   return (
     <div
       className="absolute inset-0 z-20 rounded-sm overflow-hidden flex items-center justify-center"
-      style={{ backgroundColor: '#050A22' }}
+      style={{ backgroundColor: '#1A1410' }}
     >
       <NoiseCanvas />
       <div
@@ -207,7 +208,7 @@ function RenderingOverlay({ mode }: { mode: string }) {
         className="absolute left-0 right-0 pointer-events-none"
         style={{
           height: '80px',
-          background: 'linear-gradient(to bottom, transparent, rgba(117,81,255,0.06) 30%, rgba(117,81,255,0.13) 50%, rgba(117,81,255,0.06) 70%, transparent)',
+          background: 'linear-gradient(to bottom, transparent, rgba(232,168,56,0.06) 30%, rgba(232,168,56,0.13) 50%, rgba(232,168,56,0.06) 70%, transparent)',
           top: '-80px',
           animation: 'scanSweep 3.2s linear infinite',
           zIndex: 2,
@@ -219,7 +220,7 @@ function RenderingOverlay({ mode }: { mode: string }) {
           style={{
             fontSize: '3.2rem',
             lineHeight: 1.1,
-            color: '#E8E8F0',
+            color: '#F0E6D6',
             textShadow: `0 0 24px ${info.color}55, 0 0 60px ${info.color}22`,
           }}
         >
@@ -236,7 +237,7 @@ function RenderingOverlay({ mode }: { mode: string }) {
       <div
         className="absolute inset-0 pointer-events-none rounded-sm"
         style={{
-          background: 'radial-gradient(ellipse at center, transparent 40%, rgba(5,10,34,0.65) 100%)',
+          background: 'radial-gradient(ellipse at center, transparent 40%, rgba(26,20,16,0.65) 100%)',
           zIndex: 4,
         }}
       />
@@ -257,7 +258,7 @@ function FramePreview({ refreshKey, waiting, waitingMode }: { refreshKey: number
   }, [refreshKey])
 
   return (
-    <div className="relative w-full rounded-sm overflow-hidden" style={{ aspectRatio: '5/3', border: '1px solid rgba(255,255,255,0.08)' }}>
+    <div className="relative w-full rounded-sm overflow-hidden" style={{ aspectRatio: '5/3', border: '1px solid rgba(232,168,56,0.14)' }}>
       {waiting && <RenderingOverlay mode={waitingMode} />}
 
       {!waiting && !loaded && !errored && (
@@ -430,7 +431,7 @@ function PlaylistEditor({
           return (
             <div key={id}>
               {showDivider && (
-                <div className="h-0.5 rounded-full mx-3 my-0.5 bg-accent" style={{ boxShadow: '0 0 6px rgba(117,81,255,0.5)' }} />
+                <div className="h-0.5 rounded-full mx-3 my-0.5 bg-accent" style={{ boxShadow: '0 0 6px rgba(232,168,56,0.5)' }} />
               )}
               <div
                 draggable={!isComingSoon}
@@ -468,18 +469,18 @@ function PlaylistEditor({
                     isComingSoon ? 'cursor-not-allowed' : 'cursor-pointer',
                   )}
                   style={{
-                    border: isEnabled ? `1px solid ${info.color}` : '1px solid rgba(255,255,255,0.15)',
+                    border: isEnabled ? `1px solid ${info.color}` : '1px solid rgba(232,168,56,0.22)',
                     backgroundColor: isEnabled ? info.color : 'transparent',
                   }}
                 >
                   {isEnabled && (
                     <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                      <path d="M1 4l2.5 2.5L9 1" stroke="#070D2D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M1 4l2.5 2.5L9 1" stroke="#1A1410" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   )}
                 </button>
 
-                <span className="text-sm flex-shrink-0 w-5 text-center" style={{ color: isEnabled ? info.color : '#4A5278' }}>
+                <span className="text-sm flex-shrink-0 w-5 text-center" style={{ color: isEnabled ? info.color : '#5E5044' }}>
                   {info.icon}
                 </span>
                 <span
@@ -522,12 +523,12 @@ function PlaylistEditor({
             value={interval}
             onChange={e => setIntervalVal(Math.max(1, parseInt(e.target.value) || 1))}
             className="w-16 bg-surface rounded-xs text-primary font-mono text-sm px-2 py-1.5 outline-none transition-all duration-200 text-center"
-            style={{ border: '1px solid rgba(255,255,255,0.10)' }}
-            onFocus={e => (e.target.style.borderColor = '#7551FF')}
-            onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.10)')}
+            style={{ border: '1px solid rgba(232,168,56,0.18)' }}
+            onFocus={e => (e.target.style.borderColor = '#E8A838')}
+            onBlur={e => (e.target.style.borderColor = 'rgba(232,168,56,0.18)')}
           />
           <span className="label">min</span>
-          <span className="label ml-auto" style={{ color: '#39B8FF' }}>
+          <span className="label ml-auto" style={{ color: '#6A9FBF' }}>
             {enabledCount} modes · {interval * enabledCount} min cycle
           </span>
         </div>
@@ -537,7 +538,7 @@ function PlaylistEditor({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="font-display text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-xs bg-accent text-white hover:bg-accent-hover transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
+          className="font-display text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-xs bg-accent text-bg hover:bg-accent-hover transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
         >
           {saving ? 'Saving…' : 'Save playlist'}
         </button>
@@ -551,13 +552,13 @@ function PlaylistEditor({
               ? 'text-accent/50 cursor-wait'
               : 'text-secondary hover:text-accent cursor-pointer',
           )}
-          style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+          style={{ border: '1px solid rgba(232,168,56,0.14)' }}
         >
           <RefreshIcon spinning={refreshing} />
           {refreshing ? 'Rendering…' : 'Force refresh'}
         </button>
         {saved && (
-          <span className="label animate-fade-in" style={{ color: '#4ADE80' }}>Saved</span>
+          <span className="label animate-fade-in" style={{ color: '#7FA87F' }}>Saved</span>
         )}
       </div>
     </div>
@@ -625,12 +626,12 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
             value={activeFrom}
             onChange={e => setActiveFrom(e.target.value)}
             className="w-full bg-surface rounded-xs text-primary font-mono text-sm px-3 py-2 outline-none transition-all duration-200"
-            style={{ border: '1px solid rgba(255,255,255,0.10)' }}
-            onFocus={e => (e.target.style.borderColor = '#7551FF')}
-            onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.10)')}
+            style={{ border: '1px solid rgba(232,168,56,0.18)' }}
+            onFocus={e => (e.target.style.borderColor = '#E8A838')}
+            onBlur={e => (e.target.style.borderColor = 'rgba(232,168,56,0.18)')}
           />
         </div>
-        <span className="label pb-2" style={{ color: '#7551FF' }}>→</span>
+        <span className="label pb-2" style={{ color: '#E8A838' }}>→</span>
         <div>
           <div className="label mb-1">Off at</div>
           <input
@@ -638,9 +639,9 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
             value={activeTo}
             onChange={e => setActiveTo(e.target.value)}
             className="w-full bg-surface rounded-xs text-primary font-mono text-sm px-3 py-2 outline-none transition-all duration-200"
-            style={{ border: '1px solid rgba(255,255,255,0.10)' }}
-            onFocus={e => (e.target.style.borderColor = '#7551FF')}
-            onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.10)')}
+            style={{ border: '1px solid rgba(232,168,56,0.18)' }}
+            onFocus={e => (e.target.style.borderColor = '#E8A838')}
+            onBlur={e => (e.target.style.borderColor = 'rgba(232,168,56,0.18)')}
           />
         </div>
       </div>
@@ -655,10 +656,10 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
               className={cx(
                 'w-9 h-9 text-[12px] font-display font-bold rounded-xs transition-all duration-200 outline-none',
                 days.includes(i)
-                  ? 'bg-accent text-white'
+                  ? 'bg-accent text-bg'
                   : 'text-tertiary hover:text-primary cursor-pointer',
               )}
-              style={{ border: days.includes(i) ? '1px solid #7551FF' : '1px solid rgba(255,255,255,0.10)' }}
+              style={{ border: days.includes(i) ? '1px solid #E8A838' : '1px solid rgba(232,168,56,0.18)' }}
             >
               {d}
             </button>
@@ -670,12 +671,12 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
         <button
           onClick={() => mut.mutate()}
           disabled={mut.isPending}
-          className="font-display text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-xs bg-accent text-white hover:bg-accent-hover transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
+          className="font-display text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-xs bg-accent text-bg hover:bg-accent-hover transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
         >
           {mut.isPending ? 'Saving…' : 'Save schedule'}
         </button>
         {saved && (
-          <span className="label animate-fade-in" style={{ color: '#4ADE80' }}>Saved</span>
+          <span className="label animate-fade-in" style={{ color: '#7FA87F' }}>Saved</span>
         )}
       </div>
     </div>
@@ -723,7 +724,7 @@ function IntervalRow({
   })
 
   return (
-    <div className="flex items-center gap-3 py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+    <div className="flex items-center gap-3 py-2.5" style={{ borderBottom: '1px solid rgba(232,168,56,0.10)' }}>
       <span className="text-sm" style={{ color }}>{icon}</span>
       <span className="font-display text-sm flex-shrink-0 w-20" style={{ color }}>{modeName}</span>
       <input
@@ -733,16 +734,16 @@ function IntervalRow({
         value={minutes}
         onChange={e => setMinutes(Math.max(1, parseInt(e.target.value) || 1))}
         className="w-16 bg-surface rounded-xs text-primary font-mono text-sm px-2 py-1.5 outline-none transition-all duration-200 text-center"
-        style={{ border: '1px solid rgba(255,255,255,0.10)' }}
-        onFocus={e => (e.target.style.borderColor = '#7551FF')}
-        onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.10)')}
+        style={{ border: '1px solid rgba(232,168,56,0.18)' }}
+        onFocus={e => (e.target.style.borderColor = '#E8A838')}
+        onBlur={e => (e.target.style.borderColor = 'rgba(232,168,56,0.18)')}
       />
       <span className="label">min</span>
       <button
         onClick={() => setMut.mutate()}
         disabled={setMut.isPending}
         className="font-display text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-xs text-secondary hover:text-accent transition-all duration-200 disabled:opacity-50"
-        style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+        style={{ border: '1px solid rgba(232,168,56,0.14)' }}
       >
         {setMut.isPending ? '…' : 'Set'}
       </button>
@@ -751,7 +752,7 @@ function IntervalRow({
           onClick={() => resetMut.mutate()}
           disabled={resetMut.isPending}
           className="label hover:text-danger transition-colors"
-          style={{ color: '#F87171' }}
+          style={{ color: '#C94430' }}
         >
           reset
         </button>
@@ -825,7 +826,7 @@ function LanguageSelector({ current }: { current?: string }) {
           </Select.Content>
         </Select.Portal>
       </Select.Root>
-      <span className="label" style={{ color: '#39B8FF' }}>LitClock + Wikipedia</span>
+      <span className="label" style={{ color: '#6A9FBF' }}>LitClock + Wikipedia</span>
     </div>
   )
 }
@@ -914,13 +915,13 @@ function WeatherSettings({ currentLocation }: { currentLocation?: string }) {
             onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
             placeholder="City name…"
             className="w-full bg-surface rounded-xs text-primary font-display text-sm px-3 py-2 outline-none transition-all duration-200"
-            style={{ border: '1px solid rgba(255,255,255,0.10)' }}
-            onFocus={e => { e.target.style.borderColor = '#7551FF' }}
+            style={{ border: '1px solid rgba(232,168,56,0.18)' }}
+            onFocus={e => { e.target.style.borderColor = '#E8A838' }}
           />
           {showSuggestions && suggestions.length > 0 && (
             <div
               className="absolute top-full left-0 right-0 mt-1 bg-surface rounded-xs z-50 overflow-hidden"
-              style={{ border: '1px solid rgba(255,255,255,0.10)' }}
+              style={{ border: '1px solid rgba(232,168,56,0.18)' }}
             >
               {suggestions.map((s, i) => (
                 <button
@@ -940,18 +941,18 @@ function WeatherSettings({ currentLocation }: { currentLocation?: string }) {
         <button
           onClick={() => saveMut.mutate()}
           disabled={saveMut.isPending || !input.trim() || !selectedCoords}
-          className="font-display text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-xs bg-accent text-white hover:bg-accent-hover transition-all duration-200 disabled:opacity-50"
+          className="font-display text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-xs bg-accent text-bg hover:bg-accent-hover transition-all duration-200 disabled:opacity-50"
         >
           {saveMut.isPending ? 'Saving…' : 'Set location'}
         </button>
         <button
           onClick={toggleUnits}
           className="font-mono text-xs font-bold uppercase tracking-widest px-4 py-2.5 rounded-xs text-secondary hover:text-accent transition-all duration-200"
-          style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+          style={{ border: '1px solid rgba(232,168,56,0.14)' }}
         >
           {units === 'm' ? '°C · km/h' : '°F · mph'}
         </button>
-        {saved && <span className="label animate-fade-in" style={{ color: '#4ADE80' }}>Saved</span>}
+        {saved && <span className="label animate-fade-in" style={{ color: '#7FA87F' }}>Saved</span>}
       </div>
     </div>
   )
@@ -960,7 +961,7 @@ function WeatherSettings({ currentLocation }: { currentLocation?: string }) {
 // ─── Divider ────────────────────────────────────────────────────────────────
 
 function Divider() {
-  return <div className="border-t border-white/[0.06]" />
+  return <div className="border-t border-border" />
 }
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
@@ -1027,10 +1028,10 @@ export default function App() {
     <div className="min-h-screen text-primary font-display animate-fade-in">
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40" style={{ backgroundColor: '#070D2D', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <header className="sticky top-0 z-40" style={{ backgroundColor: '#1A1410', borderBottom: '1px solid rgba(232,168,56,0.10)' }}>
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <span className="w-2 h-2 rounded-full bg-accent" style={{ boxShadow: '0 0 10px rgba(117,81,255,0.5)' }} />
+            <span className="w-2 h-2 rounded-full bg-accent" style={{ boxShadow: '0 0 10px rgba(232,168,56,0.5)' }} />
             <span className="font-title text-lg leading-tight text-primary">TaleVision</span>
           </div>
           <div className="flex items-center gap-4">
@@ -1044,14 +1045,14 @@ export default function App() {
                   'bg-success',
                 )}
                 style={{
-                  boxShadow: isError ? '0 0 6px rgba(248,113,113,0.4)' :
-                             !isSuspended && !isError ? '0 0 6px rgba(74,222,128,0.5)' : undefined,
+                  boxShadow: isError ? '0 0 6px rgba(201,68,48,0.4)' :
+                             !isSuspended && !isError ? '0 0 6px rgba(127,168,127,0.5)' : undefined,
                 }}
               />
               <span className="font-mono text-[10px] uppercase tracking-wider"
                 style={{
-                  color: isError ? '#F87171' :
-                         isSuspended ? '#6B7396' :
+                  color: isError ? '#C94430' :
+                         isSuspended ? '#5E5044' :
                          currentModeInfo.color,
                 }}
               >
@@ -1169,7 +1170,7 @@ export default function App() {
             <img
               src="https://netmi.lk/wp-content/uploads/2024/10/netmilk.svg"
               alt="Netmilk Studio"
-              className="hover:animate-shake cursor-pointer invert opacity-40 hover:opacity-70 transition-opacity"
+              className="hover:animate-shake cursor-pointer opacity-40 hover:opacity-70 transition-opacity"
               style={{ width: '110px', height: 'auto' }}
             />
             <span className="font-mono text-[10px] text-muted/60 text-center">

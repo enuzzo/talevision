@@ -1,4 +1,6 @@
-/* Self-hosted fonts — no Google Fonts dependency */
+/* ── Self-hosted fonts — no Google Fonts dependency ── */
+
+/* Lobster — title font */
 @font-face {
   font-family: 'Lobster';
   font-style: normal;
@@ -8,24 +10,32 @@
        url('/fonts/Lobster-Regular.ttf')   format('truetype');
 }
 
+/* Chakra Petch — display / body font */
 @font-face {
-  font-family: 'Montserrat';
+  font-family: 'Chakra Petch';
   font-style: normal;
-  font-weight: 300 800;
+  font-weight: 400;
   font-display: swap;
-  src: url('/fonts/Montserrat-variable-latin-ext.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  src: url('/fonts/ChakraPetch-Regular-latin.woff2') format('woff2');
 }
 
 @font-face {
-  font-family: 'Montserrat';
+  font-family: 'Chakra Petch';
   font-style: normal;
-  font-weight: 300 800;
+  font-weight: 600;
   font-display: swap;
-  src: url('/fonts/Montserrat-variable-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  src: url('/fonts/ChakraPetch-SemiBold-latin.woff2') format('woff2');
 }
 
+@font-face {
+  font-family: 'Chakra Petch';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/ChakraPetch-Bold-latin.woff2') format('woff2');
+}
+
+/* Space Mono — monospace font */
 @font-face {
   font-family: 'Space Mono';
   font-style: normal;
@@ -62,19 +72,63 @@
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
+/* ── Tailwind layers ── */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ── Animated dark background ── */
+html {
+  background-color: #1A1410;
+}
+
+body {
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 30%, rgba(232,168,56,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 50% at 80% 70%, rgba(208,107,80,0.05) 0%, transparent 55%),
+    radial-gradient(ellipse 90% 80% at 50% 50%, rgba(35,28,20,0.8) 0%, transparent 70%),
+    linear-gradient(180deg, #1A1410 0%, #231C14 40%, #1A1410 100%);
+  animation: bgDrift 25s ease-in-out infinite alternate;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+  pointer-events: none;
+}
+
+@keyframes bgDrift {
+  0% {
+    background-position: 0% 0%, 100% 100%, 50% 50%, 0 0;
+  }
+  100% {
+    background-position: 30% 20%, 70% 80%, 55% 45%, 0 0;
+  }
+}
+
+/* ── Base layer ── */
 @layer base {
   html {
-    background-color: #070D2D;
-    color: #E8E8F0;
+    color: #F0E6D6;
   }
 
   body {
     margin: 0;
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Chakra Petch', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -84,22 +138,26 @@
   }
 
   ::selection {
-    background: rgba(117, 81, 255, 0.25);
-    color: #E8E8F0;
+    background: rgba(232,168,56,0.35);
+    color: #F0E6D6;
   }
 
   ::-webkit-scrollbar {
     width: 4px;
   }
   ::-webkit-scrollbar-track {
-    background: #070D2D;
+    background: #231C14;
   }
   ::-webkit-scrollbar-thumb {
-    background: #7551FF;
+    background: #E8A838;
     border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #F0BC5C;
   }
 }
 
+/* ── Components layer ── */
 @layer components {
   .font-title,
   [class*="font-title"] {
@@ -109,7 +167,7 @@
   }
 
   .label {
-    @apply font-display text-[11px] uppercase tracking-[0.08em] text-tertiary;
+    @apply font-display text-[11px] uppercase tracking-[0.08em] text-secondary;
     font-weight: 600;
   }
 
@@ -117,44 +175,46 @@
     @apply font-display text-sm text-primary;
   }
 
+  /* ── Radix Switch ── */
   [data-radix-switch-root] {
-    width: 44px !important;
+    width: 46px !important;
     height: 24px !important;
-    background-color: #182065 !important;
+    background-color: #2D2318 !important;
     border-radius: 9999px !important;
-    border: 1px solid rgba(255,255,255,0.10) !important;
+    border: 1px solid rgba(232,168,56,0.18) !important;
     transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) !important;
     cursor: pointer !important;
     flex-shrink: 0 !important;
   }
 
   [data-radix-switch-root][data-state='checked'] {
-    background-color: #7551FF !important;
-    border-color: #7551FF !important;
+    background-color: #E8A838 !important;
+    border-color: #E8A838 !important;
   }
 
   [data-radix-switch-thumb] {
     display: block !important;
     width: 18px !important;
     height: 18px !important;
-    background-color: #E8E8F0 !important;
+    background-color: #F0E6D6 !important;
     border-radius: 9999px !important;
     transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1) !important;
     transform: translateX(3px) !important;
     will-change: transform !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+    box-shadow: 0 1px 3px rgba(26,20,16,0.4) !important;
   }
 
   [data-radix-switch-thumb][data-state='checked'] {
-    transform: translateX(23px) !important;
+    transform: translateX(24px) !important;
   }
 
+  /* ── Radix Select ── */
   [data-radix-select-trigger] {
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Chakra Petch', sans-serif;
     font-size: 14px;
-    color: #E8E8F0;
-    background: #0D1542;
-    border: 1px solid rgba(255,255,255,0.10);
+    color: #F0E6D6;
+    background: #2D2318;
+    border: 1px solid rgba(232,168,56,0.18);
     padding: 0 16px;
     height: 40px;
     border-radius: 8px;
@@ -168,26 +228,26 @@
     transition: border-color 200ms ease;
   }
   [data-radix-select-trigger]:hover {
-    border-color: #7551FF;
+    border-color: #E8A838;
   }
   [data-radix-select-trigger]:focus {
-    border-color: #7551FF;
-    box-shadow: 0 0 0 3px rgba(117, 81, 255, 0.15);
+    border-color: #E8A838;
+    box-shadow: 0 0 0 3px rgba(232,168,56,0.18);
   }
 
   [data-radix-select-content] {
-    background: #0D1542;
-    border: 1px solid rgba(255,255,255,0.10);
-    border-radius: 12px;
+    background: #2D2318;
+    border: 1px solid rgba(232,168,56,0.18);
+    border-radius: 8px;
     overflow: hidden;
     z-index: 100;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    box-shadow: 0 8px 32px rgba(26,20,16,0.6);
   }
 
   [data-radix-select-item] {
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Chakra Petch', sans-serif;
     font-size: 14px;
-    color: #A0A8C8;
+    color: #B8A890;
     padding: 0 16px;
     height: 38px;
     display: flex;
@@ -196,12 +256,37 @@
     outline: none;
     transition: background 120ms ease;
   }
-  [data-radix-select-item]:hover,
+  [data-radix-select-item]:hover {
+    background: rgba(232,168,56,0.14);
+    color: #1A1410;
+  }
   [data-radix-select-item][data-highlighted] {
-    background: #121B52;
-    color: #7551FF;
+    background: rgba(208,107,80,0.18);
+    color: #F0E6D6;
   }
   [data-radix-select-item][data-state='checked'] {
-    color: #7551FF;
+    color: #E8A838;
+  }
+
+  /* ── Input styling ── */
+  input[type="number"],
+  input[type="time"],
+  input[type="text"] {
+    font-family: 'Chakra Petch', sans-serif;
+    font-size: 14px;
+    color: #F0E6D6;
+    background: #1E1712;
+    border: 1px solid rgba(232,168,56,0.18);
+    border-radius: 8px;
+    padding: 0 12px;
+    height: 40px;
+    outline: none;
+    transition: border-color 200ms ease, box-shadow 200ms ease;
+  }
+  input[type="number"]:focus,
+  input[type="time"]:focus,
+  input[type="text"]:focus {
+    border-color: #E8A838;
+    box-shadow: 0 0 0 3px rgba(232,168,56,0.18);
   }
 }
