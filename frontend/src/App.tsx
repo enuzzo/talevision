@@ -440,18 +440,22 @@ function PlaylistEditor({
                 onDrop={e => handleDrop(e, idx)}
                 onDragEnd={handleDragEnd}
                 className={cx(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-sm transition-all duration-150',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-150',
                   isComingSoon
                     ? 'opacity-35'
                     : isEnabled
-                      ? 'hover:bg-surface'
+                      ? 'hover:bg-surface-hover'
                       : 'opacity-50 hover:opacity-70',
                   isDragging ? 'opacity-40 scale-[0.98]' : '',
                 )}
                 style={{
+                  border: isEnabled && !isComingSoon
+                    ? `1px solid rgba(232,168,56,0.18)`
+                    : '1px solid rgba(232,168,56,0.08)',
                   borderLeft: isEnabled && !isComingSoon
-                    ? `2px solid ${info.color}`
-                    : '2px solid transparent',
+                    ? `3px solid ${info.color}`
+                    : '3px solid transparent',
+                  backgroundColor: isEnabled && !isComingSoon ? 'rgba(232,168,56,0.04)' : undefined,
                   cursor: isComingSoon ? 'default' : 'grab',
                 }}
               >
