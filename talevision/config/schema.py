@@ -151,6 +151,28 @@ class WeatherConfig:
 
 
 @dataclass
+class MuseoFontsConfig:
+    dir: str = "assets/fonts"
+    bold: str = "Signika-Bold.ttf"
+    light: str = "Signika-Light.ttf"
+    mono: str = "InconsolataNerdFontMono-Regular.ttf"
+
+
+@dataclass
+class MuseoConfig:
+    refresh_interval: int = 300
+    timeout: int = 60
+    cache_max_age: int = 86400
+    brightness: float = 1.1
+    contrast: float = 1.2
+    color: float = 1.3
+    overlay: OverlayConfig = field(default_factory=lambda: OverlayConfig(
+        qr_content="museo_page",
+    ))
+    fonts: MuseoFontsConfig = field(default_factory=MuseoFontsConfig)
+
+
+@dataclass
 class ButtonsConfig:
     enabled: bool = True
     gpio_map: dict = field(default_factory=lambda: {"a": 5, "b": 6, "c": 16, "d": 24})
@@ -174,4 +196,5 @@ class AppConfig:
     ansi: AnsiConfig = field(default_factory=AnsiConfig)
     wikipedia: WikipediaConfig = field(default_factory=WikipediaConfig)
     weather: WeatherConfig = field(default_factory=WeatherConfig)
+    museo: MuseoConfig = field(default_factory=MuseoConfig)
     buttons: ButtonsConfig = field(default_factory=ButtonsConfig)

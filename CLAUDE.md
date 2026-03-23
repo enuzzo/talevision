@@ -1,5 +1,16 @@
 # TaleVision — Claude Code Instructions
 
+## Deploy Model — EVERYTHING RUNS ON THE PI
+
+TaleVision runs **entirely on the Raspberry Pi Zero W**, not on the Mac.
+The Mac is ONLY for editing code, running unit tests, and `--render-only` smoke tests.
+
+- **NEVER** launch dev servers locally (no `python3 main.py`, no `npm run dev`, no launch.json).
+- **NEVER** propose running the backend or frontend on the Mac.
+- The only legitimate local command is `python3 main.py --render-only --mode <name>` for rendering tests.
+- Deploy workflow: **commit → push → SSH to Pi → `git pull` → `sudo systemctl restart talevision`**.
+- Frontend build (`cd frontend && npm run build`) runs on the Mac, output is committed to repo, Pi serves it after `git pull`.
+
 ## Shared Knowledge
 
 At session start, read:

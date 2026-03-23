@@ -1,5 +1,5 @@
 app:
-  default_mode: litclock   # litclock | slowmovie | wikipedia | weather
+  default_mode: litclock   # litclock | slowmovie | wikipedia | weather | museo
 
 display:
   width: 800
@@ -114,6 +114,10 @@ weather:
   units: "m"
   language: "it"
   timeout: 10
+
+museo:
+  refresh_interval: 300
+  timeout: 60
 
 buttons:
   enabled: true

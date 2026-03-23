@@ -58,7 +58,7 @@ def parse_args():
     p = argparse.ArgumentParser(description="TaleVision e-ink display")
     p.add_argument("--config", default=str(BASE_DIR / "config.yaml"), help="Path to config.yaml")
     p.add_argument("--render-only", action="store_true", help="Render one frame to file and exit")
-    p.add_argument("--mode", default=None, help="Override startup mode (litclock|slowmovie)")
+    p.add_argument("--mode", default=None, help="Override startup mode (litclock|slowmovie|wikipedia|weather|museo)")
     return p.parse_args()
 
 
@@ -113,12 +113,14 @@ def main():
     from talevision.modes.slowmovie import SlowMovieMode
     from talevision.modes.wikipedia import WikipediaMode
     from talevision.modes.weather import WeatherMode
+    from talevision.modes.museo import MuseoMode
 
     modes = {
         "litclock":  LitClockMode(config, base_dir=BASE_DIR),
         "slowmovie": SlowMovieMode(config, base_dir=BASE_DIR),
         "wikipedia": WikipediaMode(config, base_dir=BASE_DIR),
         "weather":   WeatherMode(config, base_dir=BASE_DIR),
+        "museo":     MuseoMode(config, base_dir=BASE_DIR),
     }
 
     # ── Render-only mode (dev/CI) ─────────────────────────────────────────────
