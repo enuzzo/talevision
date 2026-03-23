@@ -9,74 +9,70 @@
 }
 
 @font-face {
-  font-family: 'Montserrat';
+  font-family: 'Funnel Display';
   font-style: normal;
   font-weight: 300 800;
   font-display: swap;
-  src: url('/fonts/Montserrat-variable-latin-ext.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-
-@font-face {
-  font-family: 'Montserrat';
-  font-style: normal;
-  font-weight: 300 800;
-  font-display: swap;
-  src: url('/fonts/Montserrat-variable-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-@font-face {
-  font-family: 'Space Mono';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/SpaceMono-Regular-latin-ext.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-
-@font-face {
-  font-family: 'Space Mono';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/SpaceMono-Regular-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-@font-face {
-  font-family: 'Space Mono';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url('/fonts/SpaceMono-Bold-latin-ext.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-
-@font-face {
-  font-family: 'Space Mono';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url('/fonts/SpaceMono-Bold-latin.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  src: url('/fonts/FunnelDisplay-variable-ext.woff2') format('woff2'),
+       url('/fonts/FunnelDisplay-variable.woff2')     format('woff2'),
+       url('/fonts/FunnelDisplay-variable.ttf')       format('truetype');
 }
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ── Animated dark vintage background ────────────────────────────────────── */
+
+html {
+  background-color: #1A1108;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: -25%;
+  width: 150%;
+  height: 150%;
+  background:
+    radial-gradient(ellipse 55% 45% at 18% 22%, rgba(185,112,38,0.22) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 55% at 82% 78%, rgba(145,82,28,0.20) 0%, transparent 60%),
+    radial-gradient(ellipse 65% 35% at 55% 5%,  rgba(110,65,22,0.16) 0%, transparent 60%),
+    radial-gradient(ellipse 35% 50% at 12% 88%, rgba(168,98,34,0.18) 0%, transparent 60%);
+  animation: bgDrift 30s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Fine linen grain on the dark bg */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E");
+  background-size: 240px 240px;
+  opacity: 0.07;
+  pointer-events: none;
+  z-index: -1;
+}
+
+@keyframes bgDrift {
+  0%,  100% { transform: translate(0%,   0%)  scale(1);    }
+  28%        { transform: translate(3%,  -5%)  scale(1.05); }
+  55%        { transform: translate(-4%,  4%)  scale(0.96); }
+  78%        { transform: translate(5%,   6%)  scale(1.03); }
+}
+
 /* ── Base styles ─────────────────────────────────────────────────────────── */
 
 @layer base {
   html {
-    background-color: #070D2D;
-    color: #E8E8F0;
+    color: #4A4B59;
   }
 
   body {
     margin: 0;
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Funnel Display', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -86,18 +82,18 @@
   }
 
   ::selection {
-    background: rgba(117, 81, 255, 0.25);
-    color: #E8E8F0;
+    background: rgba(202, 121, 109, 0.22);
+    color: #4A4B59;
   }
 
   ::-webkit-scrollbar {
     width: 4px;
   }
   ::-webkit-scrollbar-track {
-    background: #070D2D;
+    background: #1A1108;
   }
   ::-webkit-scrollbar-thumb {
-    background: #7551FF;
+    background: #5C4020;
     border-radius: 4px;
   }
 }
@@ -119,49 +115,49 @@
     @apply font-display text-sm text-primary;
   }
 
-  /* Radix Switch — dark theme */
+  /* Radix Switch */
   [data-radix-switch-root] {
     width: 44px !important;
     height: 24px !important;
-    background-color: #182065 !important;
+    background-color: #DDD1BB !important;
     border-radius: 9999px !important;
-    border: 1px solid rgba(255,255,255,0.10) !important;
+    border: 1px solid rgba(74,75,89,0.15) !important;
     transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) !important;
     cursor: pointer !important;
     flex-shrink: 0 !important;
   }
 
   [data-radix-switch-root][data-state='checked'] {
-    background-color: #7551FF !important;
-    border-color: #7551FF !important;
+    background-color: #CA796D !important;
+    border-color: #CA796D !important;
   }
 
   [data-radix-switch-thumb] {
     display: block !important;
     width: 18px !important;
     height: 18px !important;
-    background-color: #E8E8F0 !important;
+    background-color: #F1EBD9 !important;
     border-radius: 9999px !important;
     transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1) !important;
     transform: translateX(3px) !important;
     will-change: transform !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+    box-shadow: 0 1px 3px rgba(74,75,89,0.2) !important;
   }
 
   [data-radix-switch-thumb][data-state='checked'] {
     transform: translateX(23px) !important;
   }
 
-  /* Radix Select — dark theme */
+  /* Radix Select */
   [data-radix-select-trigger] {
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Funnel Display', sans-serif;
     font-size: 14px;
-    color: #E8E8F0;
-    background: #0D1542;
-    border: 1px solid rgba(255,255,255,0.10);
+    color: #4A4B59;
+    background: #F1EBD9;
+    border: 1px solid rgba(74,75,89,0.15);
     padding: 0 16px;
     height: 40px;
-    border-radius: 8px;
+    border-radius: 6px;
     width: 100%;
     display: flex;
     align-items: center;
@@ -172,26 +168,26 @@
     transition: border-color 200ms ease;
   }
   [data-radix-select-trigger]:hover {
-    border-color: #7551FF;
+    border-color: #CA796D;
   }
   [data-radix-select-trigger]:focus {
-    border-color: #7551FF;
-    box-shadow: 0 0 0 3px rgba(117, 81, 255, 0.15);
+    border-color: #CA796D;
+    box-shadow: 0 0 0 3px rgba(202, 121, 109, 0.12);
   }
 
   [data-radix-select-content] {
-    background: #0D1542;
-    border: 1px solid rgba(255,255,255,0.10);
-    border-radius: 12px;
+    background: #F1EBD9;
+    border: 1px solid rgba(74,75,89,0.15);
+    border-radius: 10px;
     overflow: hidden;
     z-index: 100;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    box-shadow: 0 8px 32px rgba(74,75,89,0.15);
   }
 
   [data-radix-select-item] {
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Funnel Display', sans-serif;
     font-size: 14px;
-    color: #A0A8C8;
+    color: #4A4B59;
     padding: 0 16px;
     height: 38px;
     display: flex;
@@ -202,10 +198,10 @@
   }
   [data-radix-select-item]:hover,
   [data-radix-select-item][data-highlighted] {
-    background: #121B52;
-    color: #7551FF;
+    background: #E8E0CA;
+    color: #CA796D;
   }
   [data-radix-select-item][data-state='checked'] {
-    color: #7551FF;
+    color: #CA796D;
   }
 }
