@@ -51,6 +51,7 @@ class Orchestrator:
             "slowmovie": base_dir / "cache" / "slowmovie_frame.jpg",
             "wikipedia": base_dir / "cache" / "wikipedia_frame.png",
             "weather":   base_dir / "cache" / "weather_frame.png",
+            "museo":     base_dir / "cache" / "museo_frame.png",
             "welcome":   base_dir / "cache" / "welcome_frame.png",
         }
         for p in self._frame_paths.values():

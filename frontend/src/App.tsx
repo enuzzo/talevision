@@ -86,6 +86,7 @@ const ALL_MODES: ModeInfo[] = [
   { id: 'slowmovie', label: 'SlowMovie', icon: '🎬', color: '#C8974A', available: true },
   { id: 'wikipedia', label: 'Wikipedia', icon: '📖', color: '#CA796D', available: true },
   { id: 'weather',   label: 'Weather',   icon: '🌤', color: '#8DA495', available: true },
+  { id: 'museo',     label: 'Museo',     icon: '🎨', color: '#B8860B', available: true },
 ]
 
 const MODE_MAP = Object.fromEntries(ALL_MODES.map(m => [m.id, m]))
