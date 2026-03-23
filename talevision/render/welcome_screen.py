@@ -34,7 +34,7 @@ TAGLINES = [
     "No streaming. No notifications. Just the wall, being interesting.",
     "It updates less often than your opinions. And it's more reliable.",
     "Borges, Calvino, Woolf — and a random Wikipedia article. Niche.",
-    "Powered by a chip the size of a stamp and a questionable amount of free time.",
+    "Powered by a stamp-sized chip and a questionable amount of free time.",
     "A dashboard for a device that doesn't need one.",
     "The font survived the migration. Not everything does.",
     "Four buttons on the side. None of them labelled correctly.",
