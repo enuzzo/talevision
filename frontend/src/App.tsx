@@ -63,7 +63,7 @@ const TAGLINES = [
   "No streaming. No notifications. Just the wall, being interesting.",
   "It updates less often than your opinions. And it's more reliable.",
   "Borges, Calvino, Woolf — and a random Wikipedia article. Niche.",
-  "Powered by a stamp-sized chip and a questionable amount of free time.",
+  "Powered by a chip the size of a stamp and a questionable amount of free time.",
   "A dashboard for a device that doesn't need one.",
   "The font survived the migration. Not everything does.",
   "Four buttons on the side. None of them labelled correctly.",
@@ -82,17 +82,16 @@ interface ModeInfo {
 }
 
 const ALL_MODES: ModeInfo[] = [
-  { id: 'litclock',  label: 'LitClock',  icon: '🕐', color: '#6B8FA0', available: true },
-  { id: 'slowmovie', label: 'SlowMovie', icon: '🎬', color: '#C8974A', available: true },
-  { id: 'wikipedia', label: 'Wikipedia', icon: '📖', color: '#CA796D', available: true },
-  { id: 'weather',   label: 'Weather',   icon: '🌤', color: '#8DA495', available: true },
-  { id: 'museo',     label: 'Museo',     icon: '🎨', color: '#B8860B', available: true },
+  { id: 'litclock',  label: 'LitClock',  icon: '🕐', color: '#39B8FF', available: true },
+  { id: 'slowmovie', label: 'SlowMovie', icon: '🎬', color: '#FBBF24', available: true },
+  { id: 'wikipedia', label: 'Wikipedia', icon: '📖', color: '#7551FF', available: true },
+  { id: 'weather',   label: 'Weather',   icon: '🌤', color: '#4ADE80', available: true },
 ]
 
 const MODE_MAP = Object.fromEntries(ALL_MODES.map(m => [m.id, m]))
 
 function getModeInfo(id: string): ModeInfo {
-  return MODE_MAP[id] ?? { id, label: id, icon: '?', color: '#978A80', available: false }
+  return MODE_MAP[id] ?? { id, label: id, icon: '?', color: '#6B7396', available: false }
 }
 
 // ─── Language names ──────────────────────────────────────────────────────────
@@ -193,13 +192,10 @@ function RenderingOverlay({ mode }: { mode: string }) {
   const info = getModeInfo(mode)
   return (
     <div
-      className="absolute inset-0 z-20 rounded-lg overflow-hidden flex items-center justify-center"
-      style={{ backgroundColor: '#19120C' }}
+      className="absolute inset-0 z-20 rounded-sm overflow-hidden flex items-center justify-center"
+      style={{ backgroundColor: '#050A22' }}
     >
-      {/* TV grain */}
       <NoiseCanvas />
-
-      {/* CRT scanlines */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -207,27 +203,23 @@ function RenderingOverlay({ mode }: { mode: string }) {
           zIndex: 1,
         }}
       />
-
-      {/* Analog sweep band */}
       <div
         className="absolute left-0 right-0 pointer-events-none"
         style={{
           height: '80px',
-          background: 'linear-gradient(to bottom, transparent, rgba(232,202,162,0.06) 30%, rgba(232,202,162,0.13) 50%, rgba(232,202,162,0.06) 70%, transparent)',
+          background: 'linear-gradient(to bottom, transparent, rgba(117,81,255,0.06) 30%, rgba(117,81,255,0.13) 50%, rgba(117,81,255,0.06) 70%, transparent)',
           top: '-80px',
           animation: 'scanSweep 3.2s linear infinite',
           zIndex: 2,
         }}
       />
-
-      {/* Content */}
       <div className="relative flex flex-col items-center gap-3" style={{ zIndex: 3 }}>
         <div
           className="font-title animate-flicker select-none"
           style={{
             fontSize: '3.2rem',
             lineHeight: 1.1,
-            color: '#EDE3D0',
+            color: '#E8E8F0',
             textShadow: `0 0 24px ${info.color}55, 0 0 60px ${info.color}22`,
           }}
         >
@@ -241,12 +233,10 @@ function RenderingOverlay({ mode }: { mode: string }) {
         </div>
         <RadioWaves color={info.color} />
       </div>
-
-      {/* Vignette */}
       <div
-        className="absolute inset-0 pointer-events-none rounded-lg"
+        className="absolute inset-0 pointer-events-none rounded-sm"
         style={{
-          background: 'radial-gradient(ellipse at center, transparent 40%, rgba(10,7,4,0.65) 100%)',
+          background: 'radial-gradient(ellipse at center, transparent 40%, rgba(5,10,34,0.65) 100%)',
           zIndex: 4,
         }}
       />
@@ -267,20 +257,18 @@ function FramePreview({ refreshKey, waiting, waitingMode }: { refreshKey: number
   }, [refreshKey])
 
   return (
-    <div className="relative w-full bg-deep rounded-lg overflow-hidden" style={{ aspectRatio: '5/3', border: '1px solid rgba(74,75,89,0.12)' }}>
-      <div className="absolute inset-[6px] border border-border-default/40 rounded pointer-events-none z-10" />
-
+    <div className="relative w-full rounded-sm overflow-hidden" style={{ aspectRatio: '5/3', border: '1px solid rgba(255,255,255,0.08)' }}>
       {waiting && <RenderingOverlay mode={waitingMode} />}
 
       {!waiting && !loaded && !errored && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-deep">
           <div className="w-px h-8 bg-accent/30 animate-pulse-accent" />
           <span className="label tracking-[0.3em]">loading frame</span>
         </div>
       )}
 
       {!waiting && errored && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-deep">
           <span className="font-display text-3xl text-muted font-bold tracking-widest uppercase">no signal</span>
           <span className="label">frame not available</span>
         </div>
@@ -430,7 +418,7 @@ function PlaylistEditor({
 
   return (
     <div className="space-y-3">
-      <div className="space-y-0.5">
+      <div className="space-y-1">
         {items.map((id, idx) => {
           const info = getModeInfo(id)
           const isEnabled = enabled.has(id)
@@ -442,7 +430,7 @@ function PlaylistEditor({
           return (
             <div key={id}>
               {showDivider && (
-                <div className="h-0.5 rounded-full mx-3 my-0.5" style={{ backgroundColor: '#CA796D', boxShadow: '0 0 6px rgba(202,121,109,0.5)' }} />
+                <div className="h-0.5 rounded-full mx-3 my-0.5 bg-accent" style={{ boxShadow: '0 0 6px rgba(117,81,255,0.5)' }} />
               )}
               <div
                 draggable={!isComingSoon}
@@ -451,18 +439,18 @@ function PlaylistEditor({
                 onDrop={e => handleDrop(e, idx)}
                 onDragEnd={handleDragEnd}
                 className={cx(
-                  'flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-150',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-sm transition-all duration-150',
                   isComingSoon
                     ? 'opacity-35'
                     : isEnabled
-                      ? 'bg-surface hover:bg-surface-hover'
-                      : 'bg-deep/50 opacity-60 hover:opacity-80',
+                      ? 'hover:bg-surface'
+                      : 'opacity-50 hover:opacity-70',
                   isDragging ? 'opacity-40 scale-[0.98]' : '',
                 )}
                 style={{
-                  border: isEnabled && !isComingSoon
-                    ? `1px solid ${info.color}35`
-                    : '1px solid rgba(74,75,89,0.10)',
+                  borderLeft: isEnabled && !isComingSoon
+                    ? `2px solid ${info.color}`
+                    : '2px solid transparent',
                   cursor: isComingSoon ? 'default' : 'grab',
                 }}
               >
@@ -480,23 +468,23 @@ function PlaylistEditor({
                     isComingSoon ? 'cursor-not-allowed' : 'cursor-pointer',
                   )}
                   style={{
-                    border: isEnabled ? `1px solid ${info.color}` : '1px solid rgba(74,75,89,0.2)',
-                    backgroundColor: isEnabled ? info.color : '#E8E0CA',
+                    border: isEnabled ? `1px solid ${info.color}` : '1px solid rgba(255,255,255,0.15)',
+                    backgroundColor: isEnabled ? info.color : 'transparent',
                   }}
                 >
                   {isEnabled && (
                     <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                      <path d="M1 4l2.5 2.5L9 1" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M1 4l2.5 2.5L9 1" stroke="#070D2D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   )}
                 </button>
 
-                <span className="text-sm flex-shrink-0 w-5 text-center" style={{ color: isEnabled ? info.color : '#978A80' }}>
+                <span className="text-sm flex-shrink-0 w-5 text-center" style={{ color: isEnabled ? info.color : '#4A5278' }}>
                   {info.icon}
                 </span>
                 <span
                   className={cx(
-                    'font-title text-sm flex-1',
+                    'font-display text-sm flex-1',
                     isComingSoon ? 'text-muted' : 'text-primary',
                   )}
                   style={{ color: isEnabled && !isComingSoon ? info.color : undefined }}
@@ -506,7 +494,7 @@ function PlaylistEditor({
 
                 {isCurrent && (
                   <span
-                    className="font-display text-[9px] font-bold tracking-[0.1em] px-2 py-0.5 rounded-full"
+                    className="font-mono text-[9px] font-bold tracking-[0.1em] px-2 py-0.5 rounded-xs"
                     style={{ color: info.color, backgroundColor: `${info.color}18` }}
                   >
                     NOW
@@ -514,7 +502,7 @@ function PlaylistEditor({
                 )}
 
                 {isComingSoon && (
-                  <span className="font-display text-[9px] font-bold uppercase tracking-[0.1em] text-muted px-2 py-0.5 rounded-full bg-elevated">
+                  <span className="font-mono text-[9px] font-bold uppercase tracking-[0.1em] text-muted px-2 py-0.5 rounded-xs bg-surface">
                     soon
                   </span>
                 )}
@@ -533,13 +521,13 @@ function PlaylistEditor({
             max={60}
             value={interval}
             onChange={e => setIntervalVal(Math.max(1, parseInt(e.target.value) || 1))}
-            className="w-16 bg-deep rounded-sm text-primary font-display text-sm px-2 py-1.5 outline-none transition-all duration-200 text-center"
-            style={{ border: '1px solid rgba(74,75,89,0.15)' }}
-            onFocus={e => (e.target.style.borderColor = '#CA796D')}
-            onBlur={e => (e.target.style.borderColor = 'rgba(74,75,89,0.15)')}
+            className="w-16 bg-surface rounded-xs text-primary font-mono text-sm px-2 py-1.5 outline-none transition-all duration-200 text-center"
+            style={{ border: '1px solid rgba(255,255,255,0.10)' }}
+            onFocus={e => (e.target.style.borderColor = '#7551FF')}
+            onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.10)')}
           />
           <span className="label">min</span>
-          <span className="label ml-auto" style={{ color: '#6B8FA0' }}>
+          <span className="label ml-auto" style={{ color: '#39B8FF' }}>
             {enabledCount} modes · {interval * enabledCount} min cycle
           </span>
         </div>
@@ -549,8 +537,7 @@ function PlaylistEditor({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="font-display text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-sm bg-accent text-cream hover:bg-accent-hover transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
-          style={{ boxShadow: '0 0 20px rgba(202,121,109,0.20)' }}
+          className="font-display text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-xs bg-accent text-white hover:bg-accent-hover transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
         >
           {saving ? 'Saving…' : 'Save playlist'}
         </button>
@@ -559,42 +546,20 @@ function PlaylistEditor({
           disabled={refreshing}
           className={cx(
             'flex items-center gap-2 font-display text-xs font-bold uppercase tracking-widest',
-            'px-4 py-2.5 rounded-sm transition-all duration-200 outline-none',
+            'px-4 py-2.5 rounded-xs transition-all duration-200 outline-none',
             refreshing
-              ? 'bg-surface text-accent/50 cursor-wait'
-              : 'bg-surface text-secondary hover:bg-surface-hover hover:text-accent cursor-pointer',
+              ? 'text-accent/50 cursor-wait'
+              : 'text-secondary hover:text-accent cursor-pointer',
           )}
-          style={{ border: '1px solid rgba(74,75,89,0.10)' }}
+          style={{ border: '1px solid rgba(255,255,255,0.08)' }}
         >
           <RefreshIcon spinning={refreshing} />
           {refreshing ? 'Rendering…' : 'Force refresh'}
         </button>
         {saved && (
-          <span className="label animate-fade-in" style={{ color: '#8DA495' }}>Saved</span>
+          <span className="label animate-fade-in" style={{ color: '#4ADE80' }}>Saved</span>
         )}
       </div>
-    </div>
-  )
-}
-
-// ─── Stats Card ──────────────────────────────────────────────────────────────
-
-function StatRow({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex items-baseline justify-between gap-4 py-2" style={{ borderBottom: '1px solid rgba(74,75,89,0.08)' }}>
-      <span className="label flex-shrink-0">{label}</span>
-      <span className="value text-right truncate max-w-[140px]">{value}</span>
-    </div>
-  )
-}
-
-// ─── Status Grid ─────────────────────────────────────────────────────────────
-
-function StatusRow({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex items-baseline justify-between gap-4 py-2.5" style={{ borderBottom: '1px solid rgba(74,75,89,0.10)' }}>
-      <span className="label flex-shrink-0">{label}</span>
-      <span className="value text-right truncate max-w-[220px]">{value}</span>
     </div>
   )
 }
@@ -654,28 +619,28 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
 
       <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
         <div>
-          <div className="label mb-1">▶ On from</div>
+          <div className="label mb-1">On from</div>
           <input
             type="time"
             value={activeFrom}
             onChange={e => setActiveFrom(e.target.value)}
-            className="w-full bg-deep rounded-sm text-primary font-display text-sm px-3 py-2 outline-none transition-all duration-200"
-            style={{ border: '1px solid rgba(74,75,89,0.15)' }}
-            onFocus={e => (e.target.style.borderColor = '#CA796D')}
-            onBlur={e => (e.target.style.borderColor = 'rgba(74,75,89,0.15)')}
+            className="w-full bg-surface rounded-xs text-primary font-mono text-sm px-3 py-2 outline-none transition-all duration-200"
+            style={{ border: '1px solid rgba(255,255,255,0.10)' }}
+            onFocus={e => (e.target.style.borderColor = '#7551FF')}
+            onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.10)')}
           />
         </div>
-        <span className="label pb-2" style={{ color: '#CA796D' }}>→</span>
+        <span className="label pb-2" style={{ color: '#7551FF' }}>→</span>
         <div>
-          <div className="label mb-1">⏹ Off at</div>
+          <div className="label mb-1">Off at</div>
           <input
             type="time"
             value={activeTo}
             onChange={e => setActiveTo(e.target.value)}
-            className="w-full bg-deep rounded-sm text-primary font-display text-sm px-3 py-2 outline-none transition-all duration-200"
-            style={{ border: '1px solid rgba(74,75,89,0.15)' }}
-            onFocus={e => (e.target.style.borderColor = '#CA796D')}
-            onBlur={e => (e.target.style.borderColor = 'rgba(74,75,89,0.15)')}
+            className="w-full bg-surface rounded-xs text-primary font-mono text-sm px-3 py-2 outline-none transition-all duration-200"
+            style={{ border: '1px solid rgba(255,255,255,0.10)' }}
+            onFocus={e => (e.target.style.borderColor = '#7551FF')}
+            onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.10)')}
           />
         </div>
       </div>
@@ -688,12 +653,12 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
               key={i}
               onClick={() => toggleDay(i)}
               className={cx(
-                'w-9 h-9 text-[12px] font-display font-bold rounded-sm transition-all duration-200 outline-none',
+                'w-9 h-9 text-[12px] font-display font-bold rounded-xs transition-all duration-200 outline-none',
                 days.includes(i)
-                  ? 'bg-accent text-cream'
-                  : 'bg-deep text-tertiary hover:text-primary cursor-pointer',
+                  ? 'bg-accent text-white'
+                  : 'text-tertiary hover:text-primary cursor-pointer',
               )}
-              style={{ border: days.includes(i) ? '1px solid #CA796D' : '1px solid rgba(74,75,89,0.15)' }}
+              style={{ border: days.includes(i) ? '1px solid #7551FF' : '1px solid rgba(255,255,255,0.10)' }}
             >
               {d}
             </button>
@@ -705,13 +670,12 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
         <button
           onClick={() => mut.mutate()}
           disabled={mut.isPending}
-          className="font-display text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-sm bg-accent text-cream hover:bg-accent-hover transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
-          style={{ boxShadow: '0 0 20px rgba(202,121,109,0.20)' }}
+          className="font-display text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-xs bg-accent text-white hover:bg-accent-hover transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
         >
           {mut.isPending ? 'Saving…' : 'Save schedule'}
         </button>
         {saved && (
-          <span className="label animate-fade-in" style={{ color: '#8DA495' }}>Saved</span>
+          <span className="label animate-fade-in" style={{ color: '#4ADE80' }}>Saved</span>
         )}
       </div>
     </div>
@@ -759,26 +723,26 @@ function IntervalRow({
   })
 
   return (
-    <div className="flex items-center gap-3 py-2.5" style={{ borderBottom: '1px solid rgba(74,75,89,0.10)' }}>
+    <div className="flex items-center gap-3 py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
       <span className="text-sm" style={{ color }}>{icon}</span>
-      <span className="font-title text-sm flex-shrink-0 w-20" style={{ color }}>{modeName}</span>
+      <span className="font-display text-sm flex-shrink-0 w-20" style={{ color }}>{modeName}</span>
       <input
         type="number"
         min={1}
         max={1440}
         value={minutes}
         onChange={e => setMinutes(Math.max(1, parseInt(e.target.value) || 1))}
-        className="w-16 bg-deep rounded-sm text-primary font-display text-sm px-2 py-1.5 outline-none transition-all duration-200 text-center"
-        style={{ border: '1px solid rgba(74,75,89,0.15)' }}
-        onFocus={e => (e.target.style.borderColor = '#CA796D')}
-        onBlur={e => (e.target.style.borderColor = 'rgba(74,75,89,0.15)')}
+        className="w-16 bg-surface rounded-xs text-primary font-mono text-sm px-2 py-1.5 outline-none transition-all duration-200 text-center"
+        style={{ border: '1px solid rgba(255,255,255,0.10)' }}
+        onFocus={e => (e.target.style.borderColor = '#7551FF')}
+        onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.10)')}
       />
       <span className="label">min</span>
       <button
         onClick={() => setMut.mutate()}
         disabled={setMut.isPending}
-        className="font-display text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-sm bg-surface text-secondary hover:bg-surface-hover hover:text-accent transition-all duration-200 disabled:opacity-50"
-        style={{ border: '1px solid rgba(74,75,89,0.10)' }}
+        className="font-display text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-xs text-secondary hover:text-accent transition-all duration-200 disabled:opacity-50"
+        style={{ border: '1px solid rgba(255,255,255,0.08)' }}
       >
         {setMut.isPending ? '…' : 'Set'}
       </button>
@@ -787,13 +751,12 @@ function IntervalRow({
           onClick={() => resetMut.mutate()}
           disabled={resetMut.isPending}
           className="label hover:text-danger transition-colors"
-          title={`Reset to default (${fmtInterval(data.default)})`}
-          style={{ color: '#C05050' }}
+          style={{ color: '#F87171' }}
         >
           reset
         </button>
       )}
-      <span className="label ml-auto text-right">
+      <span className="label ml-auto text-right font-mono">
         {data.overridden
           ? <span style={{ color }}>● {fmtInterval(data.effective)}</span>
           : <span className="text-muted">{fmtInterval(data.effective)}</span>
@@ -834,7 +797,7 @@ function LanguageSelector({ current }: { current?: string }) {
       >
         <Select.Trigger
           data-radix-select-trigger=""
-          className="flex-1"
+          className="flex-1 max-w-xs"
           aria-label="Language"
         >
           <Select.Value>
@@ -862,6 +825,7 @@ function LanguageSelector({ current }: { current?: string }) {
           </Select.Content>
         </Select.Portal>
       </Select.Root>
+      <span className="label" style={{ color: '#39B8FF' }}>LitClock + Wikipedia</span>
     </div>
   )
 }
@@ -939,24 +903,24 @@ function WeatherSettings({ currentLocation }: { currentLocation?: string }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex items-center gap-3">
         <span className="label flex-shrink-0">Location</span>
-        <div className="relative flex-1">
+        <div className="relative flex-1 max-w-xs">
           <input
             type="text"
             value={input}
             onChange={e => handleInputChange(e.target.value)}
             onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
             placeholder="City name…"
-            className="w-full bg-deep rounded-sm text-primary font-display text-sm px-3 py-2 outline-none transition-all duration-200"
-            style={{ border: '1px solid rgba(74,75,89,0.15)' }}
-            onFocus={e => { e.target.style.borderColor = '#CA796D' }}
+            className="w-full bg-surface rounded-xs text-primary font-display text-sm px-3 py-2 outline-none transition-all duration-200"
+            style={{ border: '1px solid rgba(255,255,255,0.10)' }}
+            onFocus={e => { e.target.style.borderColor = '#7551FF' }}
           />
           {showSuggestions && suggestions.length > 0 && (
             <div
-              className="absolute top-full left-0 right-0 mt-1 bg-surface rounded-sm z-50 overflow-hidden"
-              style={{ border: '1px solid rgba(74,75,89,0.15)' }}
+              className="absolute top-full left-0 right-0 mt-1 bg-surface rounded-xs z-50 overflow-hidden"
+              style={{ border: '1px solid rgba(255,255,255,0.10)' }}
             >
               {suggestions.map((s, i) => (
                 <button
@@ -976,22 +940,27 @@ function WeatherSettings({ currentLocation }: { currentLocation?: string }) {
         <button
           onClick={() => saveMut.mutate()}
           disabled={saveMut.isPending || !input.trim() || !selectedCoords}
-          className="font-display text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-sm bg-accent text-cream hover:bg-accent-hover transition-all duration-200 disabled:opacity-50"
-          style={{ boxShadow: '0 0 20px rgba(202,121,109,0.20)' }}
+          className="font-display text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-xs bg-accent text-white hover:bg-accent-hover transition-all duration-200 disabled:opacity-50"
         >
           {saveMut.isPending ? 'Saving…' : 'Set location'}
         </button>
         <button
           onClick={toggleUnits}
-          className="font-display text-xs font-bold uppercase tracking-widest px-4 py-2.5 rounded-sm bg-deep text-secondary hover:text-accent transition-all duration-200"
-          style={{ border: '1px solid rgba(74,75,89,0.15)' }}
+          className="font-mono text-xs font-bold uppercase tracking-widest px-4 py-2.5 rounded-xs text-secondary hover:text-accent transition-all duration-200"
+          style={{ border: '1px solid rgba(255,255,255,0.08)' }}
         >
           {units === 'm' ? '°C · km/h' : '°F · mph'}
         </button>
-        {saved && <span className="label animate-fade-in" style={{ color: '#8DA495' }}>Saved</span>}
+        {saved && <span className="label animate-fade-in" style={{ color: '#4ADE80' }}>Saved</span>}
       </div>
     </div>
   )
+}
+
+// ─── Divider ────────────────────────────────────────────────────────────────
+
+function Divider() {
+  return <div className="border-t border-white/[0.06]" />
 }
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
@@ -1027,7 +996,6 @@ export default function App() {
     return () => clearTimeout(id)
   }, [waiting])
 
-  // Clear pending mode when overlay disappears
   useEffect(() => {
     if (!waiting) setPendingMode(null)
   }, [waiting])
@@ -1056,48 +1024,40 @@ export default function App() {
   const isSuspended = status?.is_suspended ?? false
 
   return (
-    <div className="min-h-screen bg-transparent text-primary font-display animate-fade-in">
+    <div className="min-h-screen text-primary font-display animate-fade-in">
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 backdrop-blur-sm" style={{ backgroundColor: 'rgba(241,235,217,0.93)', borderBottom: '1px solid rgba(74,75,89,0.10)' }}>
-        <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="w-2.5 h-2.5 rounded-full bg-accent" style={{ boxShadow: '0 0 12px rgba(202,121,109,0.4)' }} />
-            <div className="flex flex-col gap-0">
-              <span className="font-title text-xl leading-tight" style={{ color: '#3B3C47' }}>TaleVision</span>
-              <span className="font-display text-[12px] text-tertiary italic leading-tight">
-                {TAGLINE}
-              </span>
-            </div>
+      <header className="sticky top-0 z-40" style={{ backgroundColor: '#070D2D', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2 h-2 rounded-full bg-accent" style={{ boxShadow: '0 0 10px rgba(117,81,255,0.5)' }} />
+            <span className="font-title text-lg leading-tight text-primary">TaleVision</span>
           </div>
-          <div className="flex items-center gap-5">
-            <span className="font-display text-sm text-tertiary tabular-nums">{clock}</span>
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
+            <span className="font-mono text-xs text-tertiary tabular-nums">{clock}</span>
+            <div className="flex items-center gap-1.5">
               <span
                 className={cx(
-                  'w-2 h-2 rounded-full',
+                  'w-1.5 h-1.5 rounded-full',
                   isError ? 'bg-danger animate-pulse' :
                   isSuspended ? 'bg-tertiary' :
                   'bg-success',
                 )}
                 style={{
-                  boxShadow: isError ? '0 0 8px rgba(192,80,80,0.4)' :
-                             !isSuspended && !isError ? '0 0 8px rgba(141,164,149,0.5)' : undefined,
+                  boxShadow: isError ? '0 0 6px rgba(248,113,113,0.4)' :
+                             !isSuspended && !isError ? '0 0 6px rgba(74,222,128,0.5)' : undefined,
                 }}
               />
-              <span
-                className="label"
+              <span className="font-mono text-[10px] uppercase tracking-wider"
                 style={{
-                  color: isError ? '#C05050' :
-                         isSuspended ? '#7C706A' :
+                  color: isError ? '#F87171' :
+                         isSuspended ? '#6B7396' :
                          currentModeInfo.color,
                 }}
               >
                 {isError ? 'offline' :
-                 isSuspended ? '⏸ suspended' :
-                 isRotating
-                   ? `${currentModeInfo.icon} ${currentMode} · ${playlist.length} in rotation`
-                   : `${currentModeInfo.icon} ${currentMode}`}
+                 isSuspended ? 'suspended' :
+                 currentMode}
               </span>
             </div>
           </div>
@@ -1105,149 +1065,70 @@ export default function App() {
       </header>
 
       {/* ── Main content ───────────────────────────────────────────────── */}
-      <main className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+      <main className="max-w-2xl mx-auto px-4 py-5 space-y-5">
 
-        {/* Frame Preview */}
+        <p className="text-xs text-tertiary italic text-center">{TAGLINE}</p>
+
+        <FramePreview refreshKey={refreshKey} waiting={waiting} waitingMode={pendingMode ?? currentMode} />
+
+        {/* Info bar */}
+        <div className="flex items-center gap-4 flex-wrap text-xs">
+          <span className="text-tertiary">
+            <span className="font-mono text-muted">UP</span>{' '}
+            <span className="text-secondary font-mono">{formatUptime(status?.uptime_seconds ?? 0)}</span>
+          </span>
+          <span className="text-tertiary">
+            <span className="font-mono text-muted">LAST</span>{' '}
+            <span className="text-secondary font-mono">{formatLastRender(status?.last_update)}</span>
+          </span>
+          {status?.next_wake && (
+            <span className="text-tertiary">
+              <span className="font-mono text-muted">WAKE</span>{' '}
+              <span className="text-secondary font-mono">{formatTime(status.next_wake)}</span>
+            </span>
+          )}
+          {isRotating && (
+            <span className="text-tertiary ml-auto">
+              {playlist.map(id => getModeInfo(id).icon).join(' → ')}
+              <span className="font-mono text-muted ml-1">{fmtInterval(rotationInterval)}</span>
+            </span>
+          )}
+          {status?.video && (
+            <span style={{ color: '#FBBF24' }}>🎬 {status.video}</span>
+          )}
+        </div>
+
+        <Divider />
+
+        <LanguageSelector current={status?.language ?? undefined} />
+
+        <Divider />
+
         <section>
-          <FramePreview refreshKey={refreshKey} waiting={waiting} waitingMode={pendingMode ?? currentMode} />
+          <h2 className="label mb-3">Playlist</h2>
+          <PlaylistEditor
+            playlist={playlist}
+            rotationInterval={rotationInterval}
+            currentMode={currentMode}
+            onSave={(modes, interval) => playlistMut.mutate({ modes, interval })}
+            saving={playlistMut.isPending}
+            onRefresh={handleRefresh}
+            refreshing={refreshMut.isPending}
+          />
         </section>
 
-        {/* Language — always visible, top priority */}
-        <section className="bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(74,75,89,0.10)' }}>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-title text-base text-primary">Language</h2>
-            <span className="label" style={{ color: '#6B8FA0' }}>LitClock + Wikipedia</span>
-          </div>
-          <LanguageSelector current={status?.language ?? undefined} />
+        <Divider />
+
+        <section>
+          <h2 className="label mb-3">Active schedule</h2>
+          <SuspendForm initial={status?.suspend} />
         </section>
 
-        {/* Playlist + Stats — two column */}
-        <section className="flex items-start gap-6">
-          <div className="flex-1 min-w-0">
-            <h2 className="font-title text-base text-primary mb-3">Playlist</h2>
-            <PlaylistEditor
-              playlist={playlist}
-              rotationInterval={rotationInterval}
-              currentMode={currentMode}
-              onSave={(modes, interval) => playlistMut.mutate({ modes, interval })}
-              saving={playlistMut.isPending}
-              onRefresh={handleRefresh}
-              refreshing={refreshMut.isPending}
-            />
-          </div>
-
-          {/* Stats */}
-          <div className="w-52 flex-shrink-0">
-            <h2 className="font-title text-base text-primary mb-3">Stats</h2>
-            <div className="bg-surface rounded-lg p-4" style={{ border: '1px solid rgba(74,75,89,0.10)' }}>
-              <StatRow label="Uptime" value={formatUptime(status?.uptime_seconds ?? 0)} />
-              <StatRow label="Last render" value={formatLastRender(status?.last_update)} />
-              {status?.next_wake && (
-                <StatRow label="Next wake" value={formatTime(status.next_wake)} />
-              )}
-              <StatRow
-                label="Mode"
-                value={
-                  <span className="font-title text-sm" style={{ color: currentModeInfo.color }}>
-                    {currentModeInfo.icon} {currentMode}
-                  </span>
-                }
-              />
-              {isRotating && (
-                <StatRow
-                  label="Rotation"
-                  value={<span style={{ color: '#6B8FA0' }}>{fmtInterval(rotationInterval)}</span>}
-                />
-              )}
-              <StatRow
-                label="Status"
-                value={
-                  <span style={{ color: isSuspended ? '#C8974A' : '#8DA495' }}>
-                    {isSuspended ? '⏸ paused' : '▶ active'}
-                  </span>
-                }
-              />
-            </div>
-          </div>
-        </section>
-
-        <div style={{ borderTop: '1px solid rgba(74,75,89,0.10)' }} />
-
-        {/* Status + Suspend — two-column grid */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
-
-          {/* Status */}
-          <div className="bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(74,75,89,0.10)' }}>
-            <h2 className="font-title text-base text-primary mb-4">Status</h2>
-            <div>
-              <StatusRow
-                label="Mode"
-                value={
-                  <span className="font-title text-base font-semibold" style={{ color: currentModeInfo.color }}>
-                    {currentModeInfo.icon} {currentMode}
-                  </span>
-                }
-              />
-              {isRotating && (
-                <StatusRow
-                  label="Rotation"
-                  value={
-                    <span style={{ color: '#6B8FA0' }}>
-                      {playlist.map(id => getModeInfo(id).icon).join(' → ')} · {fmtInterval(rotationInterval)}
-                    </span>
-                  }
-                />
-              )}
-              <StatusRow
-                label="Suspended"
-                value={
-                  <span style={{ color: isSuspended ? '#C8974A' : '#8DA495' }}>
-                    {isSuspended ? '⏸ yes' : '▶ no'}
-                  </span>
-                }
-              />
-              <StatusRow
-                label="Last render"
-                value={formatLastRender(status?.last_update)}
-              />
-              {status?.next_wake && (
-                <StatusRow
-                  label="Wake at"
-                  value={formatTime(status.next_wake)}
-                />
-              )}
-              {status?.video && (
-                <StatusRow
-                  label="🎬 Film"
-                  value={<span className="font-display text-base font-semibold" style={{ color: '#C8974A' }}>{status.video}</span>}
-                />
-              )}
-              {status?.quote && (
-                <StatusRow
-                  label="💬 Quote"
-                  value={
-                    <span className="text-xs text-secondary leading-relaxed text-right">
-                      {status.quote.length > 80 ? status.quote.slice(0, 80) + '…' : status.quote}
-                    </span>
-                  }
-                />
-              )}
-            </div>
-          </div>
-
-          {/* Suspend Schedule */}
-          <div className="bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(74,75,89,0.10)' }}>
-            <h2 className="font-title text-base text-primary mb-4">Active schedule</h2>
-            <SuspendForm initial={status?.suspend} />
-          </div>
-
-        </section>
-
-        {/* Refresh intervals — only in single mode */}
         {!isRotating && status?.intervals && Object.keys(status.intervals).length > 0 && (
-          <section className="bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(74,75,89,0.10)' }}>
-            <h2 className="font-title text-base text-primary mb-4">Refresh intervals</h2>
-            <div>
+          <>
+            <Divider />
+            <section>
+              <h2 className="label mb-3">Refresh intervals</h2>
               {ALL_MODES.filter(m => m.available && status.intervals![m.id]).map(m => (
                 <IntervalRow
                   key={m.id}
@@ -1257,28 +1138,29 @@ export default function App() {
                   icon={m.icon}
                 />
               ))}
-            </div>
-          </section>
+            </section>
+          </>
         )}
 
-        {/* Weather location — only for weather mode */}
         {currentMode === 'weather' && (
-          <section className="animate-fade-in bg-surface rounded-lg p-5" style={{ border: '1px solid rgba(74,75,89,0.10)' }}>
-            <h2 className="font-title text-base text-primary mb-3">Weather location</h2>
-            <WeatherSettings currentLocation={status?.weather_location ?? undefined} />
-          </section>
+          <>
+            <Divider />
+            <section className="animate-fade-in">
+              <h2 className="label mb-3">Weather location</h2>
+              <WeatherSettings currentLocation={status?.weather_location ?? undefined} />
+            </section>
+          </>
         )}
 
-        {/* Footer */}
-        <footer className="pt-8 pb-4 flex flex-col items-center gap-4">
-          <div style={{ borderTop: '1px solid rgba(74,75,89,0.10)', width: '100%' }} />
-          <div className="flex items-center justify-between w-full pt-4">
-            <span className="label">TaleVision · Pi Zero W · 800 × 480 · e‑ink</span>
+        <footer className="pt-6 pb-4">
+          <Divider />
+          <div className="flex items-center justify-between pt-4">
+            <span className="font-mono text-[10px] text-muted">TaleVision · Pi Zero W · 800×480 · e‑ink</span>
             <a
               href="https://github.com/enuzzo/talevision"
               target="_blank"
               rel="noopener noreferrer"
-              className="label hover:text-accent transition-colors duration-200"
+              className="font-mono text-[10px] text-muted hover:text-accent transition-colors duration-200"
             >
               github ↗
             </a>
@@ -1287,11 +1169,11 @@ export default function App() {
             <img
               src="https://netmi.lk/wp-content/uploads/2024/10/netmilk.svg"
               alt="Netmilk Studio"
-              className="hover:animate-shake cursor-pointer"
-              style={{ width: '130px', height: 'auto' }}
+              className="hover:animate-shake cursor-pointer invert opacity-40 hover:opacity-70 transition-opacity"
+              style={{ width: '110px', height: 'auto' }}
             />
-            <span className="font-display text-[10px] text-muted text-center leading-relaxed">
-              MIT License · enuzzo + Netmilk Studio · 2024
+            <span className="font-mono text-[10px] text-muted/60 text-center">
+              MIT · enuzzo + Netmilk Studio · 2024
             </span>
           </div>
         </footer>
