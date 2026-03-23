@@ -174,6 +174,12 @@ Entry format:
 - Decision: Add `--verify` flag to `generate_sidecars.py`. Scans all videos, checks each has a `.json` with required fields, reports OK/MISSING/INVALID in a rich table. Exit code 0 if all valid, 1 if problems found.
 - Impact/Tradeoffs: Dev-side verification tool only (not run on Pi in production). Uses `rich` for formatted output.
 
+## 2026-03-23 - Museo Mode: Multi-Provider Public-Domain Artworks
+
+- Context: TaleVision had 4 modes (LitClock, SlowMovie, Wikipedia, Weather). A visual art mode was the natural next step — museum APIs offer hundreds of thousands of public-domain artworks with no API key.
+- Decision: Implement Museo mode with 3 providers (Metropolitan Museum of Art, Art Institute of Chicago, Cleveland Museum of Art) in deterministic round-robin rotation. File-based catalogue cache with 24h TTL. 50-ID recent buffer prevents repeats. Overlay matches SlowMovie's RGBA pattern (rounded-rect, alpha composite). Fallback to last cached frame on network failure.
+- Impact/Tradeoffs: 3 HTTP calls per render (catalogue check + artwork detail + image fetch). AIC catalogue fetch can be slow on first cold cache (up to 100 pages). Round-robin is per-render, not per-session — provider index resets on restart. No API keys to manage. All three museums offer CC0/public-domain images.
+
 ## 2026-03-10 - Language Order: it / es / pt / en / fr / de
 
 - Context: Languages were listed alphabetically (de/en/es/fr/it/pt) in default config and UI. Project context is Italian-first (deployed in Italy, Netmilk is Italian).

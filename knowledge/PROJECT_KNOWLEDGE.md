@@ -156,7 +156,7 @@ waitress is included in `requirements.txt` (`waitress==3.0.2`). Always install i
 - API: `POST /api/playlist` with `{modes: ["litclock", "slowmovie"], rotation_interval: 300}`.
 - `GET /api/status` returns `playlist`, `playlist_index`, `rotation_interval` fields.
 - Dashboard `PlaylistEditor`: checkboxes to enable/disable modes, up/down arrows to reorder, rotation interval input when 2+ modes enabled.
-- 4 modes in registry: `litclock` (active), `slowmovie` (active), `wikipedia` (active), `weather` (active). ANSi and Teletext removed.
+- 5 modes in registry: `litclock` (active), `slowmovie` (active), `wikipedia` (active), `weather` (active), `museo` (active). ANSi and Teletext removed.
 
 ## Per-mode Interval Overrides
 
@@ -200,6 +200,7 @@ LOOP-step log messages in `orchestrator.py` are at **DEBUG** level (changed from
 - **Web dashboard**: React SPA (Vite + Tailwind) at `http://<DEVICE_IP>:<PORT>`; warm vintage cream palette (bg #F1EBD9, accent #CA796D); Lobster logotype; CRT vintage RenderingOverlay (NoiseCanvas + TuningGauge SVG + scanlines); Stats card; PlaylistEditor with DnD reorder; Language selector (full names, always visible); rotating taglines. Netmilk logo in footer.
 - **`/api/status` uptime**: `uptime_seconds` field added — seconds since orchestrator started. Used in Stats card.
 - **Per-mode refresh intervals**: overridable from dashboard, persisted to `user_prefs.json` (visible in single-mode only).
+- **Museo mode**: fetches random public-domain artworks from 3 museum APIs (Met, AIC, Cleveland) in round-robin rotation. PIL enhancement (brightness/contrast/colour). Overlay: title·date (Signika-Bold 20pt), artist (Signika-Light 20pt), museum·department (Inconsolata 16pt) in rounded-rect box bottom-left; QR to museum object page bottom-right. 50-ID recent buffer prevents repeats. 24h catalogue cache. Fallback: last cached frame or "MUSEO" splash. Refresh: 300 s.
 - **Physical buttons**: GPIO 5/6/16/24 (A/B/C/D on Inky Impression); remappable in `config.yaml`.
 - **Off-Pi fallback**: no Inky → saves `talevision_frame.png`; no GPIO → one warning, silent from then on.
 
@@ -251,7 +252,7 @@ sudo systemctl start talevision
 3. No `media/*.mp4` staged: `git status | grep media/`
 4. Static analysis: `bandit -r talevision/ -ll`
 5. Dependency CVEs: `pip-audit -r requirements.txt`
-6. Render smoke test: `python main.py --render-only --mode litclock && python main.py --render-only --mode slowmovie && python main.py --render-only --mode wikipedia && python main.py --render-only --mode weather`
+6. Render smoke test: `python main.py --render-only --mode litclock && python main.py --render-only --mode slowmovie && python main.py --render-only --mode wikipedia && python main.py --render-only --mode weather && python main.py --render-only --mode museo`
 
 ## Wikipedia Mode
 
@@ -282,6 +283,20 @@ sudo systemctl start talevision
 - Config: `weather.refresh_interval` (default 300s), `weather.city`, `weather.lat`, `weather.lon`, `weather.units`, `weather.language`, `weather.timeout`.
 - `/api/status` includes `weather_units` field.
 - Graceful fallback: if fetch fails, shows last cached ANSI data or "Weather unavailable" message.
+
+## Museo Mode
+
+- `talevision/modes/museo.py` — `MuseoMode` class. Providers in `talevision/modes/museo_providers/`.
+- **3 providers** (round-robin rotation): Metropolitan Museum of Art (Met, NYC, ~200k+ public domain), Art Institute of Chicago (AIC, ~50k CC0), Cleveland Museum of Art (~61k CC0). All free APIs, no auth key.
+- Provider rotation: deterministic round-robin (Met → AIC → Cleveland → Met …). Index advances by 1 each time Museo renders, regardless of what other modes run between calls. Index persists in-memory only (resets on restart).
+- **Catalogue cache**: `museo_cache.py`, file-based JSON in `cache/`, 24h TTL (`cache_max_age=86400`). Refreshed on `on_activate()` and on render if stale.
+- **Artwork selection**: `pick_random_id()` per provider, up to 5 retries. 50-ID deque (`_recent_ids`) prevents repeats across renders.
+- **Image fetch**: `urllib.request` with `User-Agent: TaleVision/1.0`, configurable timeout (default 60s).
+- **PIL enhancement**: Brightness 1.1 → Contrast 1.2 → Color 1.3 (no gamma). `ImageOps.fit()` cover mode.
+- **Overlay** (same pattern as SlowMovie): RGBA layer, `rounded_rectangle(radius=8, fill=(0,0,0,190))`, `alpha_composite`. Three text lines: title·date (Signika-Bold 20pt, white), artist (Signika-Light 20pt, white), museum·department (Inconsolata 16pt, light grey). QR code bottom-right links to museum object page.
+- **Fallback**: warm fallback from `cache/museo_last_frame.png`; cold fallback = white bg + "MUSEO" in Lobster 50pt + "Connection unavailable" in Taviraj 18pt.
+- Config: `museo.refresh_interval` (300s), `museo.timeout` (60s), `museo.cache_max_age` (86400s), `museo.brightness/contrast/color`, overlay sub-config, fonts sub-config.
+- `get_state()` exposes `title`, `artist`, `museum`, `provider`, `object_url` in status extra.
 
 ## Known Open TODOs
 

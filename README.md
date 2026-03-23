@@ -25,7 +25,9 @@ As **Wikipedia**, it fetches a random article every few minutes, renders the tit
 
 As **Weather**, it fetches wttr.in's native ANSI terminal output — ASCII art clouds, coloured temperatures, wind arrows — parses the escape codes, and renders them character by character in Inconsolata Nerd Font Mono, mapped to seven e-ink colours. It looks like a terminal printout from the future's past.
 
-All four modes share one 800×480 seven-colour e-ink panel, one Pi Zero W, one Flask dashboard, and one quiet conviction: the best thing a screen can do is earn its update.
+As **Museo**, it picks a random public-domain artwork from one of three world museums — the Met, the Art Institute of Chicago, or the Cleveland Museum of Art — downloads the high-resolution image, enhances it for e-ink, and holds it on the wall with the title, artist, and museum name in a discreet overlay. A QR code links to the museum's page for that object. The three museums rotate in order, one per render cycle.
+
+All five modes share one 800×480 seven-colour e-ink panel, one Pi Zero W, one Flask dashboard, and one quiet conviction: the best thing a screen can do is earn its update.
 
 ---
 
@@ -47,6 +49,7 @@ TaleVision is the obvious outcome. One device. One config file. One dashboard. S
 - [SlowMovie](#slowmovie)
 - [Wikipedia](#wikipedia)
 - [Weather](#weather)
+- [Museo](#museo)
 - [Playlist & Rotation](#playlist--rotation)
 - [Hardware](#hardware)
 - [How It Works](#how-it-works)
@@ -119,6 +122,20 @@ Note: wttr.in is fetched over HTTP on the Pi Zero W. The HTTPS handshake reliabl
 
 ---
 
+## Museo
+
+Every 5 minutes: pick a random public-domain artwork from one of three world museums, download the high-resolution image, run it through the PIL enhancement pipeline, fit it to the panel, add the overlay. The three museums — **Metropolitan Museum of Art** (NYC, ~200k+ works), **Art Institute of Chicago** (~50k works), **Cleveland Museum of Art** (~61k works) — rotate in strict order, one per render cycle.
+
+No API keys. No accounts. All three museums offer free, unauthenticated APIs with CC0 or public-domain images. The catalogue is cached locally for 24 hours to avoid hammering the APIs on every render.
+
+**Overlay:** same RGBA composite pattern as SlowMovie. A rounded-rectangle box in the bottom-left with the artwork title and date (Signika-Bold 20pt), artist name (Signika-Light 20pt), and museum + department (Inconsolata 16pt, light grey). A QR code in the bottom-right links to the museum's object page for that artwork. If you want to know more about what's on your wall, scan it.
+
+**Fallback:** if the network is down, Museo shows the last successfully rendered frame from cache. If there's no cache at all (cold start with no network), it shows a clean white screen with "MUSEO" in Lobster and a connection-unavailable message.
+
+A 50-ID recent buffer prevents the same artwork from appearing twice in a row — with ~300k+ works across the three museums, collisions are unlikely, but the buffer removes the possibility entirely.
+
+---
+
 ## Playlist & Rotation
 
 TaleVision doesn't make you choose. Enable any combination of modes and the Orchestrator cycles through them in order. A unified rotation interval (default: 5 minutes, configurable 30s–60min) replaces per-mode intervals during rotation. After each render, it waits, then advances to the next mode in the playlist.
@@ -156,8 +173,12 @@ The display refreshes slowly on purpose. E-ink panels take ~30 seconds and hold 
                         │  │ LitClock │  │SlowMovie │             │
                         │  └────┬─────┘  └────┬─────┘             │
                         │  ┌────┴─────┐  ┌────┴─────┐             │
-                        │  │Wikipedia │  │ Weather  │  (playlist) │
+                        │  │Wikipedia │  │ Weather  │             │
                         │  └────┬─────┘  └────┬─────┘             │
+                        │       │      ┌──────┘                   │
+                        │       │      │  ┌────────┐              │
+                        │       │      │  │ Museo  │  (playlist)  │
+                        │       │      │  └───┬────┘              │
                         │       └──────┬───────┘                  │
                         │              ▼ render()                  │
                         │          InkyCanvas                      │
@@ -244,6 +265,8 @@ Dashboard at `http://<pi-ip>:5000`.
 | `weather.city` | `Roma` | Default city name (editable from dashboard) |
 | `weather.lat` / `weather.lon` | `41.89` / `12.48` | Coordinates for wttr.in (set via dashboard autocomplete) |
 | `weather.units` | `m` | `m` (metric), `u` (imperial), `M` (metric + m/s wind) |
+| `museo.refresh_interval` | `300` | Seconds between artwork fetches |
+| `museo.timeout` | `60` | HTTP timeout for museum API calls |
 | `suspend.start` / `.end` | `18:00` / `08:00` | Sleep/wake time — overnight ranges handled correctly (start > end wraps midnight) |
 | `suspend.days` | `[5,6]` | Fully-off days (0=Mon … 6=Sun). Default: Sat+Sun fully off, Mon–Fri follow the time window |
 | `buttons.actions` | see below | Remap GPIO buttons to any action |
@@ -364,7 +387,10 @@ talevision/
 │   │   ├── litclock.py          LitClock — Taviraj typography, 6 languages
 │   │   ├── slowmovie.py         SlowMovie — PIL chain + RGBA overlay + TMDB QR
 │   │   ├── wikipedia.py         Wikipedia — random article, babel header, QR link
-│   │   └── weather.py           Weather — wttr.in ANSI parser + two-zone PIL render
+│   │   ├── weather.py           Weather — wttr.in ANSI parser + two-zone PIL render
+│   │   ├── museo.py             Museo — Met/AIC/Cleveland round-robin + PIL overlay
+│   │   ├── museo_cache.py       File-based catalogue cache with TTL
+│   │   └── museo_providers/     Provider ABC + Met, AIC, Cleveland implementations
 │   ├── render/
 │   │   ├── typography.py        FontManager, wrap_text_block, get_text_dimensions
 │   │   ├── layout.py            draw_header, draw_centered_text_block
@@ -459,7 +485,7 @@ Use it, fork it, replace the quote database with your own obsessions, point Slow
 
 <div align="center">
 
-*Literature. Cinema. Wikipedia. Weather.*
+*Literature. Cinema. Wikipedia. Weather. Art.*
 *One Pi Zero W. One wall. One question at a time.*
 
 </div>

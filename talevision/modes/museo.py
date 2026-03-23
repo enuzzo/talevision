@@ -104,6 +104,7 @@ class MuseoMode(DisplayMode):
             return self._fallback_image(w, h)
 
         artwork = None
+        img = None
         for attempt in range(_MAX_RETRIES):
             try:
                 art_id = provider.pick_random_id(cache_data)
@@ -280,14 +281,14 @@ class MuseoMode(DisplayMode):
             draw.text(((w - tw) / 2, h / 2 - 60), text, font=self._lobster_font,
                       fill=(0, 0, 0))
         if self._fallback_font:
-            msg = "La connessione non \u00e8 disponibile"
+            msg = "Connection unavailable"
             mw = draw.textlength(msg, font=self._fallback_font)
             draw.text(((w - mw) / 2, h / 2 + 20), msg, font=self._fallback_font,
                       fill=(130, 130, 130))
             ts_file = self._base_dir / "cache" / "museo_last_success.txt"
             if ts_file.exists():
                 ts = ts_file.read_text().strip()
-                ts_text = f"Ultimo aggiornamento: {ts}"
+                ts_text = f"Last update: {ts}"
                 tsw = draw.textlength(ts_text, font=self._fallback_font)
                 draw.text(((w - tsw) / 2, h / 2 + 60), ts_text,
                           font=self._fallback_font, fill=(170, 170, 170))

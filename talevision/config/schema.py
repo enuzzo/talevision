@@ -81,8 +81,8 @@ class LitClockConfig:
 
 @dataclass
 class FrameSelectionConfig:
-    skip_start_seconds: int = 120
-    skip_end_seconds: int = 240
+    skip_start_seconds: int = 30
+    skip_end_seconds: int = 120
 
 
 @dataclass
