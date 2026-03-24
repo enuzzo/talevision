@@ -64,7 +64,7 @@ class MuseoMode(DisplayMode):
         size = self._cfg.overlay.font_size
         self._bold_font = _load_font(self._font_dir / self._cfg.fonts.bold, size - 2)
         self._light_font = _load_font(self._font_dir / self._cfg.fonts.light, size - 2)
-        self._mono_font = _load_font(self._font_dir / self._cfg.fonts.mono, 16)
+        self._mono_font = _load_font(self._font_dir / self._cfg.fonts.mono.replace("Regular", "Bold"), 18)
         self._lobster_font = _load_font(self._font_dir / "Lobster-Regular.ttf", 50)
         self._fallback_font = _load_font(self._font_dir / "Taviraj-Italic.ttf", 18)
 
