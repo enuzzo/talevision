@@ -288,7 +288,7 @@ sudo systemctl start talevision
 ## Museo Mode
 
 - `talevision/modes/museo.py` — `MuseoMode` class. Providers in `talevision/modes/museo_providers/`.
-- **Up to 4 providers** (round-robin rotation): Met (NYC, ~200k, no key), Cleveland (~41k, no key), V&A (London, ~732k, no key), Smithsonian (~87k across SAAM/NPG/Cooper Hewitt/Freer, free API key). Smithsonian requires API key via `museo.smithsonian_api_key` or env var `SMITHSONIAN_API_KEY`. Without key, gracefully degrades to Met + Cleveland + V&A (~973k total).
+- **3 providers** (round-robin rotation): Met (NYC, ~200k, no key), Cleveland (~41k, no key), V&A (London, ~732k, no key). All free APIs, no auth required. Total pool: ~973k public-domain artworks.
 - Provider rotation: deterministic round-robin. Index advances by 1 each time Museo renders, regardless of what other modes run between calls. Index persists in-memory only (resets on restart).
 - **Catalogue cache**: `museo_cache.py`, file-based JSON in `cache/`, 24h TTL (`cache_max_age=86400`). Refreshed on `on_activate()` and on render if stale.
 - **Artwork selection**: `pick_random_id()` per provider, up to 5 retries. 50-ID deque (`_recent_ids`) prevents repeats across renders.
@@ -296,7 +296,7 @@ sudo systemctl start talevision
 - **PIL enhancement**: Brightness 1.1 → Contrast 1.2 → Color 1.3 (no gamma). `ImageOps.fit()` cover mode.
 - **Overlay** (same pattern as SlowMovie): RGBA layer, `rounded_rectangle(radius=8, fill=(0,0,0,190))`, `alpha_composite`. Three text lines: title·date (Signika-Bold 20pt, white), artist (Signika-Light 20pt, white), museum·department (Inconsolata Bold 18pt, light grey). QR code bottom-right links to museum object page.
 - **Fallback**: warm fallback from `cache/museo_last_frame.png`; cold fallback = white bg + "MUSEO" in Lobster 50pt + "Connection unavailable" in Taviraj 18pt.
-- Config: `museo.refresh_interval` (300s), `museo.timeout` (60s), `museo.cache_max_age` (86400s), `museo.brightness/contrast/color`, `museo.smithsonian_api_key`, overlay sub-config, fonts sub-config.
+- Config: `museo.refresh_interval` (300s), `museo.timeout` (60s), `museo.cache_max_age` (86400s), `museo.brightness/contrast/color`, overlay sub-config, fonts sub-config.
 - `get_state()` exposes `title`, `artist`, `museum`, `provider`, `object_url` in status extra.
 
 ## Known Open TODOs

@@ -11,7 +11,7 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFont, ImageOps
 from talevision.config.schema import AppConfig
 from talevision.modes.base import DisplayMode, ModeState
 from talevision.modes.museo_cache import MuseoCache
-from talevision.modes.museo_providers import build_providers
+from talevision.modes.museo_providers import PROVIDERS
 
 log = logging.getLogger(__name__)
 
@@ -49,9 +49,7 @@ class MuseoMode(DisplayMode):
             max_age=self._cfg.cache_max_age,
         )
 
-        self._providers = build_providers(
-            smithsonian_api_key=self._cfg.smithsonian_api_key,
-        )
+        self._providers = PROVIDERS
         self._provider_index = 0
         self._recent_ids: collections.deque = collections.deque(maxlen=_RECENT_BUFFER_SIZE)
         self._last_artwork = None

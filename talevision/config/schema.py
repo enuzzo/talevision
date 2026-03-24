@@ -166,7 +166,7 @@ class MuseoConfig:
     brightness: float = 1.1
     contrast: float = 1.2
     color: float = 1.3
-    smithsonian_api_key: str = ""
+
     overlay: OverlayConfig = field(default_factory=lambda: OverlayConfig(
         qr_content="museo_page",
     ))
