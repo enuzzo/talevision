@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 from talevision.config.schema import AppConfig
 from talevision.modes.base import DisplayMode, ModeState
 from talevision.modes.koan_archive import KoanArchive
-from talevision.modes.koan_generator import generate_haiku
+from talevision.modes.koan_generator import BackgroundKoanGenerator
 
 log = logging.getLogger(__name__)
 
@@ -44,6 +44,14 @@ class KoanMode(DisplayMode):
             seed_data_path=base_dir / self._cfg.seed_data,
         )
         self._last_haiku: dict = {}
+        self._last_shown_id: int = 0
+        self._bg_gen = BackgroundKoanGenerator(
+            llm_binary=self._cfg.llm_binary,
+            llm_model=self._cfg.llm_model,
+            archive=self._archive,
+            timeout=self._cfg.llm_timeout,
+        )
+        self._bg_gen.start()
 
     @property
     def name(self) -> str:
@@ -59,10 +67,7 @@ class KoanMode(DisplayMode):
     def render(self) -> Image.Image:
         w, h = self._display.width, self._display.height
 
-        haiku = self._generate()
-        if haiku is None:
-            log.warning("Koan: LLM generation failed, using curated fallback")
-            haiku = self._archive.get_curated_haiku()
+        haiku = self._pick_haiku()
         if haiku is None:
             return self._fallback_image(w, h)
 
@@ -83,37 +88,18 @@ class KoanMode(DisplayMode):
             "generation_time_ms": h.get("generation_time_ms", 0),
         })
 
-    def _generate(self) -> dict:
-        if not self._cfg.llm_binary or not self._cfg.llm_model:
-            log.warning("Koan: llm_binary or llm_model not configured")
-            return None
-
-        seed_word = self._archive.get_random_seed_word()
-
-        result = generate_haiku(
-            llm_binary=self._cfg.llm_binary,
-            llm_model=self._cfg.llm_model,
-            seed_word=seed_word,
-            timeout=self._cfg.llm_timeout,
-        )
-        if result is None:
-            return None
-
-        haiku_id = self._archive.append(
-            lines=result["lines"],
-            seed_word=seed_word,
-            author_name=result["author_name"],
-            source="generated",
-            generation_time_ms=result["generation_time_ms"],
-        )
-        return {
-            "id": haiku_id,
-            "lines": result["lines"],
-            "seed_word": seed_word,
-            "author_name": result["author_name"],
-            "source": "generated",
-            "generation_time_ms": result["generation_time_ms"],
-        }
+    def _pick_haiku(self) -> dict:
+        latest = self._archive.get_latest()
+        if latest and latest.get("id", 0) != self._last_shown_id:
+            self._last_shown_id = latest["id"]
+            log.info("Koan: showing haiku #%d (%s)", latest["id"], latest.get("source", ""))
+            return latest
+        rnd = self._archive.get_random()
+        if rnd:
+            log.info("Koan: no new haiku, showing random #%d", rnd.get("id", 0))
+            return rnd
+        log.warning("Koan: archive empty, using curated fallback")
+        return self._archive.get_curated_haiku()
 
     def _draw_frame(self, w: int, h: int, haiku: dict) -> Image.Image:
         if self._bg_image:

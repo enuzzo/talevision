@@ -19,7 +19,7 @@ logging:
 
 suspend:
   enabled: true
-  start: "18:00"
+  start: "20:00"
   end: "08:00"
   days: [5,6]   # 0=Mon … 6=Sun; suspend days (fully off). Active: Mon-Fri 08:00–18:00
   message: "TaleVision — Netmilk Studio"

@@ -2,6 +2,7 @@
 import logging
 import re
 import subprocess
+import threading
 import time
 from pathlib import Path
 from typing import Optional
@@ -77,6 +78,7 @@ def generate_haiku(
             capture_output=True,
             text=True,
             timeout=timeout,
+            stdin=subprocess.DEVNULL,
         )
         elapsed_ms = int((time.monotonic() - t0) * 1000)
 
@@ -89,9 +91,12 @@ def generate_haiku(
         log.debug("Koan LLM raw output:\n%s", raw)
         return _parse_output(raw, elapsed_ms)
 
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as exc:
         elapsed_ms = int((time.monotonic() - t0) * 1000)
-        log.warning("Koan LLM timed out after %dms", elapsed_ms)
+        log.warning("Koan LLM timed out after %dms, trying partial output", elapsed_ms)
+        raw = (exc.stdout or "").strip()
+        if raw:
+            return _parse_output(raw, elapsed_ms)
         return None
     except FileNotFoundError:
         log.error("Koan LLM binary not found: %s", llm_binary)
@@ -140,3 +145,59 @@ def get_random_prompt() -> str:
     """Return a random introspective prompt question."""
     import random
     return random.choice(_PROMPTS)
+
+
+class BackgroundKoanGenerator:
+    """Daemon thread that continuously generates haiku into the archive."""
+
+    def __init__(self, llm_binary: str, llm_model: str, archive,
+                 timeout: int = 900, pause: float = 30.0):
+        self._binary = llm_binary
+        self._model = llm_model
+        self._archive = archive
+        self._timeout = timeout
+        self._pause = pause
+        self._thread = None
+        self._stop = threading.Event()
+
+    def start(self):
+        if self._thread and self._thread.is_alive():
+            return
+        if not self._binary or not self._model:
+            log.warning("BackgroundKoanGenerator: llm_binary or llm_model not set")
+            return
+        self._stop.clear()
+        self._thread = threading.Thread(target=self._loop, daemon=True,
+                                        name="koan-bg-gen")
+        self._thread.start()
+        log.info("BackgroundKoanGenerator started")
+
+    def stop(self):
+        self._stop.set()
+        if self._thread:
+            self._thread.join(timeout=5)
+        log.info("BackgroundKoanGenerator stopped")
+
+    def _loop(self):
+        while not self._stop.is_set():
+            seed_word = self._archive.get_random_seed_word()
+            result = generate_haiku(
+                llm_binary=self._binary,
+                llm_model=self._model,
+                seed_word=seed_word,
+                timeout=self._timeout,
+            )
+            if result:
+                self._archive.append(
+                    lines=result["lines"],
+                    seed_word=seed_word,
+                    author_name=result["author_name"],
+                    source="generated",
+                    generation_time_ms=result["generation_time_ms"],
+                )
+                log.info("BackgroundKoanGenerator: haiku generated in %.1fs",
+                         result["generation_time_ms"] / 1000.0)
+            else:
+                log.warning("BackgroundKoanGenerator: generation failed, "
+                            "retrying in %.0fs", self._pause)
+            self._stop.wait(self._pause)
