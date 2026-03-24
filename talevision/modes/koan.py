@@ -7,6 +7,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 from talevision.config.schema import AppConfig
 from talevision.modes.base import DisplayMode, ModeState
 from talevision.modes.koan_archive import KoanArchive
+from talevision.modes.koan_generator import generate_haiku, get_random_prompt
 
 log = logging.getLogger(__name__)
 
@@ -53,12 +54,15 @@ class KoanMode(DisplayMode):
         return self._cfg.refresh_interval
 
     def on_activate(self) -> None:
-        log.info("Koan mode activated (sub_mode=%s)", self._cfg.sub_mode)
+        log.info("Koan mode activated — embedded LLM generation")
 
     def render(self) -> Image.Image:
         w, h = self._display.width, self._display.height
 
-        haiku = self._pick_haiku()
+        haiku = self._generate()
+        if haiku is None:
+            log.warning("Koan: LLM generation failed, using curated fallback")
+            haiku = self._archive.get_curated_haiku()
         if haiku is None:
             return self._fallback_image(w, h)
 
@@ -79,16 +83,39 @@ class KoanMode(DisplayMode):
             "generation_time_ms": h.get("generation_time_ms", 0),
         })
 
-    def _pick_haiku(self) -> dict:
-        if self._cfg.sub_mode == "generate":
-            generated = self._try_generate()
-            if generated:
-                return generated
-        return self._archive.get_random()
+    def _generate(self) -> dict:
+        if not self._cfg.llm_binary or not self._cfg.llm_model:
+            log.warning("Koan: llm_binary or llm_model not configured")
+            return None
 
-    def _try_generate(self) -> dict:
-        # Phase 2: local LLM / free API generation
-        return None
+        seed_word = self._archive.get_random_seed_word()
+        prompt_question = get_random_prompt()
+
+        result = generate_haiku(
+            llm_binary=self._cfg.llm_binary,
+            llm_model=self._cfg.llm_model,
+            seed_word=seed_word,
+            prompt_question=prompt_question,
+            timeout=self._cfg.llm_timeout,
+        )
+        if result is None:
+            return None
+
+        haiku_id = self._archive.append(
+            lines=result["lines"],
+            seed_word=seed_word,
+            author_name=result["author_name"],
+            source="generated",
+            generation_time_ms=result["generation_time_ms"],
+        )
+        return {
+            "id": haiku_id,
+            "lines": result["lines"],
+            "seed_word": seed_word,
+            "author_name": result["author_name"],
+            "source": "generated",
+            "generation_time_ms": result["generation_time_ms"],
+        }
 
     def _draw_frame(self, w: int, h: int, haiku: dict) -> Image.Image:
         if self._bg_image:
@@ -136,7 +163,13 @@ class KoanMode(DisplayMode):
                       font=self._font_mono, fill=FILL)
 
         # --- Tech stats: below pen name ---
-        tech_text = f"ARCHIVE \u00b7 seed:{seed_word} \u00b7 \u2116{haiku_id}"
+        source = haiku.get("source", "archive")
+        gen_ms = haiku.get("generation_time_ms", 0)
+        if source == "generated" and gen_ms > 0:
+            gen_s = gen_ms / 1000.0
+            tech_text = f"LLM \u00b7 {gen_s:.1f}s \u00b7 seed:{seed_word} \u00b7 \u2116{haiku_id}"
+        else:
+            tech_text = f"CURATED \u00b7 seed:{seed_word} \u00b7 \u2116{haiku_id}"
         tw = draw.textbbox((0, 0), tech_text, font=self._font_tech)[2]
         draw.text((RIGHT_EDGE - tw, pen_y + 26), tech_text,
                   font=self._font_tech, fill=FILL)

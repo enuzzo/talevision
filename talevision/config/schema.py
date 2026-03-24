@@ -176,15 +176,11 @@ class MuseoConfig:
 @dataclass
 class KoanConfig:
     refresh_interval: int = 600
-    sub_mode: str = "archive"
     archive_file: str = "cache/koan_archive.json"
     seed_data: str = "assets/data/koan_seeds.json"
-    llm_binary: str = ""
-    llm_model: str = ""
+    llm_binary: str = "/home/enuzzo/llama.zero/build/bin/llama-cli"
+    llm_model: str = "/home/enuzzo/models/smollm-135m-instruct-q4_k_m.gguf"
     llm_timeout: int = 180
-    api_url: str = ""
-    api_key: str = ""
-    api_model: str = ""
 
 
 @dataclass
