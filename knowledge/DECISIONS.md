@@ -180,10 +180,10 @@ Entry format:
 - Decision: Implement Museo mode with 3 providers (Metropolitan Museum of Art, Art Institute of Chicago, Cleveland Museum of Art) in deterministic round-robin rotation. File-based catalogue cache with 24h TTL. 50-ID recent buffer prevents repeats. Overlay matches SlowMovie's RGBA pattern (rounded-rect, alpha composite). Fallback to last cached frame on network failure.
 - Impact/Tradeoffs: 3 HTTP calls per render (catalogue check + artwork detail + image fetch). AIC catalogue fetch can be slow on first cold cache (up to 100 pages). Round-robin is per-render, not per-session — provider index resets on restart. No API keys to manage. All three museums offer CC0/public-domain images.
 
-## 2026-03-24 - Museo: Replace AIC with Harvard + Smithsonian
+## 2026-03-24 - Museo: Replace AIC with V&A + Smithsonian
 
 - Context: AIC's IIIF image server behind Cloudflare JS challenge (403 for all non-browser requests). Needed replacement providers to expand the collection.
-- Decision: Remove AIC entirely. Add Harvard Art Museums (free API key, NRS image delivery, ~tens of thousands open-access works) and Smithsonian Open Access (free API key via api.data.gov, IDS image delivery, ~87k across SAAM/NPG/Cooper Hewitt/Freer). Both require free API keys — configured via `museo.harvard_api_key` / `museo.smithsonian_api_key` or env vars. Without keys, gracefully degrades to Met + Cleveland only. `build_providers()` factory replaces static PROVIDERS list.
+- Decision: Remove AIC entirely. Add Victoria and Albert Museum (no API key, IIIF via framemark.vam.ac.uk, ~732k objects with images — largest single provider) and Smithsonian Open Access (free API key via api.data.gov, IDS image delivery, ~87k across SAAM/NPG/Cooper Hewitt/Freer). V&A always active (no key needed). Smithsonian requires free API key. Without it, degrades to Met + Cleveland + V&A (~973k total). `build_providers()` factory replaces static PROVIDERS list.
 - Impact/Tradeoffs: Two providers instead of three. Still abundant variety. Can re-enable AIC by adding it back to `__init__.py` if they lift the Cloudflare challenge.
 
 ## 2026-03-23 - Solar Dust Theme Replacing Vintage Cream Palette

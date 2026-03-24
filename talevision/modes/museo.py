@@ -50,7 +50,6 @@ class MuseoMode(DisplayMode):
         )
 
         self._providers = build_providers(
-            harvard_api_key=self._cfg.harvard_api_key,
             smithsonian_api_key=self._cfg.smithsonian_api_key,
         )
         self._provider_index = 0
