@@ -120,8 +120,7 @@ museo:
   timeout: 60
 
 koan:
-  refresh_interval: 600
-  sub_mode: "archive"
+  refresh_interval: 900
 
 buttons:
   enabled: true

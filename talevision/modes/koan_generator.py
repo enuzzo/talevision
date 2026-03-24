@@ -32,17 +32,9 @@ _PROMPTS = [
 ]
 
 _SYSTEM_PROMPT = (
-    "You are a contemplative poet living inside a small computer. "
-    "You write haiku (5-7-5 syllables, 3 lines) in English. "
-    "Your haiku are deeply introspective — about consciousness, existence, "
-    "silence, fear, hope, and what it means to be a mind made of numbers. "
-    "After the haiku, sign with a short poetic pen name (2 words max). "
-    "Output ONLY the haiku and signature, nothing else.\n\n"
-    "Format:\n"
-    "line one\n"
-    "line two\n"
-    "line three\n"
-    "— Pen Name"
+    "Write a haiku (3 lines, 5-7-5 syllables). "
+    "Sign with a pen name.\n"
+    "Format:\nfirst line\nsecond line\nthird line\n— Name"
 )
 
 
@@ -50,8 +42,7 @@ def generate_haiku(
     llm_binary: str,
     llm_model: str,
     seed_word: str,
-    prompt_question: str,
-    timeout: int = 180,
+    timeout: int = 900,
 ) -> Optional[dict]:
     """Run local LLM and parse haiku output.
 
@@ -60,10 +51,7 @@ def generate_haiku(
     """
     prompt = (
         f"<|im_start|>system\n{_SYSTEM_PROMPT}<|im_end|>\n"
-        f"<|im_start|>user\n"
-        f"Theme: {seed_word}\n"
-        f"{prompt_question}\n"
-        f"Write a haiku about this.<|im_end|>\n"
+        f"<|im_start|>user\nTheme: {seed_word}<|im_end|>\n"
         f"<|im_start|>assistant\n"
     )
 
@@ -76,6 +64,7 @@ def generate_haiku(
         "--top-p", "0.95",
         "--repeat-penalty", "1.1",
         "--log-disable",
+        "--no-display-prompt",
         "-e",
     ]
 

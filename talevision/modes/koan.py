@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 from talevision.config.schema import AppConfig
 from talevision.modes.base import DisplayMode, ModeState
 from talevision.modes.koan_archive import KoanArchive
-from talevision.modes.koan_generator import generate_haiku, get_random_prompt
+from talevision.modes.koan_generator import generate_haiku
 
 log = logging.getLogger(__name__)
 
@@ -89,13 +89,11 @@ class KoanMode(DisplayMode):
             return None
 
         seed_word = self._archive.get_random_seed_word()
-        prompt_question = get_random_prompt()
 
         result = generate_haiku(
             llm_binary=self._cfg.llm_binary,
             llm_model=self._cfg.llm_model,
             seed_word=seed_word,
-            prompt_question=prompt_question,
             timeout=self._cfg.llm_timeout,
         )
         if result is None:
