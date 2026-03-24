@@ -180,6 +180,12 @@ Entry format:
 - Decision: Implement Museo mode with 3 providers (Metropolitan Museum of Art, Art Institute of Chicago, Cleveland Museum of Art) in deterministic round-robin rotation. File-based catalogue cache with 24h TTL. 50-ID recent buffer prevents repeats. Overlay matches SlowMovie's RGBA pattern (rounded-rect, alpha composite). Fallback to last cached frame on network failure.
 - Impact/Tradeoffs: 3 HTTP calls per render (catalogue check + artwork detail + image fetch). AIC catalogue fetch can be slow on first cold cache (up to 100 pages). Round-robin is per-render, not per-session — provider index resets on restart. No API keys to manage. All three museums offer CC0/public-domain images.
 
+## 2026-03-24 - Museo: Disable AIC Provider (Cloudflare IIIF Block)
+
+- Context: Art Institute of Chicago placed Cloudflare JS challenge in front of their IIIF image server (`www.artic.edu/iiif/2/`). All non-browser HTTP requests return 403 with a "Just a moment..." challenge page. Their metadata API still works, but images are unreachable programmatically.
+- Decision: Remove AIC from active PROVIDERS list, keeping `aic.py` code intact for future re-enable. Museo now rotates between Met (~200k works) and Cleveland (~41k works). Total pool: ~240k public-domain artworks.
+- Impact/Tradeoffs: Two providers instead of three. Still abundant variety. Can re-enable AIC by adding it back to `__init__.py` if they lift the Cloudflare challenge.
+
 ## 2026-03-23 - Solar Dust Theme Replacing Vintage Cream Palette
 
 - Context: The warm vintage cream palette (bg `#F1EBD9`, accent `#CA796D`) with Funnel Display font felt pleasant but lacked the "desert tech" character of the Vibemilk design system's Solar Dust theme.

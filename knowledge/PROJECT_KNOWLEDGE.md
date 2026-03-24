@@ -288,13 +288,13 @@ sudo systemctl start talevision
 ## Museo Mode
 
 - `talevision/modes/museo.py` — `MuseoMode` class. Providers in `talevision/modes/museo_providers/`.
-- **3 providers** (round-robin rotation): Metropolitan Museum of Art (Met, NYC, ~200k+ public domain), Art Institute of Chicago (AIC, ~50k CC0), Cleveland Museum of Art (~61k CC0). All free APIs, no auth key.
-- Provider rotation: deterministic round-robin (Met → AIC → Cleveland → Met …). Index advances by 1 each time Museo renders, regardless of what other modes run between calls. Index persists in-memory only (resets on restart).
+- **2 active providers** (round-robin rotation): Metropolitan Museum of Art (Met, NYC, ~200k+ public domain), Cleveland Museum of Art (~61k CC0). All free APIs, no auth key. AIC (Art Institute of Chicago) disabled since March 2026 — their IIIF image server is behind Cloudflare JS challenge, returning 403 for all non-browser requests. Provider code kept in `aic.py` for future re-enable.
+- Provider rotation: deterministic round-robin (Met → Cleveland → Met …). Index advances by 1 each time Museo renders, regardless of what other modes run between calls. Index persists in-memory only (resets on restart).
 - **Catalogue cache**: `museo_cache.py`, file-based JSON in `cache/`, 24h TTL (`cache_max_age=86400`). Refreshed on `on_activate()` and on render if stale.
 - **Artwork selection**: `pick_random_id()` per provider, up to 5 retries. 50-ID deque (`_recent_ids`) prevents repeats across renders.
 - **Image fetch**: `urllib.request` with `User-Agent: TaleVision/1.0`, configurable timeout (default 60s).
 - **PIL enhancement**: Brightness 1.1 → Contrast 1.2 → Color 1.3 (no gamma). `ImageOps.fit()` cover mode.
-- **Overlay** (same pattern as SlowMovie): RGBA layer, `rounded_rectangle(radius=8, fill=(0,0,0,190))`, `alpha_composite`. Three text lines: title·date (Signika-Bold 20pt, white), artist (Signika-Light 20pt, white), museum·department (Inconsolata 16pt, light grey). QR code bottom-right links to museum object page.
+- **Overlay** (same pattern as SlowMovie): RGBA layer, `rounded_rectangle(radius=8, fill=(0,0,0,190))`, `alpha_composite`. Three text lines: title·date (Signika-Bold 20pt, white), artist (Signika-Light 20pt, white), museum·department (Inconsolata Bold 18pt, light grey). QR code bottom-right links to museum object page.
 - **Fallback**: warm fallback from `cache/museo_last_frame.png`; cold fallback = white bg + "MUSEO" in Lobster 50pt + "Connection unavailable" in Taviraj 18pt.
 - Config: `museo.refresh_interval` (300s), `museo.timeout` (60s), `museo.cache_max_age` (86400s), `museo.brightness/contrast/color`, overlay sub-config, fonts sub-config.
 - `get_state()` exposes `title`, `artist`, `museum`, `provider`, `object_url` in status extra.
