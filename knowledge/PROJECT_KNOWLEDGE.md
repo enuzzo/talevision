@@ -118,9 +118,10 @@ python generate_sidecars.py --verify    # validate all sidecars
 - Served by Flask: `views.py` uses `send_file(dist/index.html)` if built; falls back to Jinja template.
 - Data: TanStack React Query v5, polls `/api/status` every 12s (2s when waiting for frame render).
 - Frame waiting state: when mode switch or force-refresh is triggered, shows `RenderingOverlay` until `status.last_update` advances past the trigger timestamp. 120s safety timeout.
-- Fonts loaded from Google Fonts (Lobster + Funnel Display). No local font files needed for the web UI.
-- **Design system**: warm vintage cream palette — `bg: #F1EBD9`, `primary: #3B3C47`, `accent: #CA796D` (Contessa). Lobster for logotype/headings, Funnel Display for interface text. Rounded corners (3/6/10/14/18px). No ScryBar dependency.
-- **RenderingOverlay** (CRT vintage): dark `#19120C` background, `NoiseCanvas` (100×62px canvas scaled to fill, ~13fps TV grain), CSS scanlines, amber sweep band, `TuningGauge` SVG (oscillating radio needle, Tailwind `gauge-needle` animation), mode name in Lobster + `animate-flicker`, "Tuning" label.
+- Fonts: self-hosted woff2 — Lobster (title), Chakra Petch 400/600/700 (display/body), Space Mono 400/700 (mono). No Google Fonts dependency.
+- **Design system**: Solar Dust theme (from Vibemilk design system) — dark brown-black `bg: #1A1410`, gold accent `#E8A838`, terracotta `#D06B50`, cream text `#F0E6D6`. Lobster for logotype/headings, Chakra Petch for interface text. Rounded corners (4/6/8/10/12px). Borders use gold-alpha (`rgba(232,168,56,0.18)`).
+- **Mode accent colours**: LitClock `#6A9FBF`, SlowMovie `#E8A838`, Wikipedia `#D06B50`, Weather `#7FA87F`, Museo `#B8860B`.
+- **RenderingOverlay** (CRT vintage): dark `#1A1410` background, `NoiseCanvas` (100×62px canvas scaled to fill, ~13fps TV grain), CSS scanlines, gold sweep band, RadioWaves animation, mode name in Lobster + `animate-flicker`, "Tuning" label.
 - **`pendingMode` state**: set in `playlistMut.onMutate` to `modes[0]`, cleared when `waiting` goes false. Prevents overlay from briefly showing the old mode name. Pass `pendingMode ?? currentMode` to `FramePreview`.
 - **`lastSyncedRef` playlist sync**: tracks `playlist.join(',') + ':' + rotationInterval`. Prevents premature sync on preliminary `['litclock']` before server data arrives.
 - **Language selector**: always visible at top (affects LitClock + Wikipedia). Shows full language names (`Italiano`, `Español`, etc.) via `LANG_NAMES` dict. `localLang` state for instant update.

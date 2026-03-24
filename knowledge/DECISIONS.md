@@ -180,6 +180,12 @@ Entry format:
 - Decision: Implement Museo mode with 3 providers (Metropolitan Museum of Art, Art Institute of Chicago, Cleveland Museum of Art) in deterministic round-robin rotation. File-based catalogue cache with 24h TTL. 50-ID recent buffer prevents repeats. Overlay matches SlowMovie's RGBA pattern (rounded-rect, alpha composite). Fallback to last cached frame on network failure.
 - Impact/Tradeoffs: 3 HTTP calls per render (catalogue check + artwork detail + image fetch). AIC catalogue fetch can be slow on first cold cache (up to 100 pages). Round-robin is per-render, not per-session — provider index resets on restart. No API keys to manage. All three museums offer CC0/public-domain images.
 
+## 2026-03-23 - Solar Dust Theme Replacing Vintage Cream Palette
+
+- Context: The warm vintage cream palette (bg `#F1EBD9`, accent `#CA796D`) with Funnel Display font felt pleasant but lacked the "desert tech" character of the Vibemilk design system's Solar Dust theme.
+- Decision: Full migration to Solar Dust: dark brown-black bg `#1A1410`, gold accent `#E8A838`, terracotta secondary `#D06B50`, cream text `#F0E6D6`. Display font changed to Chakra Petch (self-hosted woff2). Tailwind semantic token names kept identical — only values changed. All hardcoded ScryBar/cream hex values in App.tsx replaced systematically.
+- Impact/Tradeoffs: Dark theme is more dramatic on mobile dashboard. Gold accent on dark bg has excellent contrast. Netmilk logo SVG no longer needs CSS `invert`. Mode accent colours re-tuned to Solar Dust harmonics (LitClock `#6A9FBF`, SlowMovie `#E8A838`, Wikipedia `#D06B50`, Weather `#7FA87F`, Museo `#B8860B`).
+
 ## 2026-03-10 - Language Order: it / es / pt / en / fr / de
 
 - Context: Languages were listed alphabetically (de/en/es/fr/it/pt) in default config and UI. Project context is Italian-first (deployed in Italy, Netmilk is Italian).
