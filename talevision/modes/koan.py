@@ -2,15 +2,13 @@
 import logging
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 from talevision.config.schema import AppConfig
 from talevision.modes.base import DisplayMode, ModeState
 from talevision.modes.koan_archive import KoanArchive
 
 log = logging.getLogger(__name__)
-
-_NUMERO = "\u2116"  # №
 
 
 def _load_font(path: Path, size: int) -> ImageFont.FreeTypeFont:
@@ -27,11 +25,18 @@ class KoanMode(DisplayMode):
         base_dir = Path(base_dir)
 
         fonts_dir = base_dir / "assets" / "fonts"
-        self._font_haiku = _load_font(fonts_dir / "Taviraj-Regular.ttf", 32)
-        self._font_pen = _load_font(fonts_dir / "Taviraj-Italic.ttf", 21)
-        self._font_seed = _load_font(fonts_dir / "InconsolataNerdFontMono-Regular.ttf", 15)
+        self._font_haiku = _load_font(fonts_dir / "CrimsonText-Regular.ttf", 46)
+        self._font_mono = _load_font(fonts_dir / "InconsolataNerdFontMono-Bold.ttf", 18)
+        self._font_tech = _load_font(fonts_dir / "InconsolataNerdFontMono-Bold.ttf", 16)
         self._font_fallback = _load_font(fonts_dir / "Lobster-Regular.ttf", 50)
         self._font_fallback_sub = _load_font(fonts_dir / "Taviraj-Regular.ttf", 18)
+
+        bg_path = base_dir / "assets" / "img" / "haiku-bg-min.png"
+        try:
+            self._bg_image = Image.open(bg_path).convert("RGB")
+        except Exception:
+            log.warning("Koan: background image not found at %s", bg_path)
+            self._bg_image = None
 
         self._archive = KoanArchive(
             archive_path=base_dir / self._cfg.archive_file,
@@ -66,11 +71,12 @@ class KoanMode(DisplayMode):
             return ModeState(mode="koan")
         return ModeState(mode="koan", extra={
             "haiku_id": h.get("id", 0),
-            "seed_word": h.get("seed_word", ""),
-            "author_name": h.get("author_name", ""),
+            "seed_prompt": h.get("seed_word", ""),
+            "pen_name": h.get("author_name", ""),
             "lines": h.get("lines", []),
             "source": h.get("source", ""),
             "archive_count": self._archive.count(),
+            "generation_time_ms": h.get("generation_time_ms", 0),
         })
 
     def _pick_haiku(self) -> dict:
@@ -85,56 +91,55 @@ class KoanMode(DisplayMode):
         return None
 
     def _draw_frame(self, w: int, h: int, haiku: dict) -> Image.Image:
-        img = Image.new("RGB", (w, h), (255, 255, 255))
+        if self._bg_image:
+            img = ImageOps.fit(self._bg_image.copy(), (w, h), Image.LANCZOS)
+        else:
+            img = Image.new("RGB", (w, h), (255, 255, 255))
         draw = ImageDraw.Draw(img)
 
-        margin = 50
+        RIGHT_EDGE = w - 50
+        TOP_MARGIN = 40
+        BOTTOM_MARGIN = 34
+        FILL = (80, 80, 80)
+        HAIKU_FILL = (30, 30, 30)
+
         lines = haiku.get("lines", [])
         haiku_id = haiku.get("id", 0)
         pen_name = haiku.get("author_name", "")
+        seed_word = haiku.get("seed_word", "")
 
-        # --- Seed number: top-right ---
-        seed_text = f"{_NUMERO} {haiku_id}"
-        seed_bbox = draw.textbbox((0, 0), seed_text, font=self._font_seed)
-        seed_w = seed_bbox[2] - seed_bbox[0]
-        draw.text(
-            (w - margin - seed_w, margin - 10),
-            seed_text,
-            font=self._font_seed,
-            fill=(170, 170, 170),
-        )
+        # --- Seed №: top-right ---
+        seed_text = f"\u2116 {haiku_id}"
+        sw = draw.textbbox((0, 0), seed_text, font=self._font_mono)[2]
+        draw.text((RIGHT_EDGE - sw, TOP_MARGIN), seed_text,
+                  font=self._font_mono, fill=FILL)
 
-        # --- Haiku: optical center, flush-left block centered on longest line ---
-        line_spacing = 51
-        line_widths = []
-        line_heights = []
-        for line in lines:
-            bbox = draw.textbbox((0, 0), line, font=self._font_haiku)
-            line_widths.append(bbox[2] - bbox[0])
-            line_heights.append(bbox[3] - bbox[1])
-
-        max_line_w = max(line_widths) if line_widths else 0
+        # --- Haiku: right-aligned, optical center ---
+        line_spacing = 54
+        line_widths = [draw.textbbox((0, 0), l, font=self._font_haiku)[2]
+                       for l in lines]
         total_block_h = len(lines) * line_spacing
-        block_x = (w - max_line_w) // 2
-        optical_center_y = int(h * 0.38)
-        block_top_y = optical_center_y - total_block_h // 2
+        optical_y = int(h * 0.38)
+        top_y = optical_y - total_block_h // 2
 
         for i, line in enumerate(lines):
-            y = block_top_y + i * line_spacing
-            draw.text((block_x, y), line, font=self._font_haiku, fill=(0, 0, 0))
+            lw = line_widths[i] if i < len(line_widths) else 0
+            draw.text((RIGHT_EDGE - lw, top_y + i * line_spacing), line,
+                      font=self._font_haiku, fill=HAIKU_FILL)
 
-        # --- Pen name: bottom-right ---
+        # --- Pen name: bottom-right, uppercase ---
+        pen_y = h - BOTTOM_MARGIN - 46
         if pen_name:
-            pen_text = f"\u2014 {pen_name}"
-            pen_bbox = draw.textbbox((0, 0), pen_text, font=self._font_pen)
-            pen_w = pen_bbox[2] - pen_bbox[0]
-            pen_h = pen_bbox[3] - pen_bbox[1]
-            draw.text(
-                (w - margin - pen_w, h - margin - pen_h),
-                pen_text,
-                font=self._font_pen,
-                fill=(130, 130, 130),
-            )
+            pen_text = f"\u2014 {pen_name.upper()}"
+            pw = draw.textbbox((0, 0), pen_text, font=self._font_mono)[2]
+            draw.text((RIGHT_EDGE - pw, pen_y), pen_text,
+                      font=self._font_mono, fill=FILL)
+
+        # --- Tech stats: below pen name ---
+        tech_text = f"ARCHIVE \u00b7 seed:{seed_word} \u00b7 \u2116{haiku_id}"
+        tw = draw.textbbox((0, 0), tech_text, font=self._font_tech)[2]
+        draw.text((RIGHT_EDGE - tw, pen_y + 26), tech_text,
+                  font=self._font_tech, fill=FILL)
 
         return img
 
