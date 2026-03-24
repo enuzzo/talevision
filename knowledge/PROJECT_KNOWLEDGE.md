@@ -19,7 +19,7 @@ Stable technical context for all assistants.
 - Web: Flask 3.x, served by **waitress 3.0.2** (production WSGI; Flask dev server is the fallback)
 - Image: Pillow 10+, ffmpeg (system-installed via apt on Pi)
 - Config: PyYAML + dacite dataclasses
-- Typography: Babel (locale formatting), Signika + Taviraj + Inconsolata Nerd Font Mono TTF fonts
+- Typography: Babel (locale formatting), Signika + Taviraj + Inconsolata Nerd Font Mono + Crimson Text TTF fonts
 - Display: Pimoroni Inky Impression 7-colour, 800×480 px, 7-colour e-ink (SPI). Driver: `inky.inky_ac073tc1a.Inky` (NOT `inky.auto` — no EEPROM on this board). Init: `Inky(resolution=(800, 480))`.
 - Target platform: Raspberry Pi Zero W (armv6l, 512MB RAM), Raspbian Trixie (Debian 13)
 - Dev platform: macOS or Linux (no hardware required for render pipeline)
@@ -120,7 +120,7 @@ python generate_sidecars.py --verify    # validate all sidecars
 - Frame waiting state: when mode switch or force-refresh is triggered, shows `RenderingOverlay` until `status.last_update` advances past the trigger timestamp. 120s safety timeout.
 - Fonts: self-hosted woff2 — Lobster (title), Chakra Petch 400/600/700 (display/body), Space Mono 400/700 (mono). No Google Fonts dependency.
 - **Design system**: Solar Dust theme (from Vibemilk design system) — dark brown-black `bg: #1A1410`, gold accent `#E8A838`, terracotta `#D06B50`, cream text `#F0E6D6`. Lobster for logotype/headings, Chakra Petch for interface text. Rounded corners (4/6/8/10/12px). Borders use gold-alpha (`rgba(232,168,56,0.18)`).
-- **Mode accent colours**: LitClock `#6A9FBF`, SlowMovie `#E8A838`, Wikipedia `#D06B50`, Weather `#7FA87F`, Museo `#B8860B`.
+- **Mode accent colours**: LitClock `#6A9FBF`, SlowMovie `#E8A838`, Wikipedia `#D06B50`, Weather `#7FA87F`, Museo `#B8860B`, Koan `#8B7D6B`.
 - **RenderingOverlay** (CRT vintage): dark `#1A1410` background, `NoiseCanvas` (100×62px canvas scaled to fill, ~13fps TV grain), CSS scanlines, gold sweep band, RadioWaves animation, mode name in Lobster + `animate-flicker`, "Tuning" label.
 - **`pendingMode` state**: set in `playlistMut.onMutate` to `modes[0]`, cleared when `waiting` goes false. Prevents overlay from briefly showing the old mode name. Pass `pendingMode ?? currentMode` to `FramePreview`.
 - **`lastSyncedRef` playlist sync**: tracks `playlist.join(',') + ':' + rotationInterval`. Prevents premature sync on preliminary `['litclock']` before server data arrives.
@@ -201,7 +201,8 @@ LOOP-step log messages in `orchestrator.py` are at **DEBUG** level (changed from
 - **Web dashboard**: React SPA (Vite + Tailwind) at `http://<DEVICE_IP>:<PORT>`; warm vintage cream palette (bg #F1EBD9, accent #CA796D); Lobster logotype; CRT vintage RenderingOverlay (NoiseCanvas + TuningGauge SVG + scanlines); Stats card; PlaylistEditor with DnD reorder; Language selector (full names, always visible); rotating taglines. Netmilk logo in footer.
 - **`/api/status` uptime**: `uptime_seconds` field added — seconds since orchestrator started. Used in Stats card.
 - **Per-mode refresh intervals**: overridable from dashboard, persisted to `user_prefs.json` (visible in single-mode only).
-- **Museo mode**: fetches random public-domain artworks from 3 museum APIs (Met, AIC, Cleveland) in round-robin rotation. PIL enhancement (brightness/contrast/colour). Overlay: title·date (Signika-Bold 20pt), artist (Signika-Light 20pt), museum·department (Inconsolata 16pt) in rounded-rect box bottom-left; QR to museum object page bottom-right. 50-ID recent buffer prevents repeats. 24h catalogue cache. Fallback: last cached frame or "MUSEO" splash. Refresh: 300 s.
+- **Museo mode**: fetches random public-domain artworks from 3 museum APIs (Met ~200k, Cleveland ~41k, V&A ~732k) in round-robin rotation. No API keys needed. Total pool: ~973k artworks. PIL enhancement (brightness/contrast/colour). Overlay: title·date (Signika-Bold 20pt), artist (Signika-Light 20pt), museum·department (Inconsolata Bold 18pt) in rounded-rect box bottom-left; QR to museum object page bottom-right. 50-ID recent buffer prevents repeats. 24h catalogue cache. Fallback: last cached frame or "MUSEO" splash. Refresh: 300 s.
+- **Koan mode**: AI-generated introspective haiku in English. Zen minimalist layout on bamboo ink wash background. Crimson Text 46pt haiku right-aligned, InconsolataNerdFontMono metadata (seed №, pen name, tech stats). Two sub-modes: "archive" (replays curated haiku, zero latency) and "generate" (Phase 2 — local LLM or free API). Append-only JSON archive preserves every haiku. Refresh: 600 s.
 - **Physical buttons**: GPIO 5/6/16/24 (A/B/C/D on Inky Impression); remappable in `config.yaml`.
 - **Off-Pi fallback**: no Inky → saves `talevision_frame.png`; no GPIO → one warning, silent from then on.
 
@@ -253,7 +254,7 @@ sudo systemctl start talevision
 3. No `media/*.mp4` staged: `git status | grep media/`
 4. Static analysis: `bandit -r talevision/ -ll`
 5. Dependency CVEs: `pip-audit -r requirements.txt`
-6. Render smoke test: `python main.py --render-only --mode litclock && python main.py --render-only --mode slowmovie && python main.py --render-only --mode wikipedia && python main.py --render-only --mode weather && python main.py --render-only --mode museo`
+6. Render smoke test: `python main.py --render-only --mode litclock && python main.py --render-only --mode slowmovie && python main.py --render-only --mode wikipedia && python main.py --render-only --mode weather && python main.py --render-only --mode museo && python main.py --render-only --mode koan`
 
 ## Wikipedia Mode
 
@@ -302,13 +303,23 @@ sudo systemctl start talevision
 ## Koan Mode
 
 - `talevision/modes/koan.py` — `KoanMode` class. Archive in `talevision/modes/koan_archive.py`.
-- **Two sub-modes**: `archive` (default — replays curated/saved haiku, zero latency) and `generate` (Phase 2 — live LLM or free API).
-- **Curated seed data**: `assets/data/koan_seeds.json` — 20 seed topics, 30 pre-written haiku, 15 pen names. Committed to repo.
-- **Archive**: `cache/koan_archive.json` — append-only JSON, persists across restarts. Each entry: id, timestamp, lines, seed_word, author_name, source, generation_time_ms.
-- **Layout**: Zen minimalist on white background. Taviraj-Regular 32pt haiku at optical center (38% from top), flush-left lines centered as block on longest line. InconsolataNerdFontMono 15pt seed number (№ N) top-right in light grey. Taviraj-Italic 21pt pen name bottom-right in medium grey. ~72% negative space.
+- **Concept**: AI-generated introspective haiku in English. The LLM reflects on its own existence — fears, hopes, perception, consciousness — and signs each haiku with a self-chosen pen name. Zen meets machine.
+- **Two sub-modes**: `archive` (default — replays curated/saved haiku, zero latency) and `generate` (Phase 2 — live LLM local or free API).
+- **Curated seed data**: `assets/data/koan_seeds.json` — seed topics (existential prompts), pre-written haiku, pen names. Committed to repo.
+- **Archive**: `cache/koan_archive.json` — append-only JSON, persists across restarts. Every haiku ever generated is preserved. Each entry: id, timestamp, lines (3 strings), pen_name, seed_prompt, source ("archive"/"local_llm"/"api"), generation_time_ms, model_name, seed_hex.
+- **Visual layout** (800×480 e-ink, zen minimalist):
+  - Background: `assets/img/haiku-bg-min.png` — bamboo ink wash watercolour, left side.
+  - All text **right-aligned** to a common right edge (RIGHT_EDGE = W - 50px). Visual order: top-right to bottom-right.
+  - Seed number: `№ {id}` in InconsolataNerdFontMono-Bold 18pt, dark grey (80,80,80), top-right.
+  - Haiku: 3 lines in **Crimson Text Regular 46pt**, near-black (30,30,30), right-aligned, optically centered at 38% height. Line spacing 54px. Text centered in right ~72% of canvas to avoid bamboo.
+  - Pen name: `— {PEN NAME}` in InconsolataNerdFontMono-Bold 18pt, uppercase, dark grey (80,80,80), bottom-right.
+  - Tech stats: `SmolLM-135M · Q4_K · seed:0x002A · 47.3s · 0.49tok/s` in InconsolataNerdFontMono-Bold 16pt, dark grey (80,80,80), directly below pen name. Contrast zen/nerd — the cold anatomy of the machine that wrote the poem.
+  - ~70% negative space. No decorative lines or separators — purity.
+- **Fonts**: Crimson Text Regular + Italic (Google Fonts, static TTF, `assets/fonts/CrimsonText-Regular.ttf` / `CrimsonText-Italic.ttf`). InconsolataNerdFontMono-Bold for all metadata.
 - **Fallback**: white bg + "KOAN" in Lobster 50pt + "silence is the first haiku" in Taviraj 18pt.
-- Config: `koan.refresh_interval` (600s), `koan.sub_mode` ("archive"), `koan.archive_file`, `koan.seed_data`. Phase 2 fields: `llm_binary`, `llm_model`, `llm_timeout`, `api_url`, `api_key`, `api_model`.
-- `get_state()` exposes `haiku_id`, `seed_word`, `author_name`, `lines`, `source`, `archive_count` in status extra.
+- **Phase 2 LLM options** (zero cost): local SmolLM-135M via llama.zero (~0.4 tok/s, ~2min/haiku on Pi Zero W) or free API (Groq Llama 3.3 70B, Gemini 2.0 Flash — both well within free tier at ~144 req/day).
+- Config: `koan.refresh_interval` (600s), `koan.sub_mode` ("archive"/"generate"), `koan.archive_file`, `koan.seed_data`. Phase 2 fields: `llm_provider` ("local"/"groq"/"gemini"), `llm_binary`, `llm_model`, `llm_timeout`, `api_url`, `api_key`, `api_model`.
+- `get_state()` exposes `haiku_id`, `seed_prompt`, `pen_name`, `lines`, `source`, `archive_count`, `generation_time_ms` in status extra.
 
 ## Known Open TODOs
 

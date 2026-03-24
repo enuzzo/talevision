@@ -183,14 +183,14 @@ Entry format:
 ## 2026-03-24 - Koan Mode: AI-Generated Introspective Haiku
 
 - Context: TaleVision had 5 modes covering time, cinema, knowledge, weather, and art. A contemplative/generative mode was the natural complement — something the machine creates rather than fetches.
-- Decision: Implement Koan mode with two sub-modes. "archive" (default) replays curated and previously-generated haiku from an append-only JSON archive. "generate" (Phase 2) will run llama.zero + SmolLM-135M locally on Pi Zero W or use free API. 30 curated seed haiku committed to repo ensure the mode works from first deploy. Zen minimalist layout: ~72% negative space, Taviraj serif at optical center, diagonal visual flow (seed № top-right → haiku center → pen name bottom-right). Each haiku signed with an AI-chosen pen name.
-- Impact/Tradeoffs: Archive sub-mode has zero latency and zero network dependency. Phase 2 local generation will block render thread for up to 3 minutes on Pi Zero W, mitigated by 10-minute refresh interval. Curated haiku quality is high; local 135M model will produce imperfect but charming output. No paid APIs.
+- Decision: Implement Koan mode — introspective haiku in English where the LLM reflects on its own existence (fears, hopes, perception, consciousness). Two sub-modes: "archive" (default, replays curated/saved haiku) and "generate" (Phase 2, local SmolLM-135M or free API like Groq/Gemini). Zen minimalist layout on bamboo ink wash background (`haiku-bg-min.png`). All text right-aligned to common edge: seed № top-right, Crimson Text 46pt haiku at optical center (38%), pen name + tech stats bottom-right in Inconsolata Mono Bold uppercase. Tech stats line (model, quantization, seed hex, generation time, tok/s) provides zen/nerd contrast. Each haiku signed with an AI-chosen pen name. Append-only JSON archive preserves every haiku ever generated.
+- Impact/Tradeoffs: Archive sub-mode has zero latency and zero network dependency. Phase 2 local generation (~0.4 tok/s, ~2min/haiku on Pi Zero W) mitigated by 10-minute refresh interval. Free APIs (Groq, Gemini) as alternative — ~144 req/day well within free tier. Crimson Text serif chosen over Fraunces (variable font axis issues with PIL) for reliable e-ink rendering.
 
-## 2026-03-24 - Museo: Replace AIC with V&A + Smithsonian
+## 2026-03-24 - Museo: Replace AIC with V&A (3 Free Providers, No Keys)
 
-- Context: AIC's IIIF image server behind Cloudflare JS challenge (403 for all non-browser requests). Needed replacement providers to expand the collection.
-- Decision: Remove AIC entirely. Add Victoria and Albert Museum (no API key, IIIF via framemark.vam.ac.uk, ~732k objects with images — largest single provider) and Smithsonian Open Access (free API key via api.data.gov, IDS image delivery, ~87k across SAAM/NPG/Cooper Hewitt/Freer). V&A always active (no key needed). Smithsonian requires free API key. Without it, degrades to Met + Cleveland + V&A (~973k total). `build_providers()` factory replaces static PROVIDERS list.
-- Impact/Tradeoffs: Two providers instead of three. Still abundant variety. Can re-enable AIC by adding it back to `__init__.py` if they lift the Cloudflare challenge.
+- Context: AIC's IIIF image server behind Cloudflare JS challenge (403 for all non-browser requests). Needed replacement providers. Design principle: zero cost, zero registration — no API keys whatsoever.
+- Decision: Remove AIC and Smithsonian (required free registration). Add Victoria and Albert Museum (no key, IIIF via framemark.vam.ac.uk, ~732k objects — largest single provider). Final roster: Met (~200k, no key), Cleveland (~41k, no key), V&A (~732k, no key). Total: ~973k public-domain artworks. Static `PROVIDERS` list, no factory function needed.
+- Impact/Tradeoffs: Three providers, zero configuration, zero API keys. V&A alone is larger than AIC + Smithsonian combined. Can re-enable AIC if they lift Cloudflare challenge. AIC provider code kept in `aic.py` for future use.
 
 ## 2026-03-23 - Solar Dust Theme Replacing Vintage Cream Palette
 
