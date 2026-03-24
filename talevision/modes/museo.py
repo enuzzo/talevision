@@ -11,7 +11,7 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFont, ImageOps
 from talevision.config.schema import AppConfig
 from talevision.modes.base import DisplayMode, ModeState
 from talevision.modes.museo_cache import MuseoCache
-from talevision.modes.museo_providers import PROVIDERS
+from talevision.modes.museo_providers import build_providers
 
 log = logging.getLogger(__name__)
 
@@ -49,6 +49,10 @@ class MuseoMode(DisplayMode):
             max_age=self._cfg.cache_max_age,
         )
 
+        self._providers = build_providers(
+            harvard_api_key=self._cfg.harvard_api_key,
+            smithsonian_api_key=self._cfg.smithsonian_api_key,
+        )
         self._provider_index = 0
         self._recent_ids: collections.deque = collections.deque(maxlen=_RECENT_BUFFER_SIZE)
         self._last_artwork = None
@@ -78,7 +82,7 @@ class MuseoMode(DisplayMode):
 
     def on_activate(self) -> None:
         log.info("Museo mode activated")
-        provider = PROVIDERS[self._provider_index % len(PROVIDERS)]
+        provider = self._providers[self._provider_index % len(self._providers)]
         if self._cache.needs_refresh(provider.name):
             try:
                 data = provider.fetch_catalogue_meta(timeout=self._cfg.timeout)
@@ -88,7 +92,7 @@ class MuseoMode(DisplayMode):
 
     def render(self) -> Image.Image:
         w, h = self._display.width, self._display.height
-        provider = PROVIDERS[self._provider_index % len(PROVIDERS)]
+        provider = self._providers[self._provider_index % len(self._providers)]
         self._provider_index += 1
 
         if self._cache.needs_refresh(provider.name):

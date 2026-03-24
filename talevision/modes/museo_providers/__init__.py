@@ -1,11 +1,19 @@
 from .base import MuseoProvider, ArtworkInfo
 from .met import MetProvider
 from .cleveland import ClevelandProvider
+from .harvard import HarvardProvider
+from .smithsonian import SmithsonianProvider
 
-# AIC (Art Institute of Chicago) disabled — their IIIF image server is
-# behind Cloudflare JS challenge since ~March 2026, returning 403 for
-# all non-browser requests.  Provider code kept in aic.py for future use.
-PROVIDERS = [MetProvider(), ClevelandProvider()]
 
-__all__ = ["MuseoProvider", "ArtworkInfo", "PROVIDERS",
-           "MetProvider", "ClevelandProvider"]
+def build_providers(harvard_api_key: str = "", smithsonian_api_key: str = "") -> list:
+    providers = [MetProvider(), ClevelandProvider()]
+    if harvard_api_key:
+        providers.append(HarvardProvider(api_key=harvard_api_key))
+    if smithsonian_api_key:
+        providers.append(SmithsonianProvider(api_key=smithsonian_api_key))
+    return providers
+
+
+__all__ = ["MuseoProvider", "ArtworkInfo", "build_providers",
+           "MetProvider", "ClevelandProvider", "HarvardProvider",
+           "SmithsonianProvider"]
