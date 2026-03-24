@@ -40,7 +40,7 @@ class KoanMode(DisplayMode):
             self._bg_image = None
 
         self._archive = KoanArchive(
-            archive_path=base_dir / self._cfg.archive_file,
+            archive_path=base_dir / self._cfg.archive_dir,
             seed_data_path=base_dir / self._cfg.seed_data,
         )
         self._last_haiku: dict = {}
@@ -161,16 +161,28 @@ class KoanMode(DisplayMode):
         return img
 
     def _fallback_image(self, w: int, h: int) -> Image.Image:
-        img = Image.new("RGB", (w, h), (255, 255, 255))
+        if self._bg_image:
+            img = ImageOps.fit(self._bg_image.copy(), (w, h), Image.LANCZOS)
+        else:
+            img = Image.new("RGB", (w, h), (255, 255, 255))
         draw = ImageDraw.Draw(img)
+        RIGHT_EDGE = w - 50
+        FILL = (80, 80, 80)
         title = "KOAN"
         bbox = draw.textbbox((0, 0), title, font=self._font_fallback)
         tw = bbox[2] - bbox[0]
-        draw.text(((w - tw) // 2, int(h * 0.38)), title,
+        draw.text((RIGHT_EDGE - tw, int(h * 0.30)), title,
                   font=self._font_fallback, fill=(170, 170, 170))
-        sub = "silence is the first haiku"
-        sbbox = draw.textbbox((0, 0), sub, font=self._font_fallback_sub)
-        sw = sbbox[2] - sbbox[0]
-        draw.text(((w - sw) // 2, int(h * 0.38) + 70), sub,
-                  font=self._font_fallback_sub, fill=(200, 200, 200))
+        lines = [
+            "generating haiku in background",
+            "this may take hours on Pi Zero W",
+            "patience is the first poem",
+        ]
+        y = int(h * 0.30) + 70
+        for line in lines:
+            sbbox = draw.textbbox((0, 0), line, font=self._font_fallback_sub)
+            sw = sbbox[2] - sbbox[0]
+            draw.text((RIGHT_EDGE - sw, y), line,
+                      font=self._font_fallback_sub, fill=FILL)
+            y += 28
         return img

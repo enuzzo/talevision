@@ -250,6 +250,22 @@ def set_weather_units():
         return jsonify({"error": str(exc)}), 500
 
 
+@api_bp.get("/koan/archive")
+def koan_archive():
+    """GET /api/koan/archive — list all generated haiku."""
+    koan = _orchestrator()._modes.get("koan")
+    if not koan:
+        return jsonify({"haiku": [], "count": 0})
+    archive = koan._archive
+    files = archive._list_files()
+    haiku_list = []
+    for fp in reversed(files):  # newest first
+        entry = archive._load_file(fp)
+        if entry:
+            haiku_list.append(entry)
+    return jsonify({"haiku": haiku_list, "count": len(haiku_list)})
+
+
 @api_bp.get("/frame")
 def get_frame():
     """GET /api/frame — serve last rendered frame for current mode."""

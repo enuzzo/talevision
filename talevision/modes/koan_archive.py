@@ -1,4 +1,4 @@
-"""Append-only JSON archive for Koan haiku."""
+"""Folder-based archive for Koan haiku — one JSON file per haiku."""
 import json
 import logging
 import random
@@ -11,8 +11,8 @@ log = logging.getLogger(__name__)
 
 class KoanArchive:
     def __init__(self, archive_path: Path, seed_data_path: Path):
-        self._path = Path(archive_path)
-        self._path.parent.mkdir(parents=True, exist_ok=True)
+        self._dir = Path(archive_path)
+        self._dir.mkdir(parents=True, exist_ok=True)
         self._seed_path = Path(seed_data_path)
         self._seeds: Optional[dict] = None
 
@@ -22,56 +22,57 @@ class KoanArchive:
                 with open(self._seed_path, "r", encoding="utf-8") as f:
                     self._seeds = json.load(f)
             except Exception as exc:
-                log.warning(f"Koan seed data load failed: {exc}")
+                log.warning("Koan seed data load failed: %s", exc)
                 self._seeds = {"seed_words": [], "pen_names": [], "curated_haiku": []}
         return self._seeds
 
-    def load(self) -> dict:
-        if not self._path.exists():
-            return {"haiku": []}
-        try:
-            with open(self._path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as exc:
-            log.warning(f"Koan archive load failed: {exc}")
-            return {"haiku": []}
-
-    def _save(self, data: dict) -> None:
-        with open(self._path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+    def _list_files(self) -> list[Path]:
+        """Return all haiku JSON files sorted by name (chronological)."""
+        return sorted(self._dir.glob("*.json"))
 
     def append(self, lines: list, seed_word: str, author_name: str,
                source: str = "generated", generation_time_ms: int = 0) -> int:
-        data = self.load()
-        new_id = len(data["haiku"]) + 1
+        files = self._list_files()
+        new_id = len(files) + 1
+        ts = datetime.now(timezone.utc)
+        ts_str = ts.strftime("%Y%m%d-%H%M%S")
         entry = {
             "id": new_id,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": ts.isoformat(),
             "lines": lines,
             "seed_word": seed_word,
             "author_name": author_name,
             "source": source,
             "generation_time_ms": generation_time_ms,
         }
-        data["haiku"].append(entry)
-        self._save(data)
-        log.info(f"Koan archive: saved #{new_id} ({source})")
+        filename = f"{ts_str}_{seed_word}.json"
+        filepath = self._dir / filename
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(entry, f, ensure_ascii=False, indent=2)
+        log.info("Koan archive: saved #%d → %s", new_id, filename)
         return new_id
 
-    def get_random(self) -> Optional[dict]:
-        data = self.load()
-        if data["haiku"]:
-            return random.choice(data["haiku"])
-        return self.get_curated_haiku()
+    def _load_file(self, path: Path) -> Optional[dict]:
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return None
 
     def get_latest(self) -> Optional[dict]:
-        data = self.load()
-        if data["haiku"]:
-            return data["haiku"][-1]
-        return self.get_curated_haiku()
+        files = self._list_files()
+        if not files:
+            return None
+        return self._load_file(files[-1])
+
+    def get_random(self) -> Optional[dict]:
+        files = self._list_files()
+        if not files:
+            return self.get_curated_haiku()
+        return self._load_file(random.choice(files))
 
     def count(self) -> int:
-        return len(self.load()["haiku"])
+        return len(self._list_files())
 
     def get_random_seed_word(self) -> str:
         seeds = self._load_seeds()
