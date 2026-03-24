@@ -114,6 +114,7 @@ def main():
     from talevision.modes.wikipedia import WikipediaMode
     from talevision.modes.weather import WeatherMode
     from talevision.modes.museo import MuseoMode
+    from talevision.modes.koan import KoanMode
 
     modes = {
         "litclock":  LitClockMode(config, base_dir=BASE_DIR),
@@ -121,6 +122,7 @@ def main():
         "wikipedia": WikipediaMode(config, base_dir=BASE_DIR),
         "weather":   WeatherMode(config, base_dir=BASE_DIR),
         "museo":     MuseoMode(config, base_dir=BASE_DIR),
+        "koan":      KoanMode(config, base_dir=BASE_DIR),
     }
 
     # ── Render-only mode (dev/CI) ─────────────────────────────────────────────

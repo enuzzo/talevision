@@ -1,5 +1,5 @@
 app:
-  default_mode: litclock   # litclock | slowmovie | wikipedia | weather | museo
+  default_mode: litclock   # litclock | slowmovie | wikipedia | weather | museo | koan
 
 display:
   width: 800
@@ -118,6 +118,10 @@ weather:
 museo:
   refresh_interval: 300
   timeout: 60
+
+koan:
+  refresh_interval: 600
+  sub_mode: "archive"
 
 buttons:
   enabled: true

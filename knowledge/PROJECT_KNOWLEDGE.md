@@ -157,7 +157,7 @@ waitress is included in `requirements.txt` (`waitress==3.0.2`). Always install i
 - API: `POST /api/playlist` with `{modes: ["litclock", "slowmovie"], rotation_interval: 300}`.
 - `GET /api/status` returns `playlist`, `playlist_index`, `rotation_interval` fields.
 - Dashboard `PlaylistEditor`: checkboxes to enable/disable modes, up/down arrows to reorder, rotation interval input when 2+ modes enabled.
-- 5 modes in registry: `litclock` (active), `slowmovie` (active), `wikipedia` (active), `weather` (active), `museo` (active). ANSi and Teletext removed.
+- 6 modes in registry: `litclock` (active), `slowmovie` (active), `wikipedia` (active), `weather` (active), `museo` (active), `koan` (active). ANSi and Teletext removed.
 
 ## Per-mode Interval Overrides
 
@@ -298,6 +298,17 @@ sudo systemctl start talevision
 - **Fallback**: warm fallback from `cache/museo_last_frame.png`; cold fallback = white bg + "MUSEO" in Lobster 50pt + "Connection unavailable" in Taviraj 18pt.
 - Config: `museo.refresh_interval` (300s), `museo.timeout` (60s), `museo.cache_max_age` (86400s), `museo.brightness/contrast/color`, overlay sub-config, fonts sub-config.
 - `get_state()` exposes `title`, `artist`, `museum`, `provider`, `object_url` in status extra.
+
+## Koan Mode
+
+- `talevision/modes/koan.py` — `KoanMode` class. Archive in `talevision/modes/koan_archive.py`.
+- **Two sub-modes**: `archive` (default — replays curated/saved haiku, zero latency) and `generate` (Phase 2 — live LLM or free API).
+- **Curated seed data**: `assets/data/koan_seeds.json` — 20 seed topics, 30 pre-written haiku, 15 pen names. Committed to repo.
+- **Archive**: `cache/koan_archive.json` — append-only JSON, persists across restarts. Each entry: id, timestamp, lines, seed_word, author_name, source, generation_time_ms.
+- **Layout**: Zen minimalist on white background. Taviraj-Regular 32pt haiku at optical center (38% from top), flush-left lines centered as block on longest line. InconsolataNerdFontMono 15pt seed number (№ N) top-right in light grey. Taviraj-Italic 21pt pen name bottom-right in medium grey. ~72% negative space.
+- **Fallback**: white bg + "KOAN" in Lobster 50pt + "silence is the first haiku" in Taviraj 18pt.
+- Config: `koan.refresh_interval` (600s), `koan.sub_mode` ("archive"), `koan.archive_file`, `koan.seed_data`. Phase 2 fields: `llm_binary`, `llm_model`, `llm_timeout`, `api_url`, `api_key`, `api_model`.
+- `get_state()` exposes `haiku_id`, `seed_word`, `author_name`, `lines`, `source`, `archive_count` in status extra.
 
 ## Known Open TODOs
 

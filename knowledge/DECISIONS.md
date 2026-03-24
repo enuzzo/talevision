@@ -180,6 +180,12 @@ Entry format:
 - Decision: Implement Museo mode with 3 providers (Metropolitan Museum of Art, Art Institute of Chicago, Cleveland Museum of Art) in deterministic round-robin rotation. File-based catalogue cache with 24h TTL. 50-ID recent buffer prevents repeats. Overlay matches SlowMovie's RGBA pattern (rounded-rect, alpha composite). Fallback to last cached frame on network failure.
 - Impact/Tradeoffs: 3 HTTP calls per render (catalogue check + artwork detail + image fetch). AIC catalogue fetch can be slow on first cold cache (up to 100 pages). Round-robin is per-render, not per-session — provider index resets on restart. No API keys to manage. All three museums offer CC0/public-domain images.
 
+## 2026-03-24 - Koan Mode: AI-Generated Introspective Haiku
+
+- Context: TaleVision had 5 modes covering time, cinema, knowledge, weather, and art. A contemplative/generative mode was the natural complement — something the machine creates rather than fetches.
+- Decision: Implement Koan mode with two sub-modes. "archive" (default) replays curated and previously-generated haiku from an append-only JSON archive. "generate" (Phase 2) will run llama.zero + SmolLM-135M locally on Pi Zero W or use free API. 30 curated seed haiku committed to repo ensure the mode works from first deploy. Zen minimalist layout: ~72% negative space, Taviraj serif at optical center, diagonal visual flow (seed № top-right → haiku center → pen name bottom-right). Each haiku signed with an AI-chosen pen name.
+- Impact/Tradeoffs: Archive sub-mode has zero latency and zero network dependency. Phase 2 local generation will block render thread for up to 3 minutes on Pi Zero W, mitigated by 10-minute refresh interval. Curated haiku quality is high; local 135M model will produce imperfect but charming output. No paid APIs.
+
 ## 2026-03-24 - Museo: Replace AIC with V&A + Smithsonian
 
 - Context: AIC's IIIF image server behind Cloudflare JS challenge (403 for all non-browser requests). Needed replacement providers to expand the collection.

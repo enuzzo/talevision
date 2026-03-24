@@ -174,6 +174,20 @@ class MuseoConfig:
 
 
 @dataclass
+class KoanConfig:
+    refresh_interval: int = 600
+    sub_mode: str = "archive"
+    archive_file: str = "cache/koan_archive.json"
+    seed_data: str = "assets/data/koan_seeds.json"
+    llm_binary: str = ""
+    llm_model: str = ""
+    llm_timeout: int = 180
+    api_url: str = ""
+    api_key: str = ""
+    api_model: str = ""
+
+
+@dataclass
 class ButtonsConfig:
     enabled: bool = True
     gpio_map: dict = field(default_factory=lambda: {"a": 5, "b": 6, "c": 16, "d": 24})
@@ -198,4 +212,5 @@ class AppConfig:
     wikipedia: WikipediaConfig = field(default_factory=WikipediaConfig)
     weather: WeatherConfig = field(default_factory=WeatherConfig)
     museo: MuseoConfig = field(default_factory=MuseoConfig)
+    koan: KoanConfig = field(default_factory=KoanConfig)
     buttons: ButtonsConfig = field(default_factory=ButtonsConfig)
