@@ -94,7 +94,10 @@ def generate_haiku(
     except subprocess.TimeoutExpired as exc:
         elapsed_ms = int((time.monotonic() - t0) * 1000)
         log.warning("Koan LLM timed out after %dms, trying partial output", elapsed_ms)
-        raw = (exc.stdout or "").strip()
+        raw = exc.stdout or ""
+        if isinstance(raw, bytes):
+            raw = raw.decode("utf-8", errors="replace")
+        raw = raw.strip()
         if raw:
             return _parse_output(raw, elapsed_ms)
         return None
@@ -107,28 +110,47 @@ def generate_haiku(
 
 
 def _parse_output(raw: str, elapsed_ms: int) -> Optional[dict]:
-    """Parse LLM output into haiku lines + pen name."""
-    # Remove the prompt echo if present
+    """Parse LLM output into haiku lines + pen name.
+
+    Strategy: anchor on the pen name line (em dash), take the 3 lines
+    before it. This is robust against preamble text the LLM may produce
+    before the actual haiku.
+    """
     if "<|im_start|>" in raw:
         parts = raw.split("<|im_start|>assistant")
         raw = parts[-1] if len(parts) > 1 else raw
 
-    # Clean up
     raw = raw.replace("<|im_end|>", "").strip()
+    log.info("Koan LLM raw output (%d chars): %s", len(raw), raw[:300])
 
     lines = [l.strip() for l in raw.split("\n") if l.strip()]
+    # Strip leading numbering ("1.", "2.", "3.")
+    lines = [re.sub(r'^\d+[\.\)]\s*', '', l) for l in lines]
 
-    # Look for pen name (line starting with em dash or hyphen)
+    # Find pen name line (em dash / en dash / hyphen-space)
+    pen_idx = -1
     pen_name = ""
-    haiku_lines = []
-    for line in lines:
-        if line.startswith(("\u2014", "—", "- ", "– ")):
-            pen_name = re.sub(r'^[\u2014\-–]\s*', '', line).strip()
-        elif len(haiku_lines) < 3:
+    for i, line in enumerate(lines):
+        if line.startswith(("\u2014", "\u2013", "- ", "-- ")):
+            pen_idx = i
+            pen_name = re.sub(r'^[\u2014\u2013\-]+\s*', '', line).strip()
+            break
+
+    if pen_idx >= 3:
+        # Anchor: take 3 lines immediately before pen name
+        haiku_lines = lines[pen_idx - 3:pen_idx]
+    else:
+        # No anchor or too few lines before it: take first 3 non-pen lines
+        haiku_lines = []
+        for line in lines:
+            if line.startswith(("\u2014", "\u2013", "- ", "-- ")):
+                continue
             haiku_lines.append(line)
+            if len(haiku_lines) == 3:
+                break
 
     if len(haiku_lines) < 3:
-        log.warning("Koan LLM: could not parse 3 haiku lines from: %s", raw[:200])
+        log.warning("Koan LLM: could not parse 3 haiku lines from: %s", raw[:300])
         return None
 
     if not pen_name:

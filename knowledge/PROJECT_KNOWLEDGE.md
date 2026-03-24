@@ -305,10 +305,10 @@ sudo systemctl start talevision
 - `talevision/modes/koan.py` — `KoanMode` class. Archive in `talevision/modes/koan_archive.py`.
 - **Concept**: AI-generated introspective haiku in English. The LLM reflects on its own existence — fears, hopes, perception, consciousness — and signs each haiku with a self-chosen pen name. Zen meets machine.
 - **Generation is the ONLY source** — Koan MUST always generate via embedded LLM. The archive is ONLY for saving/preserving haiku, NEVER for display. Curated seed haiku are ONLY a fallback if generation fails.
-- **Embedded LLM**: llama.zero (ARMv6 fork of llama.cpp) + SmolLM-135M-Instruct Q4_K_M (~101MB). Binary compiled ON the Pi Zero W at `~/llama.zero/build/bin/llama-cli`. Model at `~/models/smollm-135m-instruct-q4_k_m.gguf`. Expected ~0.4-0.5 tok/s, ~2min per haiku. NO EXTERNAL APIS — the whole point is a $5 embedded poet.
+- **Embedded LLM**: llama.zero (ARMv6 fork of llama.cpp) + SmolLM-135M-Instruct Q4_K_M (~101MB). Binary compiled ON the Pi Zero W at `~/llama.zero/build/bin/llama-cli`. Model at `~/models/smollm-135m-instruct-q4_k_m.gguf`. Actual performance: ~0.05 tok/s, ~20-30min per 60 tokens (much slower than initial estimates due to memory pressure and CPU sharing). NO EXTERNAL APIS — the whole point is a $5 embedded poet.
 - **Generator**: `talevision/modes/koan_generator.py` — subprocess call to llama-cli, parses 3 haiku lines + pen name from output. 20 introspective prompt questions rotated randomly. ChatML format (`<|im_start|>` tokens). System prompt instructs contemplative poet persona.
 - **Curated seed data**: `assets/data/koan_seeds.json` — seed topics (existential prompts), pre-written haiku, pen names. Used ONLY as fallback when LLM fails.
-- **Archive**: `cache/koan_archive.json` — append-only JSON, persists across restarts. Every generated haiku is saved permanently. Each entry: id, timestamp, lines (3 strings), author_name, seed_word, source ("generated"/"curated"), generation_time_ms.
+- **Archive**: `cache/koan_archive/` — folder-based, one JSON file per haiku (e.g. `20260324-190530_memory.json`). Persists across restarts. Each entry: id, timestamp, lines (3 strings), author_name, seed_word, source ("generated"/"curated"), generation_time_ms. API: `GET /api/koan/archive` returns all haiku (newest first).
 - **Visual layout** (800×480 e-ink, zen minimalist):
   - Background: `assets/img/haiku-bg-min.png` — bamboo ink wash watercolour, left side.
   - All text **right-aligned** to a common right edge (RIGHT_EDGE = W - 50px). Visual order: top-right to bottom-right.
@@ -318,9 +318,10 @@ sudo systemctl start talevision
   - Tech stats: `SmolLM-135M · Q4_K · seed:0x002A · 47.3s · 0.49tok/s` in InconsolataNerdFontMono-Bold 16pt, dark grey (80,80,80), directly below pen name. Contrast zen/nerd — the cold anatomy of the machine that wrote the poem.
   - ~70% negative space. No decorative lines or separators — purity.
 - **Fonts**: Crimson Text Regular + Italic (Google Fonts, static TTF, `assets/fonts/CrimsonText-Regular.ttf` / `CrimsonText-Italic.ttf`). InconsolataNerdFontMono-Bold for all metadata.
-- **Fallback**: white bg + "KOAN" in Lobster 50pt + "silence is the first haiku" in Taviraj 18pt.
+- **Fallback**: curated haiku from seed data (same zen layout). If no curated data available, bamboo bg + "generating haiku in background / this may take hours on Pi Zero W / patience is the first poem".
 - **LLM infrastructure on Pi**: `~/llama.zero/` (git clone + built), `~/models/smollm-135m-instruct-q4_k_m.gguf`. Binary is `~/llama.zero/build/bin/llama-cli` (1.5MB, ARMv6). Build took ~2 hours on Pi Zero W (cmake + make, gcc 14.2). Config needs `koan.llm_binary` and `koan.llm_model` pointing to these paths.
-- Config: `koan.refresh_interval` (600s), `koan.archive_file`, `koan.seed_data`, `koan.llm_binary` (path to llama-cli), `koan.llm_model` (path to .gguf), `koan.llm_timeout` (180s).
+- **Background generator**: `BackgroundKoanGenerator` thread starts at boot (in `KoanMode.__init__`), runs regardless of active mode. Generates haiku in a loop: launch llama-cli → parse output → save to archive → sleep `refresh_interval` → repeat. Uses `subprocess.DEVNULL` for stdin (critical: without this, llama-cli hangs on Pi waiting for terminal input).
+- Config: `koan.refresh_interval` (600s), `koan.archive_dir`, `koan.seed_data`, `koan.llm_binary` (path to llama-cli), `koan.llm_model` (path to .gguf), `koan.llm_timeout` (3600s — Pi Zero needs 20-30min for 60 tokens).
 - `get_state()` exposes `haiku_id`, `seed_prompt`, `pen_name`, `lines`, `source`, `archive_count`, `generation_time_ms` in status extra.
 
 ## Known Open TODOs

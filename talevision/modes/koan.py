@@ -151,9 +151,9 @@ class KoanMode(DisplayMode):
         gen_ms = haiku.get("generation_time_ms", 0)
         if source == "generated" and gen_ms > 0:
             gen_s = gen_ms / 1000.0
-            tech_text = f"LLM \u00b7 {gen_s:.1f}s \u00b7 seed:{seed_word} \u00b7 \u2116{haiku_id}"
+            tech_text = f"SmolLM-135M \u00b7 {gen_s:.0f}s \u00b7 seed:{seed_word}"
         else:
-            tech_text = f"CURATED \u00b7 seed:{seed_word} \u00b7 \u2116{haiku_id}"
+            tech_text = f"CURATED \u00b7 seed:{seed_word}"
         tw = draw.textbbox((0, 0), tech_text, font=self._font_tech)[2]
         draw.text((RIGHT_EDGE - tw, pen_y + 26), tech_text,
                   font=self._font_tech, fill=FILL)
