@@ -180,11 +180,17 @@ Entry format:
 - Decision: Implement Museo mode with 3 providers (Metropolitan Museum of Art, Art Institute of Chicago, Cleveland Museum of Art) in deterministic round-robin rotation. File-based catalogue cache with 24h TTL. 50-ID recent buffer prevents repeats. Overlay matches SlowMovie's RGBA pattern (rounded-rect, alpha composite). Fallback to last cached frame on network failure.
 - Impact/Tradeoffs: 3 HTTP calls per render (catalogue check + artwork detail + image fetch). AIC catalogue fetch can be slow on first cold cache (up to 100 pages). Round-robin is per-render, not per-session — provider index resets on restart. No API keys to manage. All three museums offer CC0/public-domain images.
 
-## 2026-03-24 - Koan Mode: Embedded LLM Haiku Generation
+## 2026-03-25 - Koan Mode: Cloud LLM Replacing Embedded LLM
 
-- Context: TaleVision had 5 modes covering time, cinema, knowledge, weather, and art. A contemplative/generative mode was the natural complement — something the machine creates rather than fetches. The CORE requirement: generation MUST be embedded on the Pi Zero W itself, no external APIs. The beauty is in the absurdity of a $5 computer writing poetry.
-- Decision: Implement Koan mode — introspective haiku in English where an embedded LLM (SmolLM-135M via llama.zero) reflects on its own existence. Generation is ALWAYS the primary source — archive is ONLY for preservation, never for display (curated haiku are fallback-only when LLM fails). llama.zero (ARMv6 fork of llama.cpp) compiled directly on the Pi Zero W (~2h build). Model: SmolLM-135M-Instruct Q4_K_M (101MB GGUF). Generator (`koan_generator.py`) calls llama-cli via subprocess, parses 3 haiku lines + pen name. 20 existential prompt questions rotated randomly. Zen minimalist visual layout: bamboo ink wash bg, Crimson Text 46pt right-aligned haiku, Inconsolata Mono Bold for metadata, tech stats line showing generation time/model.
-- Impact/Tradeoffs: ~2min per haiku at ~0.4 tok/s on Pi Zero W, mitigated by 10-minute refresh interval. 131MB RAM usage during generation (Pi has 427MB). Curated haiku as graceful fallback if LLM process fails. NO external API dependency — fully offline operation. Crimson Text chosen over Fraunces (variable font axis issues with PIL default weight).
+- Context: Embedded LLM (SmolLM-135M via llama.zero on Pi Zero W) was too slow — ARM1176 at 1GHz produced ~0.05 tok/s effective, with 54MB of model weights swapped to SD. Each haiku attempt timed out at 1 hour without completing. Continuous swap I/O also risked SD card wear on a 24/7 device.
+- Decision: Replace embedded LLM with cloud API: Groq (primary, `llama-3.3-70b-versatile`) + Google Gemini (fallback, `gemini-2.0-flash-lite`). Auto-detect from `secrets.yaml`. Generation drops from >1h (never completing) to ~1.5s. Dual backend: if Groq key exists use it, else try Gemini, else curated fallback. Full metadata tracking: model, tokens, timing per haiku. Folder-based archive (one JSON per haiku) replaces single-file JSON.
+- Impact/Tradeoffs: Requires internet + free API key (Groq: 100K TPD free, ~18K used at 96 haiku/day = 18%). Loses the "fully offline $5 poet" narrative but gains actual working poetry from a 70B model. llama.zero binary and SmolLM model remain on Pi for potential future offline experiments. Crimson Text 46pt haiku + InconsolataNerdFontMono metadata layout unchanged.
+
+## 2026-03-24 - Koan Mode: Visual Design and Concept
+
+- Context: TaleVision had 5 modes covering time, cinema, knowledge, weather, and art. A contemplative/generative mode was the natural complement — something the machine creates rather than fetches.
+- Decision: Implement Koan mode — introspective haiku in English where an LLM reflects on its own existence. 20 existential prompt questions rotated randomly. Zen minimalist visual layout: bamboo ink wash bg, Crimson Text 46pt right-aligned haiku, Inconsolata Mono Bold for metadata (theme · № id header, pen name, tech stats). Curated haiku as graceful fallback. Background daemon thread generates continuously regardless of active mode.
+- Impact/Tradeoffs: Crimson Text chosen over Fraunces (variable font axis issues with PIL default weight). Background generator means haiku accumulate even when other modes are displayed.
 
 ## 2026-03-24 - Museo: Replace AIC with V&A (3 Free Providers, No Keys)
 
