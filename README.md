@@ -329,7 +329,7 @@ Dashboard at `http://<pi-ip>:5000`.
 
 ## Web Dashboard
 
-`http://<pi-ip>:5000` — built in React (Vite + Tailwind CSS + Radix UI). Solar Dust theme (dark brown-black bg `#1A1410`, gold accent `#E8A838`, terracotta `#D06B50`, cream text `#F0E6D6`). Lobster for the logotype and headings, Chakra Petch for everything else. No page reloads. Netmilk Studio logo in the footer, shakes on hover.
+`http://<pi-ip>:5000` — built in React (Vite + Tailwind CSS + Radix UI). Vibemilk Default theme (warm milk-white bg `#F0EDE8`, magenta accent `#FF1DA5`, blue secondary `#5D84DF`, navy text `#1A1A2E`). Lobster for the logotype and headings, Funnel Display for everything else. No page reloads. Netmilk Studio logo in the footer, shakes on hover.
 
 A sardonic tagline rotates with each page load. Twenty options. The display updates roughly once a minute. The tagline changes roughly once per session. Both are fine.
 
