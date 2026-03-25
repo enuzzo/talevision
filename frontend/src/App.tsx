@@ -839,7 +839,7 @@ function LanguageSelector({ current }: { current?: string }) {
 
 // ─── Weather Settings ────────────────────────────────────────────────────────
 
-// ─── Koan Archive Panel ─────────────────────────────────────────────────────
+// ─── Koan Archive ───────────────────────────────────────────────────────────
 
 interface KoanHaiku {
   id: number
@@ -853,8 +853,7 @@ interface KoanHaiku {
   total_tokens?: number
 }
 
-function KoanArchivePanel() {
-  const [expanded, setExpanded] = useState(false)
+function KoanArchivePanel({ onViewAll }: { onViewAll: () => void }) {
   const { data } = useQuery({
     queryKey: ['koan-archive'],
     queryFn: async () => {
@@ -865,66 +864,241 @@ function KoanArchivePanel() {
   })
 
   const count = data?.count ?? 0
-  const haiku = data?.haiku ?? []
-
   if (count === 0) return null
+
+  const latest = data?.haiku?.[0]
 
   return (
     <section>
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between mb-3 group"
-      >
+      <div className="flex items-center justify-between mb-3">
         <h2 className="label">Koan archive</h2>
-        <span className="font-mono text-xs text-muted group-hover:text-accent transition-colors">
-          {count} haiku {expanded ? '▲' : '▼'}
-        </span>
-      </button>
+        <button
+          onClick={onViewAll}
+          className="font-mono text-xs text-accent hover:text-accent-hover transition-colors"
+        >
+          {count} haiku — view all →
+        </button>
+      </div>
 
-      {expanded && (
-        <div className="animate-fade-in space-y-3">
-          <div className="flex justify-end mb-2">
+      {latest && (
+        <div className="p-3 rounded-lg border border-border/50 bg-surface/50">
+          <div className="font-mono text-[10px] text-muted mb-2">{latest.seed_word} · №{latest.id}</div>
+          <div style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontStyle: 'italic' }} className="text-sm text-text leading-relaxed">
+            {latest.lines.map((line, i) => <div key={i}>{line}</div>)}
+          </div>
+          <div className="mt-2 font-mono text-xs text-muted/80">— {latest.author_name}</div>
+        </div>
+      )}
+    </section>
+  )
+}
+
+
+function KoanArchivePage({ onBack }: { onBack: () => void }) {
+  const [search, setSearch] = useState('')
+  const [visibleCount, setVisibleCount] = useState(30)
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['koan-archive'],
+    queryFn: async () => {
+      const r = await fetch(`/api/koan/archive`)
+      return r.json() as Promise<{ haiku: KoanHaiku[]; count: number }>
+    },
+  })
+
+  const count = data?.count ?? 0
+  const allHaiku = data?.haiku ?? []
+
+  const filtered = search.trim()
+    ? allHaiku.filter(h =>
+        h.seed_word.toLowerCase().includes(search.toLowerCase()) ||
+        h.author_name.toLowerCase().includes(search.toLowerCase()) ||
+        h.lines.some(l => l.toLowerCase().includes(search.toLowerCase()))
+      )
+    : allHaiku
+
+  const visible = filtered.slice(0, visibleCount)
+  const hasMore = visibleCount < filtered.length
+
+  return (
+    <div className="min-h-screen" style={{ background: '#0F0C08' }}>
+      {/* ── Header ── */}
+      <header className="sticky top-0 z-10 backdrop-blur-md" style={{ background: 'rgba(15,12,8,0.92)' }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={onBack}
+                className="font-mono text-xs text-muted hover:text-accent transition-colors"
+              >
+                ← dashboard
+              </button>
+              <h1 className="font-title text-2xl sm:text-3xl text-text">Koan Archive</h1>
+              <span
+                className="font-mono text-xs px-2 py-0.5 rounded-full"
+                style={{ background: 'rgba(232,168,56,0.15)', color: '#E8A838' }}
+              >
+                {count}
+              </span>
+            </div>
             <a
-              href={`/api/koan/archive/export`}
+              href="/api/koan/archive/export"
               download
-              className="font-mono text-xs px-3 py-1 rounded border border-accent/30 text-accent hover:bg-accent/10 transition-colors"
+              className="font-mono text-xs px-4 py-2 rounded-md transition-all duration-200 hover:shadow-lg"
+              style={{
+                background: '#E8A838',
+                color: '#1A1410',
+                fontWeight: 700,
+              }}
             >
               Export ZIP ↓
             </a>
           </div>
 
-          {haiku.slice(0, 20).map((h) => (
-            <div
-              key={h.id}
-              className="p-3 rounded-lg border border-border/50 bg-surface/50"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-mono text-xs text-muted">
-                  {h.seed_word} · №{h.id}
-                </span>
-                <span className="font-mono text-[10px] text-muted/60">
-                  {h.model?.split('/').pop() ?? h.source} · {(h.generation_time_ms / 1000).toFixed(1)}s
-                </span>
-              </div>
-              <div className="font-serif italic text-sm text-text leading-relaxed">
-                {h.lines.map((line, i) => (
-                  <div key={i}>{line}</div>
-                ))}
-              </div>
-              <div className="mt-2 font-mono text-xs text-muted/80">
-                — {h.author_name}
-              </div>
-            </div>
-          ))}
-
-          {count > 20 && (
-            <p className="font-mono text-xs text-muted text-center">
-              + {count - 20} more in archive
-            </p>
-          )}
+          {/* ── Search ── */}
+          <div className="mt-3">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setVisibleCount(30) }}
+              placeholder="search themes, pen names, words…"
+              className="w-full sm:w-80 px-3 py-2 rounded-md font-mono text-xs text-text placeholder:text-muted/50 outline-none transition-colors"
+              style={{
+                background: 'rgba(232,168,56,0.06)',
+                border: '1px solid rgba(232,168,56,0.12)',
+              }}
+            />
+          </div>
         </div>
-      )}
-    </section>
+        <div style={{ height: 1, background: 'rgba(232,168,56,0.12)' }} />
+      </header>
+
+      {/* ── Grid ── */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        {isLoading ? (
+          <p className="font-mono text-sm text-muted text-center py-20">loading…</p>
+        ) : filtered.length === 0 ? (
+          <p className="font-mono text-sm text-muted text-center py-20">
+            {search ? 'no haiku match your search' : 'no haiku yet'}
+          </p>
+        ) : (
+          <>
+            <div
+              className="gap-4"
+              style={{
+                columns: '280px',
+                columnGap: '16px',
+              }}
+            >
+              {visible.map((h, idx) => (
+                <HaikuCard key={h.id} haiku={h} index={idx} />
+              ))}
+            </div>
+
+            {hasMore && (
+              <div className="flex justify-center pt-8 pb-4">
+                <button
+                  onClick={() => setVisibleCount(v => v + 30)}
+                  className="font-mono text-xs px-6 py-2 rounded-md transition-all duration-200 hover:shadow-lg"
+                  style={{
+                    background: 'rgba(232,168,56,0.1)',
+                    border: '1px solid rgba(232,168,56,0.2)',
+                    color: '#E8A838',
+                  }}
+                >
+                  load more ({filtered.length - visibleCount} remaining)
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </main>
+
+      {/* ── Footer ── */}
+      <footer className="text-center py-8">
+        <span className="font-mono text-[10px] text-muted/40">
+          TaleVision · Koan · {count} haiku preserved
+        </span>
+      </footer>
+    </div>
+  )
+}
+
+
+function HaikuCard({ haiku: h, index }: { haiku: KoanHaiku; index: number }) {
+  const genSec = (h.generation_time_ms / 1000).toFixed(1)
+  const modelShort = h.model?.split('/').pop()?.replace('llama-', '').replace('-versatile', '') ?? h.source
+  const date = new Date(h.timestamp)
+  const dateStr = !isNaN(date.getTime())
+    ? date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+    : ''
+
+  return (
+    <div
+      className="mb-4 rounded-lg overflow-hidden transition-all duration-300 hover:-translate-y-0.5"
+      style={{
+        breakInside: 'avoid',
+        background: 'rgba(240,230,214,0.04)',
+        border: '1px solid rgba(232,168,56,0.08)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(240,230,214,0.03)',
+        animationDelay: `${Math.min(index * 30, 300)}ms`,
+      }}
+    >
+      <div className="p-4">
+        {/* Theme header */}
+        <div className="flex items-start justify-between mb-3">
+          <span
+            className="font-mono text-[10px] leading-tight"
+            style={{ color: 'rgba(232,168,56,0.5)' }}
+          >
+            {h.seed_word}
+          </span>
+          <span
+            className="font-mono text-[10px] shrink-0 ml-2"
+            style={{ color: 'rgba(240,230,214,0.2)' }}
+          >
+            №{h.id}
+          </span>
+        </div>
+
+        {/* Haiku lines */}
+        <div
+          className="leading-relaxed mb-3"
+          style={{
+            fontFamily: 'Georgia, "Crimson Text", "Times New Roman", serif',
+            fontStyle: 'italic',
+            fontSize: '14px',
+            lineHeight: '1.7',
+            color: '#F0E6D6',
+          }}
+        >
+          {h.lines.map((line, i) => (
+            <div key={i}>{line}</div>
+          ))}
+        </div>
+
+        {/* Pen name */}
+        <div
+          className="font-mono text-xs mb-2"
+          style={{ color: 'rgba(208,107,80,0.7)' }}
+        >
+          — {h.author_name}
+        </div>
+
+        {/* Metadata footer */}
+        <div
+          className="flex items-center justify-between pt-2"
+          style={{ borderTop: '1px solid rgba(232,168,56,0.06)' }}
+        >
+          <span className="font-mono text-[9px]" style={{ color: 'rgba(240,230,214,0.15)' }}>
+            {modelShort} · {genSec}s · {h.total_tokens ?? '?'}tok
+          </span>
+          <span className="font-mono text-[9px]" style={{ color: 'rgba(240,230,214,0.15)' }}>
+            {dateStr}
+          </span>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -1068,6 +1242,7 @@ export default function App() {
   const [refreshKey, setRefreshKey] = useState(Date.now())
   const [waitingSince, setWaitingSince] = useState<number | null>(null)
   const [pendingMode, setPendingMode] = useState<string | null>(null)
+  const [view, setView] = useState<'dashboard' | 'archive'>('dashboard')
   const waiting = waitingSince !== null
 
   const { data: status, isError } = useQuery({
@@ -1119,6 +1294,10 @@ export default function App() {
   const handleRefresh = useCallback(() => refreshMut.mutate(), [refreshMut])
 
   const isSuspended = status?.is_suspended ?? false
+
+  if (view === 'archive') {
+    return <KoanArchivePage onBack={() => setView('dashboard')} />
+  }
 
   return (
     <div className="min-h-screen text-primary font-display animate-fade-in">
@@ -1250,7 +1429,7 @@ export default function App() {
         )}
 
         <Divider />
-        <KoanArchivePanel />
+        <KoanArchivePanel onViewAll={() => setView('archive')} />
 
         <footer className="pt-6 pb-4">
           <Divider />
