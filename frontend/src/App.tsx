@@ -1433,24 +1433,24 @@ export default function App() {
         <footer className="pt-6 pb-4">
           <Divider />
           <div className="flex items-center justify-between pt-4">
-            <span className="font-mono text-[10px] text-muted">TaleVision · Pi Zero W · 800×480 · e‑ink</span>
+            <span className="font-mono text-[10px] text-secondary">TaleVision · Pi Zero W · 800×480 · e‑ink</span>
             <a
               href="https://github.com/enuzzo/talevision"
               target="_blank"
               rel="noopener noreferrer"
-              className="font-mono text-[10px] text-muted hover:text-accent transition-colors duration-200"
+              className="font-mono text-[10px] text-secondary hover:text-accent transition-colors duration-200"
             >
-              github ↗
+              github/enuzzo ↗
             </a>
           </div>
           <div className="flex flex-col items-center gap-2 pt-6">
             <img
               src="https://netmi.lk/wp-content/uploads/2024/10/netmilk.svg"
               alt="Netmilk Studio"
-              className="hover:animate-shake cursor-pointer opacity-40 hover:opacity-70 transition-opacity"
+              className="hover:animate-shake cursor-pointer opacity-90 hover:opacity-100 transition-opacity"
               style={{ width: '110px', height: 'auto' }}
             />
-            <span className="font-mono text-[10px] text-muted/60 text-center">
+            <span className="font-mono text-[10px] text-secondary text-center">
               MIT · enuzzo + Netmilk Studio · 2024
             </span>
           </div>
