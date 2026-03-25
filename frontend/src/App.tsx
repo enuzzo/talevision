@@ -82,13 +82,13 @@ interface ModeInfo {
 }
 
 const ALL_MODES: ModeInfo[] = [
-  { id: 'litclock',  label: 'LitClock',  icon: '🕐', color: '#2E7DAF', available: true },
-  { id: 'slowmovie', label: 'SlowMovie', icon: '🎬', color: '#C48C15', available: true },
-  { id: 'wikipedia', label: 'Wikipedia', icon: '📖', color: '#C0523A', available: true },
-  { id: 'weather',   label: 'Weather',   icon: '🌤', color: '#3D8B45', available: true },
-  { id: 'museo',     label: 'Museo',     icon: '🎨', color: '#8A6F0A', available: true },
-  { id: 'koan',      label: 'Koan',      icon: '禅', color: '#6B5E50', available: true },
-  { id: 'cucina',    label: 'Cucina',    icon: '🍽', color: '#B05520', available: true },
+  { id: 'litclock',  label: 'LitClock',  icon: '🕐', color: '#2563EB', available: true },
+  { id: 'slowmovie', label: 'SlowMovie', icon: '🎬', color: '#D97706', available: true },
+  { id: 'wikipedia', label: 'Wikipedia', icon: '📖', color: '#DC2626', available: true },
+  { id: 'weather',   label: 'Weather',   icon: '🌤', color: '#059669', available: true },
+  { id: 'museo',     label: 'Museo',     icon: '🎨', color: '#7C3AED', available: true },
+  { id: 'koan',      label: 'Koan',      icon: '禅', color: '#4F46E5', available: true },
+  { id: 'cucina',    label: 'Cucina',    icon: '🍽', color: '#EA580C', available: true },
 ]
 
 const MODE_MAP = Object.fromEntries(ALL_MODES.map(m => [m.id, m]))
@@ -491,7 +491,8 @@ function PlaylistEditor({
                 </span>
                 <span
                   className={cx(
-                    'font-display text-sm flex-1',
+                    'font-display text-[15px] flex-1',
+                    isEnabled && !isComingSoon ? 'font-semibold' : '',
                     isComingSoon ? 'text-muted' : 'text-primary',
                   )}
                   style={{ color: isEnabled && !isComingSoon ? info.color : undefined }}
@@ -534,7 +535,7 @@ function PlaylistEditor({
             onBlur={e => (e.target.style.borderColor = 'rgba(0,0,0,0.10)')}
           />
           <span className="label">min</span>
-          <span className="label ml-auto" style={{ color: '#5D84DF' }}>
+          <span className="label ml-auto" style={{ color: '#2563EB' }}>
             {enabledCount} modes · {interval * enabledCount} min cycle
           </span>
         </div>
@@ -1368,7 +1369,7 @@ export default function App() {
             </span>
           )}
           {status?.video && (
-            <span style={{ color: '#C48C15' }}>🎬 {status.video}</span>
+            <span style={{ color: '#D97706' }}>🎬 {status.video}</span>
           )}
         </div>
 

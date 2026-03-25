@@ -5,7 +5,7 @@ export default {
     extend: {
       fontFamily: {
         title:   ['"Lobster"', 'cursive'],
-        display: ['"Montserrat"', 'sans-serif'],
+        display: ['"Funnel Display"', 'sans-serif'],
         mono:    ['"Space Mono"', 'monospace'],
       },
       colors: {
