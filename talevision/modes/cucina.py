@@ -83,8 +83,8 @@ class CucinaMode(DisplayMode):
         self._font_title = _load_font(fonts / "Lobster-Regular.ttf", 28)
         self._font_origin = _load_font(fonts / "Signika-Bold.ttf", 16)
         self._font_ingredient = _load_font(fonts / "Taviraj-Regular.ttf", 16)
-        self._font_instructions = _load_font(fonts / "Taviraj-Italic.ttf", 16)
-        self._font_label = _load_font(fonts / "InconsolataNerdFontMono-Bold.ttf", 14)
+        self._font_instructions = _load_font(fonts / "Taviraj-Regular.ttf", 17)
+        self._font_label = _load_font(fonts / "Signika-Bold.ttf", 15)
         self._font_fallback = _load_font(fonts / "Lobster-Regular.ttf", 50)
         self._font_fallback_sub = _load_font(fonts / "Taviraj-Regular.ttf", 18)
 
@@ -169,8 +169,9 @@ class CucinaMode(DisplayMode):
         draw = ImageDraw.Draw(canvas)
 
         MARGIN = 24
-        PHOTO_W = 260
-        PHOTO_H = 220
+        PHOTO_SIZE = 240
+        PHOTO_W = PHOTO_SIZE
+        PHOTO_H = PHOTO_SIZE
         TEXT_X = MARGIN + PHOTO_W + 22
         TEXT_MAX_W = w - TEXT_X - MARGIN
         QR_SIZE = 70
@@ -243,12 +244,12 @@ class CucinaMode(DisplayMode):
             draw.text((MARGIN, instr_y), "INSTRUCTIONS", font=self._font_label, fill=(80, 80, 80))
             instr_y += 16
             instr_lines = _wrap_text(instructions, self._font_instructions, instr_max_w, draw)
-            max_lines = (h - instr_y - 20) // 19
+            max_lines = (h - instr_y - 30) // 20
             for line in instr_lines[:max_lines]:
-                draw.text((MARGIN, instr_y), line, font=self._font_instructions, fill=(50, 50, 50))
-                instr_y += 19
+                draw.text((MARGIN, instr_y), line, font=self._font_instructions, fill=(30, 30, 30))
+                instr_y += 20
             if len(instr_lines) > max_lines:
-                draw.text((MARGIN, instr_y), "…", font=self._font_instructions, fill=(100, 100, 100))
+                draw.text((MARGIN, instr_y), " …", font=self._font_instructions, fill=(80, 80, 80))
 
         # --- QR code: bottom-right ---
         qr_url = (meal.get("strYoutube") or meal.get("strSource") or
