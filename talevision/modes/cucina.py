@@ -179,6 +179,7 @@ class CucinaMode(DisplayMode):
         TEXT_MAX_W = w - TEXT_X - MARGIN
         QR_SIZE = 70
         QR_MARGIN = 16
+        FOOTER_H = 30
 
         # --- Dark band: top half ---
         DARK_BG = (35, 30, 25)
@@ -251,7 +252,7 @@ class CucinaMode(DisplayMode):
             draw.text((MARGIN, instr_y), "Instructions", font=self._font_label, fill=(100, 90, 80))
             instr_y += 20
             instr_lines = _wrap_text(instructions, self._font_instructions, instr_max_w, draw)
-            max_lines = (h - instr_y - 40) // 22
+            max_lines = (h - instr_y - FOOTER_H - 16) // 22
             for line in instr_lines[:max_lines]:
                 draw.text((MARGIN, instr_y), line, font=self._font_instructions, fill=(30, 30, 30))
                 instr_y += 22
@@ -269,12 +270,11 @@ class CucinaMode(DisplayMode):
                 qr.make(fit=True)
                 qr_img = qr.make_image(fill_color="black", back_color="white")
                 qr_img = qr_img.resize((QR_SIZE, QR_SIZE), Image.NEAREST)
-                canvas.paste(qr_img, (w - QR_SIZE - QR_MARGIN, h - QR_SIZE - QR_MARGIN))
+                canvas.paste(qr_img, (w - QR_SIZE - QR_MARGIN, h - QR_SIZE - FOOTER_H - 10))
             except Exception:
                 pass
 
         # --- Footer bar: dark strip with date/time ---
-        FOOTER_H = 30
         draw.rectangle([(0, h - FOOTER_H), (w, h)], fill=(35, 30, 25))
         now = datetime.now()
         try:
