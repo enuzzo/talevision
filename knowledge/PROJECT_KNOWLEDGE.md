@@ -202,7 +202,7 @@ LOOP-step log messages in `orchestrator.py` are at **DEBUG** level (changed from
 - **`/api/status` uptime**: `uptime_seconds` field added — seconds since orchestrator started. Used in Stats card.
 - **Per-mode refresh intervals**: overridable from dashboard, persisted to `user_prefs.json` (visible in single-mode only).
 - **Museo mode**: fetches random public-domain artworks from 3 museum APIs (Met ~200k, Cleveland ~41k, V&A ~732k) in round-robin rotation. No API keys needed. Total pool: ~973k artworks. PIL enhancement (brightness/contrast/colour). Overlay: title·date (Signika-Bold 20pt), artist (Signika-Light 20pt), museum·department (Inconsolata Bold 18pt) in rounded-rect box bottom-left; QR to museum object page bottom-right. 50-ID recent buffer prevents repeats. 24h catalogue cache. Fallback: last cached frame or "MUSEO" splash. Refresh: 300 s.
-- **Koan mode**: AI-generated introspective haiku in English. Zen minimalist layout on bamboo ink wash background. Crimson Text 46pt haiku right-aligned, InconsolataNerdFontMono metadata (seed №, pen name, tech stats). Two sub-modes: "archive" (replays curated haiku, zero latency) and "generate" (Phase 2 — local LLM or free API). Append-only JSON archive preserves every haiku. Refresh: 600 s.
+- **Koan mode**: AI-generated haiku via Groq API (llama-3.3-70b-versatile). 210 seed themes from profound to absurd. Multi-language (follows dashboard language setting). Synchronous generation (~1s per haiku). Zen minimalist layout: bamboo ink wash bg, Crimson Text 46pt right-aligned, theme+№ header, pen name, tech stats. Poetic error screen on API failure. Folder-based archive for historical browsing. Refresh: 900 s.
 - **Physical buttons**: GPIO 5/6/16/24 (A/B/C/D on Inky Impression); remappable in `config.yaml`.
 - **Off-Pi fallback**: no Inky → saves `talevision_frame.png`; no GPIO → one warning, silent from then on.
 
@@ -303,12 +303,13 @@ sudo systemctl start talevision
 ## Koan Mode
 
 - `talevision/modes/koan.py` — `KoanMode` class. Archive in `talevision/modes/koan_archive.py`.
-- **Concept**: AI-generated introspective haiku in English. The LLM reflects on its own existence — fears, hopes, perception, consciousness — and signs each haiku with a self-chosen pen name. Zen meets machine.
-- **Generation is the ONLY source** — Koan MUST always generate via cloud LLM API. The archive is ONLY for saving/preserving haiku, NEVER for display. Curated seed haiku are ONLY a fallback if generation fails.
-- **Cloud LLM**: dual backend — Groq API (primary) or Google Gemini (fallback), auto-detected from `secrets.yaml` (`groq_api_key` or `gemini_api_key`). Groq model: `llama-3.3-70b-versatile` (free tier: 100K TPD, ~18K used at 96 haiku/day = 18%). Gemini model: `gemini-2.0-flash-lite`. Originally attempted embedded LLM (SmolLM-135M via llama.zero on Pi Zero W) but ARM1176 CPU was too slow (~1h per haiku, never completing within timeout) and continuous swap I/O risked SD card wear.
-- **Generator**: `talevision/modes/koan_generator.py` — urllib POST to Groq/Gemini API, parses 3 haiku lines + pen name from response. 20 introspective prompt questions rotated randomly. Full metadata tracking: model, prompt/completion/total tokens, generation time.
-- **Curated seed data**: `assets/data/koan_seeds.json` — seed topics (existential prompts), pre-written haiku, pen names. Used ONLY as fallback when LLM fails.
-- **Archive**: `cache/koan_archive/` — folder-based, one JSON file per haiku (e.g. `20260324-190530_memory.json`). Persists across restarts. Each entry: id, timestamp, lines (3 strings), author_name, seed_word, source ("generated"/"curated"), generation_time_ms. API: `GET /api/koan/archive` returns all haiku (newest first).
+- **Concept**: AI-generated haiku in the user's language. Themes range from deeply philosophical to absurdly trivial — the beauty is in the contrast between zen form and unexpected subject matter. Each haiku is signed with a self-chosen pen name.
+- **Synchronous generation**: every `render()` call generates a fresh haiku via cloud API (~0.5-1.5s). No background thread, no caching, no replaying old haiku. If generation fails, a poetic error screen is shown (warm cream bg, Taviraj Italic, "the poet is silent today").
+- **Cloud LLM**: dual backend — Groq API (primary) or Google Gemini (fallback), auto-detected from `secrets.yaml` (`groq_api_key` or `gemini_api_key`). Groq model: `llama-3.3-70b-versatile` (free tier: 100K TPD, ~18K used at 96 haiku/day = 18%). Gemini model: `gemini-2.0-flash-lite`.
+- **Generator**: `talevision/modes/koan_generator.py` — urllib POST to Groq/Gemini API, parses 3 haiku lines + pen name from response. 20 introspective prompt questions rotated randomly. System prompt adapts to configured language. Full metadata tracking: model, prompt/completion/total tokens, generation time.
+- **210 seed themes**: `assets/data/koan_seeds.json` — wild mix of profound, surreal, trivial, and absurd themes expressed as 1-5 word phrases. Examples: "existence", "the topology of tangled earphones", "a parking ticket on a hearse", "the thermodynamics of a hug". Themes stay in English in the header; haiku is written in the configured language.
+- **Multi-language**: `set_language()` from dashboard (same as LitClock/Wikipedia). Default `it`. Supported: en/it/es/pt/fr/de/ja. The 70B model handles the translation implicitly from the English theme.
+- **Archive**: `cache/koan_archive/` — folder-based, one JSON file per haiku (e.g. `20260325-080100_an-ant-carrying-something-impossible.json`). Purely historical — for dashboard/API browsing only, never replayed on display. Each entry: id, timestamp, lines, author_name, seed_word, source, generation_time_ms, model, token counts. API: `GET /api/koan/archive` returns all haiku with full metadata (newest first).
 - **Visual layout** (800×480 e-ink, zen minimalist):
   - Background: `assets/img/haiku-bg-min.png` — bamboo ink wash watercolour, left side.
   - All text **right-aligned** to a common right edge (RIGHT_EDGE = W - 50px). Visual order: top-right to bottom-right.
@@ -318,10 +319,8 @@ sudo systemctl start talevision
   - Tech stats: `llama-3.3-70b-versatile · 1.5s · 185tok` in InconsolataNerdFontMono-Bold 16pt, dark grey (80,80,80), directly below pen name. Shows model, response time, token count — the cold anatomy of the machine that wrote the poem.
   - ~70% negative space. No decorative lines or separators — purity.
 - **Fonts**: Crimson Text Regular + Italic (Google Fonts, static TTF, `assets/fonts/CrimsonText-Regular.ttf` / `CrimsonText-Italic.ttf`). InconsolataNerdFontMono-Bold for all metadata.
-- **Fallback**: curated haiku from seed data (same zen layout). If no curated data AND no API key, bamboo bg + "generating haiku in background" message.
-- **Background generator**: `BackgroundKoanGenerator` daemon thread starts at boot (in `KoanMode.__init__`), runs regardless of active mode. Generates haiku in a loop: API call → parse output → save to archive → sleep `refresh_interval` → repeat. Waits `refresh_interval` (900s) after success, 60s after failure.
-- **Archive metadata**: each haiku JSON includes model name, prompt/completion/total tokens, generation time, source backend. API `GET /api/koan/archive` returns all haiku with full metadata (newest first).
-- Config: `koan.refresh_interval` (900s), `koan.archive_dir`, `koan.seed_data`. API keys in `secrets.yaml` (`groq_api_key` and/or `gemini_api_key`).
+- **Error screen**: warm cream bg (#F5F0E6), no bamboo. "the poet is silent today / words could not cross the wire" in Taviraj Italic 28pt terracotta. CONNECTION ERROR status bar at bottom with backend name and archive count.
+- Config: `koan.refresh_interval` (900s), `koan.archive_dir`, `koan.seed_data`, `koan.language` (default "it"). API keys in `secrets.yaml` (`groq_api_key` and/or `gemini_api_key`).
 - `get_state()` exposes `haiku_id`, `seed_prompt`, `pen_name`, `lines`, `source`, `archive_count`, `generation_time_ms` in status extra.
 
 ## Known Open TODOs

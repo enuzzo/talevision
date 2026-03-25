@@ -180,17 +180,23 @@ Entry format:
 - Decision: Implement Museo mode with 3 providers (Metropolitan Museum of Art, Art Institute of Chicago, Cleveland Museum of Art) in deterministic round-robin rotation. File-based catalogue cache with 24h TTL. 50-ID recent buffer prevents repeats. Overlay matches SlowMovie's RGBA pattern (rounded-rect, alpha composite). Fallback to last cached frame on network failure.
 - Impact/Tradeoffs: 3 HTTP calls per render (catalogue check + artwork detail + image fetch). AIC catalogue fetch can be slow on first cold cache (up to 100 pages). Round-robin is per-render, not per-session — provider index resets on restart. No API keys to manage. All three museums offer CC0/public-domain images.
 
-## 2026-03-25 - Koan Mode: Cloud LLM Replacing Embedded LLM
+## 2026-03-25 - Koan: Synchronous Generation + 210 Surreal Themes + Multi-Language
+
+- Context: With cloud LLM (~1s per haiku), the background generator and random replay architecture was over-engineered. Themes were limited to 20 contemplative words. Haiku were English-only.
+- Decision: (1) Synchronous generation: every `render()` generates a fresh haiku directly, no background thread. Archive is purely historical (for dashboard browsing). Poetic error screen on API failure. (2) Expand seed themes from 20 to 210 — wild mix of profound ("consciousness"), surreal ("the autobiography of a pothole"), trivial ("stepping on dog poop at dawn"), and absurd ("a parking ticket on a hearse"). Themes stay in English in the header; haiku is written in the configured language for maximum contrast. (3) Multi-language support via `set_language()` from dashboard (same as LitClock/Wikipedia). Default `it`. System prompt adapts per language; the 70B model handles translation implicitly.
+- Impact/Tradeoffs: Simpler architecture (no threading). Each render requires a working API call — no graceful degradation to cached haiku. Error screen is intentionally poetic. The English theme + local language haiku contrast is a deliberate aesthetic choice.
+
+## 2026-03-25 - Koan: Cloud LLM Replacing Embedded LLM
 
 - Context: Embedded LLM (SmolLM-135M via llama.zero on Pi Zero W) was too slow — ARM1176 at 1GHz produced ~0.05 tok/s effective, with 54MB of model weights swapped to SD. Each haiku attempt timed out at 1 hour without completing. Continuous swap I/O also risked SD card wear on a 24/7 device.
-- Decision: Replace embedded LLM with cloud API: Groq (primary, `llama-3.3-70b-versatile`) + Google Gemini (fallback, `gemini-2.0-flash-lite`). Auto-detect from `secrets.yaml`. Generation drops from >1h (never completing) to ~1.5s. Dual backend: if Groq key exists use it, else try Gemini, else curated fallback. Full metadata tracking: model, tokens, timing per haiku. Folder-based archive (one JSON per haiku) replaces single-file JSON.
-- Impact/Tradeoffs: Requires internet + free API key (Groq: 100K TPD free, ~18K used at 96 haiku/day = 18%). Loses the "fully offline $5 poet" narrative but gains actual working poetry from a 70B model. llama.zero binary and SmolLM model remain on Pi for potential future offline experiments. Crimson Text 46pt haiku + InconsolataNerdFontMono metadata layout unchanged.
+- Decision: Replace embedded LLM with cloud API: Groq (primary, `llama-3.3-70b-versatile`) + Google Gemini (fallback, `gemini-2.0-flash-lite`). Auto-detect from `secrets.yaml`. Generation drops from >1h (never completing) to ~1s. Dual backend: if Groq key exists use it, else try Gemini. Full metadata tracking: model, tokens, timing per haiku. Folder-based archive (one JSON per haiku).
+- Impact/Tradeoffs: Requires internet + free API key (Groq: 100K TPD free, ~18K used at 96 haiku/day = 18%). Loses the "fully offline $5 poet" narrative but gains actual working poetry from a 70B model.
 
 ## 2026-03-24 - Koan Mode: Visual Design and Concept
 
 - Context: TaleVision had 5 modes covering time, cinema, knowledge, weather, and art. A contemplative/generative mode was the natural complement — something the machine creates rather than fetches.
-- Decision: Implement Koan mode — introspective haiku in English where an LLM reflects on its own existence. 20 existential prompt questions rotated randomly. Zen minimalist visual layout: bamboo ink wash bg, Crimson Text 46pt right-aligned haiku, Inconsolata Mono Bold for metadata (theme · № id header, pen name, tech stats). Curated haiku as graceful fallback. Background daemon thread generates continuously regardless of active mode.
-- Impact/Tradeoffs: Crimson Text chosen over Fraunces (variable font axis issues with PIL default weight). Background generator means haiku accumulate even when other modes are displayed.
+- Decision: Implement Koan mode — haiku where an LLM reflects on unexpected themes. Zen minimalist visual layout: bamboo ink wash bg, Crimson Text 46pt right-aligned haiku, Inconsolata Mono Bold for metadata (theme · № id header, pen name, tech stats).
+- Impact/Tradeoffs: Crimson Text chosen over Fraunces (variable font axis issues with PIL default weight).
 
 ## 2026-03-24 - Museo: Replace AIC with V&A (3 Free Providers, No Keys)
 
