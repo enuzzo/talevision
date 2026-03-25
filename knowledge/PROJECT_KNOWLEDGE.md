@@ -157,7 +157,7 @@ waitress is included in `requirements.txt` (`waitress==3.0.2`). Always install i
 - API: `POST /api/playlist` with `{modes: ["litclock", "slowmovie"], rotation_interval: 300}`.
 - `GET /api/status` returns `playlist`, `playlist_index`, `rotation_interval` fields.
 - Dashboard `PlaylistEditor`: checkboxes to enable/disable modes, up/down arrows to reorder, rotation interval input when 2+ modes enabled.
-- 6 modes in registry: `litclock` (active), `slowmovie` (active), `wikipedia` (active), `weather` (active), `museo` (active), `koan` (active). ANSi and Teletext removed.
+- 7 modes in registry: `litclock` (active), `slowmovie` (active), `wikipedia` (active), `weather` (active), `museo` (active), `koan` (active), `cucina` (active). ANSi and Teletext removed.
 
 ## Per-mode Interval Overrides
 
@@ -203,6 +203,7 @@ LOOP-step log messages in `orchestrator.py` are at **DEBUG** level (changed from
 - **Per-mode refresh intervals**: overridable from dashboard, persisted to `user_prefs.json` (visible in single-mode only).
 - **Museo mode**: fetches random public-domain artworks from 3 museum APIs (Met ~200k, Cleveland ~41k, V&A ~732k) in round-robin rotation. No API keys needed. Total pool: ~973k artworks. PIL enhancement (brightness/contrast/colour). Overlay: title·date (Signika-Bold 20pt), artist (Signika-Light 20pt), museum·department (Inconsolata Bold 18pt) in rounded-rect box bottom-left; QR to museum object page bottom-right. 50-ID recent buffer prevents repeats. 24h catalogue cache. Fallback: last cached frame or "MUSEO" splash. Refresh: 300 s.
 - **Koan mode**: AI-generated haiku via Groq API (llama-3.3-70b-versatile). 210 seed themes from profound to absurd. Multi-language (follows dashboard language setting). Synchronous generation (~1s per haiku). Zen minimalist layout: bamboo ink wash bg, Crimson Text 46pt right-aligned, theme+№ header, pen name, tech stats. Poetic error screen on API failure. Folder-based archive for historical browsing. Refresh: 900 s.
+- **Cucina mode**: random world dishes from TheMealDB API (free, no key). Dark/light split layout: dark top half (food photo 240×240 square with rounded corners, Lobster title, gold origin, cream ingredients in 1-2 columns) + white bottom half (Taviraj Regular 19pt instructions). Dark footer bar with timestamp. QR to YouTube tutorial. Smart title case. Refresh: 300 s.
 - **Physical buttons**: GPIO 5/6/16/24 (A/B/C/D on Inky Impression); remappable in `config.yaml`.
 - **Off-Pi fallback**: no Inky → saves `talevision_frame.png`; no GPIO → one warning, silent from then on.
 
@@ -322,6 +323,22 @@ sudo systemctl start talevision
 - **Error screen**: warm cream bg (#F5F0E6), no bamboo. "the poet is silent today / words could not cross the wire" in Taviraj Italic 28pt terracotta. CONNECTION ERROR status bar at bottom with backend name and archive count.
 - Config: `koan.refresh_interval` (900s), `koan.archive_dir`, `koan.seed_data`, `koan.language` (default "it"). API keys in `secrets.yaml` (`groq_api_key` and/or `gemini_api_key`).
 - `get_state()` exposes `haiku_id`, `seed_prompt`, `pen_name`, `lines`, `source`, `archive_count`, `generation_time_ms` in status extra.
+
+## Cucina Mode
+
+- `talevision/modes/cucina.py` — `CucinaMode` class.
+- **Concept**: random dishes from world cuisines. Fetches a random meal from TheMealDB API (free, test key "1"), renders food photo + recipe on e-ink.
+- **API**: `https://www.themealdb.com/api/json/v1/1/random.php` — no auth, returns meal with name, origin, category, tags, ingredients (up to 20 with measures), instructions, thumbnail, YouTube link.
+- **Visual layout** (800×480 e-ink, dark/light split):
+  - **Top half**: dark band (35,30,25). Food photo 240×240 square (cover crop, 14px rounded corners) left-aligned. Title in Lobster 28pt white, smart title case (prepositions lowercase). Origin · Category in Signika Bold 18pt warm gold (230,160,80). Tags in Signika Bold 17pt muted. Ingredients in two columns (>6 items) or one column (≤6) in Taviraj Regular 17pt cream (220,210,195).
+  - **Bottom half**: white bg. Instructions in Taviraj Regular 19pt near-black (30,30,30), full width minus QR zone. Visible " …" ellipsis when truncated.
+  - **Footer**: dark bar (35,30,25) with Inconsolata Bold 15pt timestamp "HH:MM · d MMMM" in cream.
+  - **QR**: 70×70 bottom-right (above footer bar), links to YouTube tutorial or recipe source.
+- **Smart title case**: `_smart_title()` keeps prepositions lowercase ("Chicken with Saffron" not "Chicken With Saffron"). Handles: a, an, and, at, by, de, del, di, for, from, in, of, on, or, the, to, with.
+- **PIL enhancement**: Brightness 1.1 → Contrast 1.2 → Color 1.3. `ImageOps.fit()` cover mode for 1:1 crop.
+- **Fallback**: warm from `cache/cucina_last_frame.png`; cold = "CUCINA" splash.
+- Config: `cucina.refresh_interval` (300s), `cucina.timeout` (15s), `cucina.brightness/contrast/color`.
+- `get_state()` exposes `meal`, `area`, `category`, `tags` in status extra.
 
 ## Known Open TODOs
 

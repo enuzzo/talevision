@@ -180,6 +180,12 @@ Entry format:
 - Decision: Implement Museo mode with 3 providers (Metropolitan Museum of Art, Art Institute of Chicago, Cleveland Museum of Art) in deterministic round-robin rotation. File-based catalogue cache with 24h TTL. 50-ID recent buffer prevents repeats. Overlay matches SlowMovie's RGBA pattern (rounded-rect, alpha composite). Fallback to last cached frame on network failure.
 - Impact/Tradeoffs: 3 HTTP calls per render (catalogue check + artwork detail + image fetch). AIC catalogue fetch can be slow on first cold cache (up to 100 pages). Round-robin is per-render, not per-session — provider index resets on restart. No API keys to manage. All three museums offer CC0/public-domain images.
 
+## 2026-03-25 - Cucina Mode: World Recipes with Dark/Light Split Layout
+
+- Context: TaleVision had 6 modes. A food/recipe mode was suggested from the roadmap (docs/ideas). TheMealDB offers a free API with no key required.
+- Decision: Implement Cucina mode — random world dishes with full recipe details. Dark/light split layout: top half dark bg (35,30,25) with food photo (240×240 1:1 cover crop, 14px rounded corners), Lobster title in white (smart title case), ingredients in 1-2 columns. Bottom half white with instructions in Taviraj Regular 19pt. Dark footer bar with timestamp. QR links to YouTube tutorial or recipe source.
+- Impact/Tradeoffs: Single HTTP call per render (fast). TheMealDB has ~300 recipes — less variety than Museo's ~973k artworks but sufficient for a wall display. Some meals have sparse data (missing tags, short instructions). Smart title case handles English prepositions but not all languages.
+
 ## 2026-03-25 - Koan: Synchronous Generation + 210 Surreal Themes + Multi-Language
 
 - Context: With cloud LLM (~1s per haiku), the background generator and random replay architecture was over-engineered. Themes were limited to 20 contemplative words. Haiku were English-only.

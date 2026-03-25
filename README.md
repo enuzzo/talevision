@@ -29,7 +29,9 @@ As **Museo**, it picks a random public-domain artwork from one of three world mu
 
 As **Koan**, it writes a haiku. A 70-billion-parameter language model receives a theme — which might be "consciousness" or "the topology of tangled earphones" or "a parking ticket on a hearse" — and produces three lines of poetry in the language you've chosen, signed with a self-invented pen name. The theme stays in English in the header; the haiku is written in Italian, or Spanish, or Japanese. Every fifteen minutes, a new poem appears on the wall, and the old one is archived forever. There are 210 themes. The machine does not repeat itself.
 
-All six modes share one 800×480 seven-colour e-ink panel, one Pi Zero W, one Flask dashboard, and one quiet conviction: the best thing a screen can do is earn its update.
+As **Cucina**, it picks a random dish from world cuisines — Thai, Mexican, Moroccan, Japanese, Italian, anything — downloads the food photo, and lays out a full recipe card on the display. The photo sits on a dark background with the dish name in Lobster script; below, the instructions fill the white half. Ingredients in two columns, a QR code linking to the YouTube tutorial. Every five minutes, a new dish. No API key.
+
+All seven modes share one 800×480 seven-colour e-ink panel, one Pi Zero W, one Flask dashboard, and one quiet conviction: the best thing a screen can do is earn its update.
 
 ---
 
@@ -53,6 +55,7 @@ TaleVision is the obvious outcome. One device. One config file. One dashboard. S
 - [Weather](#weather)
 - [Museo](#museo)
 - [Koan](#koan)
+- [Cucina](#cucina)
 - [Playlist & Rotation](#playlist--rotation)
 - [Hardware](#hardware)
 - [How It Works](#how-it-works)
@@ -152,6 +155,24 @@ The themes range from the philosophical ("consciousness", "the weight of a word 
 **Error screen:** when the API is unreachable, the display shows a warm cream background with "the poet is silent today / words could not cross the wire" in Taviraj Italic. Poetic, but visually distinct from a real haiku — you'll know something is wrong.
 
 **Archive:** every haiku is saved as an individual JSON file in `cache/koan_archive/`, with full metadata (model, tokens, timing, theme, pen name). The archive is purely historical — it's never replayed on the display, but it's browsable via the dashboard API.
+
+---
+
+## Cucina
+
+Every 5 minutes: fetch a random dish from TheMealDB, download the food photo, render a full recipe card on the display.
+
+The layout is split in half. The top is a dark band — the food photo sits there as a 240×240 square with rounded corners, the dish name in Lobster script to its right, and the ingredients listed in one or two compact columns. The bottom half is white — the instructions fill it in Taviraj Regular, truncated with an ellipsis when the recipe runs long. A dark footer bar at the bottom shows the current time and date. A QR code in the bottom-right links to the YouTube tutorial or recipe source.
+
+**Smart title case:** dish names are rendered with proper English title case — "Chicken with Garlic and Thyme", not "Chicken With Garlic And Thyme". Prepositions, articles, and conjunctions stay lowercase unless they're the first word.
+
+**Photo:** always 1:1 square, cover-cropped from the original with `ImageOps.fit()`. Rounded corners (14px radius) via an alpha mask. PIL enhancement: brightness 1.1, contrast 1.2, colour 1.3.
+
+**Ingredients:** single column for 6 or fewer items, two columns for 7+. Each line shows the measure and ingredient name, truncated at 26 characters with an ellipsis if needed.
+
+**Fallback:** if the network is down, shows the last successfully rendered frame from cache. Cold start with no network: white background, "CUCINA" in Lobster, connection-unavailable message.
+
+TheMealDB's free tier (test key "1") has no rate limits and about 300 recipes. No API key required.
 
 ---
 
@@ -412,6 +433,7 @@ talevision/
 │   │   ├── koan.py              Koan — haiku generation + zen layout
 │   │   ├── koan_generator.py    Cloud LLM API (Groq/Gemini) + output parser
 │   │   ├── koan_archive.py      Folder-based haiku archive
+│   │   ├── cucina.py            Cucina — TheMealDB recipes + dark/light layout
 │   │   └── museo_providers/     Provider ABC + Met, Cleveland, V&A implementations
 │   ├── render/
 │   │   ├── typography.py        FontManager, wrap_text_block, get_text_dimensions
