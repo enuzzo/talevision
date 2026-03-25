@@ -2,7 +2,6 @@
 import json
 import logging
 import re
-import threading
 import time
 import urllib.request
 from typing import Optional
@@ -205,64 +204,3 @@ def get_random_prompt() -> str:
     return random.choice(_PROMPTS)
 
 
-class BackgroundKoanGenerator:
-    """Daemon thread that generates haiku via cloud API into the archive."""
-
-    def __init__(self, api_key: str, backend: str, archive,
-                 interval: float = 600.0, retry_pause: float = 60.0):
-        self._api_key = api_key
-        self._backend = backend
-        self._archive = archive
-        self._interval = interval
-        self._retry_pause = retry_pause
-        self._thread = None
-        self._stop = threading.Event()
-
-    def start(self):
-        if self._thread and self._thread.is_alive():
-            return
-        if not self._api_key:
-            log.warning("BackgroundKoanGenerator: no API key, not starting")
-            return
-        self._stop.clear()
-        self._thread = threading.Thread(target=self._loop, daemon=True,
-                                        name="koan-bg-gen")
-        self._thread.start()
-        log.info("BackgroundKoanGenerator started (%s, interval=%.0fs)",
-                 self._backend, self._interval)
-
-    def stop(self):
-        self._stop.set()
-        if self._thread:
-            self._thread.join(timeout=5)
-        log.info("BackgroundKoanGenerator stopped")
-
-    def _loop(self):
-        while not self._stop.is_set():
-            seed_word = self._archive.get_random_seed_word()
-            prompt_q = get_random_prompt()
-            result = generate_haiku(
-                api_key=self._api_key,
-                backend=self._backend,
-                seed_word=seed_word,
-                prompt_question=prompt_q,
-            )
-            if result:
-                self._archive.append(
-                    lines=result["lines"],
-                    seed_word=seed_word,
-                    author_name=result["author_name"],
-                    source=self._backend,
-                    generation_time_ms=result["generation_time_ms"],
-                    model=result.get("model", ""),
-                    prompt_tokens=result.get("prompt_tokens", 0),
-                    completion_tokens=result.get("completion_tokens", 0),
-                    total_tokens=result.get("total_tokens", 0),
-                )
-                log.info("BackgroundKoanGenerator: haiku generated in %.1fs",
-                         result["generation_time_ms"] / 1000.0)
-                self._stop.wait(self._interval)
-            else:
-                log.warning("BackgroundKoanGenerator: generation failed, "
-                            "retrying in %.0fs", self._retry_pause)
-                self._stop.wait(self._retry_pause)

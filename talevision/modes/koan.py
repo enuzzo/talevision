@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 from talevision.config.schema import AppConfig
 from talevision.modes.base import DisplayMode, ModeState
 from talevision.modes.koan_archive import KoanArchive
-from talevision.modes.koan_generator import BackgroundKoanGenerator
+from talevision.modes.koan_generator import generate_haiku, get_random_prompt
 
 log = logging.getLogger(__name__)
 
@@ -29,8 +29,8 @@ class KoanMode(DisplayMode):
         self._font_haiku = _load_font(fonts_dir / "CrimsonText-Regular.ttf", 46)
         self._font_mono = _load_font(fonts_dir / "InconsolataNerdFontMono-Bold.ttf", 18)
         self._font_tech = _load_font(fonts_dir / "InconsolataNerdFontMono-Bold.ttf", 16)
-        self._font_fallback = _load_font(fonts_dir / "Lobster-Regular.ttf", 50)
-        self._font_fallback_sub = _load_font(fonts_dir / "Taviraj-Regular.ttf", 18)
+        self._font_error = _load_font(fonts_dir / "Taviraj-Italic.ttf", 28)
+        self._font_error_small = _load_font(fonts_dir / "InconsolataNerdFontMono-Bold.ttf", 14)
 
         bg_path = base_dir / "assets" / "img" / "haiku-bg-min.png"
         try:
@@ -43,16 +43,8 @@ class KoanMode(DisplayMode):
             archive_path=base_dir / self._cfg.archive_dir,
             seed_data_path=base_dir / self._cfg.seed_data,
         )
+        self._api_key, self._backend = self._load_api_config(base_dir / "secrets.yaml")
         self._last_haiku: dict = {}
-        self._last_shown_id: int = 0
-        api_key, backend = self._load_api_config(base_dir / "secrets.yaml")
-        self._bg_gen = BackgroundKoanGenerator(
-            api_key=api_key,
-            backend=backend,
-            archive=self._archive,
-            interval=float(self._cfg.refresh_interval),
-        )
-        self._bg_gen.start()
 
     @staticmethod
     def _load_api_config(secrets_path: Path) -> tuple:
@@ -84,12 +76,44 @@ class KoanMode(DisplayMode):
     def render(self) -> Image.Image:
         w, h = self._display.width, self._display.height
 
-        haiku = self._pick_haiku()
-        if haiku is None:
-            return self._fallback_image(w, h)
+        seed_word = self._archive.get_random_seed_word()
+        prompt_q = get_random_prompt()
+        result = generate_haiku(
+            api_key=self._api_key,
+            backend=self._backend,
+            seed_word=seed_word,
+            prompt_question=prompt_q,
+        )
 
-        self._last_haiku = haiku
-        return self._draw_frame(w, h, haiku)
+        if result:
+            haiku_id = self._archive.append(
+                lines=result["lines"],
+                seed_word=seed_word,
+                author_name=result["author_name"],
+                source=self._backend,
+                generation_time_ms=result["generation_time_ms"],
+                model=result.get("model", ""),
+                prompt_tokens=result.get("prompt_tokens", 0),
+                completion_tokens=result.get("completion_tokens", 0),
+                total_tokens=result.get("total_tokens", 0),
+            )
+            haiku = {
+                "id": haiku_id,
+                "lines": result["lines"],
+                "seed_word": seed_word,
+                "author_name": result["author_name"],
+                "source": self._backend,
+                "generation_time_ms": result["generation_time_ms"],
+                "model": result.get("model", ""),
+                "total_tokens": result.get("total_tokens", 0),
+            }
+            self._last_haiku = haiku
+            log.info("Koan: fresh haiku #%d (seed=%s, %.1fs)",
+                     haiku_id, seed_word, result["generation_time_ms"] / 1000.0)
+            return self._draw_frame(w, h, haiku)
+
+        log.warning("Koan: generation failed, showing error frame")
+        return self._error_image(w, h)
 
     def get_state(self) -> ModeState:
         h = self._last_haiku
@@ -104,19 +128,6 @@ class KoanMode(DisplayMode):
             "archive_count": self._archive.count(),
             "generation_time_ms": h.get("generation_time_ms", 0),
         })
-
-    def _pick_haiku(self) -> dict:
-        latest = self._archive.get_latest()
-        if latest and latest.get("id", 0) != self._last_shown_id:
-            self._last_shown_id = latest["id"]
-            log.info("Koan: showing haiku #%d (%s)", latest["id"], latest.get("source", ""))
-            return latest
-        rnd = self._archive.get_random()
-        if rnd:
-            log.info("Koan: no new haiku, showing random #%d", rnd.get("id", 0))
-            return rnd
-        log.warning("Koan: archive empty, using curated fallback")
-        return self._archive.get_curated_haiku()
 
     def _draw_frame(self, w: int, h: int, haiku: dict) -> Image.Image:
         if self._bg_image:
@@ -164,16 +175,13 @@ class KoanMode(DisplayMode):
                       font=self._font_mono, fill=FILL)
 
         # --- Tech stats: below pen name ---
-        source = haiku.get("source", "archive")
         gen_ms = haiku.get("generation_time_ms", 0)
         model = haiku.get("model", "")
-        if source in ("gemini", "groq") and gen_ms > 0:
+        if gen_ms > 0 and model:
             gen_s = gen_ms / 1000.0
-            model_short = model.split("/")[-1] if model else source
+            model_short = model.split("/")[-1]
             tokens = haiku.get("total_tokens", 0)
             tech_text = f"{model_short} \u00b7 {gen_s:.1f}s \u00b7 {tokens}tok"
-        elif source == "curated":
-            tech_text = f"CURATED \u00b7 seed:{seed_word}"
         else:
             tech_text = f"seed:{seed_word}"
         tw = draw.textbbox((0, 0), tech_text, font=self._font_tech)[2]
@@ -182,29 +190,28 @@ class KoanMode(DisplayMode):
 
         return img
 
-    def _fallback_image(self, w: int, h: int) -> Image.Image:
-        if self._bg_image:
-            img = ImageOps.fit(self._bg_image.copy(), (w, h), Image.LANCZOS)
-        else:
-            img = Image.new("RGB", (w, h), (255, 255, 255))
+    def _error_image(self, w: int, h: int) -> Image.Image:
+        """Poetic error screen — visually distinct from haiku layout."""
+        img = Image.new("RGB", (w, h), (245, 240, 230))
         draw = ImageDraw.Draw(img)
         RIGHT_EDGE = w - 50
-        FILL = (80, 80, 80)
-        title = "KOAN"
-        bbox = draw.textbbox((0, 0), title, font=self._font_fallback)
-        tw = bbox[2] - bbox[0]
-        draw.text((RIGHT_EDGE - tw, int(h * 0.30)), title,
-                  font=self._font_fallback, fill=(170, 170, 170))
+        ERROR_FILL = (160, 100, 80)
+
         lines = [
-            "waiting for the first haiku",
-            "the machine is learning to speak",
-            "patience is the first poem",
+            "the poet is silent today",
+            "words could not cross the wire",
         ]
-        y = int(h * 0.30) + 70
+        y = int(h * 0.32)
         for line in lines:
-            sbbox = draw.textbbox((0, 0), line, font=self._font_fallback_sub)
-            sw = sbbox[2] - sbbox[0]
-            draw.text((RIGHT_EDGE - sw, y), line,
-                      font=self._font_fallback_sub, fill=FILL)
-            y += 28
+            bbox = draw.textbbox((0, 0), line, font=self._font_error)
+            lw = bbox[2] - bbox[0]
+            draw.text((RIGHT_EDGE - lw, y), line,
+                      font=self._font_error, fill=ERROR_FILL)
+            y += 42
+
+        status = f"CONNECTION ERROR \u00b7 {self._backend} \u00b7 {self._archive.count()} haiku in archive"
+        sw = draw.textbbox((0, 0), status, font=self._font_error_small)[2]
+        draw.text((RIGHT_EDGE - sw, h - 60), status,
+                  font=self._font_error_small, fill=(140, 140, 140))
+
         return img
