@@ -15,20 +15,15 @@
 
 <table>
 <tr>
-<td align="center"><img src="docs/screenshots/litclock.png" width="380" /><br /><b>LitClock</b></td>
-<td align="center"><img src="docs/screenshots/slowmovie.png" width="380" /><br /><b>SlowMovie</b></td>
+<td align="center"><img src="docs/screenshots/litclock.png" width="260" /><br /><b>LitClock</b></td>
+<td align="center"><img src="docs/screenshots/slowmovie.png" width="260" /><br /><b>SlowMovie</b></td>
+<td align="center"><img src="docs/screenshots/wikipedia.png" width="260" /><br /><b>Wikipedia</b></td>
 </tr>
 <tr>
-<td align="center"><img src="docs/screenshots/wikipedia.png" width="380" /><br /><b>Wikipedia</b></td>
-<td align="center"><img src="docs/screenshots/weather.png" width="380" /><br /><b>Weather</b></td>
-</tr>
-<tr>
-<td align="center"><img src="docs/screenshots/museo.png" width="380" /><br /><b>Museo</b></td>
-<td align="center"><img src="docs/screenshots/koan.png" width="380" /><br /><b>Koan</b></td>
-</tr>
-<tr>
-<td align="center"><img src="docs/screenshots/cucina.png" width="380" /><br /><b>Cucina</b></td>
-<td></td>
+<td align="center"><img src="docs/screenshots/weather.png" width="195" /><br /><b>Weather</b></td>
+<td align="center"><img src="docs/screenshots/museo.png" width="195" /><br /><b>Museo</b></td>
+<td align="center"><img src="docs/screenshots/koan.png" width="195" /><br /><b>Koan</b></td>
+<td align="center"><img src="docs/screenshots/cucina.png" width="195" /><br /><b>Cucina</b></td>
 </tr>
 </table>
 
