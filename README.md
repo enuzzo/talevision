@@ -25,9 +25,11 @@ As **Wikipedia**, it fetches a random article every few minutes, renders the tit
 
 As **Weather**, it fetches wttr.in's native ANSI terminal output — ASCII art clouds, coloured temperatures, wind arrows — parses the escape codes, and renders them character by character in Inconsolata Nerd Font Mono, mapped to seven e-ink colours. It looks like a terminal printout from the future's past.
 
-As **Museo**, it picks a random public-domain artwork from one of three world museums — the Met, the Art Institute of Chicago, or the Cleveland Museum of Art — downloads the high-resolution image, enhances it for e-ink, and holds it on the wall with the title, artist, and museum name in a discreet overlay. A QR code links to the museum's page for that object. The three museums rotate in order, one per render cycle.
+As **Museo**, it picks a random public-domain artwork from one of three world museums — the Met, Cleveland Museum of Art, or the Victoria and Albert Museum — downloads the high-resolution image, enhances it for e-ink, and holds it on the wall with the title, artist, and museum name in a discreet overlay. A QR code links to the museum's page for that object. The three museums rotate in order, one per render cycle. Nearly a million artworks, zero API keys.
 
-All five modes share one 800×480 seven-colour e-ink panel, one Pi Zero W, one Flask dashboard, and one quiet conviction: the best thing a screen can do is earn its update.
+As **Koan**, it writes a haiku. A 70-billion-parameter language model receives a theme — which might be "consciousness" or "the topology of tangled earphones" or "a parking ticket on a hearse" — and produces three lines of poetry in the language you've chosen, signed with a self-invented pen name. The theme stays in English in the header; the haiku is written in Italian, or Spanish, or Japanese. Every fifteen minutes, a new poem appears on the wall, and the old one is archived forever. There are 210 themes. The machine does not repeat itself.
+
+All six modes share one 800×480 seven-colour e-ink panel, one Pi Zero W, one Flask dashboard, and one quiet conviction: the best thing a screen can do is earn its update.
 
 ---
 
@@ -50,6 +52,7 @@ TaleVision is the obvious outcome. One device. One config file. One dashboard. S
 - [Wikipedia](#wikipedia)
 - [Weather](#weather)
 - [Museo](#museo)
+- [Koan](#koan)
 - [Playlist & Rotation](#playlist--rotation)
 - [Hardware](#hardware)
 - [How It Works](#how-it-works)
@@ -68,7 +71,7 @@ TaleVision is the obvious outcome. One device. One config file. One dashboard. S
 
 ## LitClock
 
-Every 60 seconds: check the time, look up which literary quotes mention that exact minute, pick one at random, render it on screen.
+Every 5 minutes: check the time, look up which literary quotes mention that exact minute, pick one at random, render it on screen.
 
 The quote fills the panel in a centred text block, word-wrapped at 700px, in Taviraj Regular at 28pt. If the raw quote contains an `<em>` tag — the database uses these to mark the time string in the original sentence — and `use_italic_for_em` is enabled, the whole quote switches to Taviraj Italic. Below the quote: an em-dash, the author, a separator, the book title — all on one line, typeset as a unit so the spacing lands correctly. At the top: time and full date, Babel-formatted in the configured locale, separated from the quote by a thin ruled line.
 
@@ -124,15 +127,31 @@ Note: wttr.in is fetched over HTTP on the Pi Zero W. The HTTPS handshake reliabl
 
 ## Museo
 
-Every 5 minutes: pick a random public-domain artwork from one of three world museums, download the high-resolution image, run it through the PIL enhancement pipeline, fit it to the panel, add the overlay. The three museums — **Metropolitan Museum of Art** (NYC, ~200k+ works), **Art Institute of Chicago** (~50k works), **Cleveland Museum of Art** (~61k works) — rotate in strict order, one per render cycle.
+Every 5 minutes: pick a random public-domain artwork from one of three world museums, download the high-resolution image, run it through the PIL enhancement pipeline, fit it to the panel, add the overlay. The three museums — **Metropolitan Museum of Art** (NYC, ~200k works), **Cleveland Museum of Art** (~41k works), **Victoria and Albert Museum** (London, ~732k works) — rotate in strict order, one per render cycle.
 
-No API keys. No accounts. All three museums offer free, unauthenticated APIs with CC0 or public-domain images. The catalogue is cached locally for 24 hours to avoid hammering the APIs on every render.
+No API keys. No accounts. No registration. All three museums offer free, unauthenticated APIs with CC0 or public-domain images. Nearly a million artworks total. The catalogue is cached locally for 24 hours to avoid hammering the APIs on every render.
 
 **Overlay:** same RGBA composite pattern as SlowMovie. A rounded-rectangle box in the bottom-left with the artwork title and date (Signika-Bold 20pt), artist name (Signika-Light 20pt), and museum + department (Inconsolata 16pt, light grey). A QR code in the bottom-right links to the museum's object page for that artwork. If you want to know more about what's on your wall, scan it.
 
 **Fallback:** if the network is down, Museo shows the last successfully rendered frame from cache. If there's no cache at all (cold start with no network), it shows a clean white screen with "MUSEO" in Lobster and a connection-unavailable message.
 
-A 50-ID recent buffer prevents the same artwork from appearing twice in a row — with ~300k+ works across the three museums, collisions are unlikely, but the buffer removes the possibility entirely.
+A 50-ID recent buffer prevents the same artwork from appearing twice in a row — with ~973k works across the three museums, collisions are unlikely, but the buffer removes the possibility entirely.
+
+---
+
+## Koan
+
+Every 15 minutes: pick one of 210 themes, send it to a 70-billion-parameter language model, receive a haiku and a pen name, render it on the wall, archive it forever.
+
+The themes range from the philosophical ("consciousness", "the weight of a word you cannot say") to the absurd ("a parking ticket on a hearse", "the topology of tangled earphones", "the retirement plan of a mayfly"). The haiku is written in whatever language you've set on the dashboard — Italian, English, Spanish, Portuguese, French, German, or Japanese. The theme stays in English in the header. The contrast is intentional.
+
+**Layout:** zen minimalist on a bamboo ink wash watercolour background. The haiku is right-aligned in Crimson Text Regular at 46pt, near-black, optically centred at 38% height. Above it: the theme and a sequential number in Inconsolata Mono. Below: the pen name in uppercase, and a tech stats line showing the model, response time, and token count — the cold anatomy of the machine that wrote the poem. About 70% of the canvas is negative space.
+
+**Backend:** Groq API (primary, `llama-3.3-70b-versatile`) or Google Gemini (fallback, `gemini-2.0-flash-lite`), auto-detected from `secrets.yaml`. Generation takes ~1 second. The Groq free tier allows 100K tokens per day; at ~180 tokens per haiku and 96 haiku per day, TaleVision uses about 18% of the budget.
+
+**Error screen:** when the API is unreachable, the display shows a warm cream background with "the poet is silent today / words could not cross the wire" in Taviraj Italic. Poetic, but visually distinct from a real haiku — you'll know something is wrong.
+
+**Archive:** every haiku is saved as an individual JSON file in `cache/koan_archive/`, with full metadata (model, tokens, timing, theme, pen name). The archive is purely historical — it's never replayed on the display, but it's browsable via the dashboard API.
 
 ---
 
@@ -275,7 +294,7 @@ Dashboard at `http://<pi-ip>:5000`.
 
 ## Web Dashboard
 
-`http://<pi-ip>:5000` — built in React (Vite + Tailwind CSS + Radix UI). Warm vintage cream palette (bg `#F1EBD9`, accent `#CA796D`). Lobster for the logotype and headings, Funnel Display for everything else. No page reloads. Netmilk Studio logo in the footer, shakes on hover.
+`http://<pi-ip>:5000` — built in React (Vite + Tailwind CSS + Radix UI). Solar Dust theme (dark brown-black bg `#1A1410`, gold accent `#E8A838`, terracotta `#D06B50`, cream text `#F0E6D6`). Lobster for the logotype and headings, Chakra Petch for everything else. No page reloads. Netmilk Studio logo in the footer, shakes on hover.
 
 A sardonic tagline rotates with each page load. Twenty options. The display updates roughly once a minute. The tagline changes roughly once per session. Both are fine.
 
@@ -388,9 +407,12 @@ talevision/
 │   │   ├── slowmovie.py         SlowMovie — PIL chain + RGBA overlay + TMDB QR
 │   │   ├── wikipedia.py         Wikipedia — random article, babel header, QR link
 │   │   ├── weather.py           Weather — wttr.in ANSI parser + two-zone PIL render
-│   │   ├── museo.py             Museo — Met/AIC/Cleveland round-robin + PIL overlay
+│   │   ├── museo.py             Museo — Met/Cleveland/V&A round-robin + PIL overlay
 │   │   ├── museo_cache.py       File-based catalogue cache with TTL
-│   │   └── museo_providers/     Provider ABC + Met, AIC, Cleveland implementations
+│   │   ├── koan.py              Koan — haiku generation + zen layout
+│   │   ├── koan_generator.py    Cloud LLM API (Groq/Gemini) + output parser
+│   │   ├── koan_archive.py      Folder-based haiku archive
+│   │   └── museo_providers/     Provider ABC + Met, Cleveland, V&A implementations
 │   ├── render/
 │   │   ├── typography.py        FontManager, wrap_text_block, get_text_dimensions
 │   │   ├── layout.py            draw_header, draw_centered_text_block
