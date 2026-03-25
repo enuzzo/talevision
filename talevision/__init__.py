@@ -1,2 +1,2 @@
 """TaleVision — unified e-ink display appliance."""
-__version__ = "1.0.0"
+__version__ = "3.0.0"
