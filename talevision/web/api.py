@@ -242,6 +242,7 @@ def set_weather_units():
         weather = _orchestrator()._modes.get("weather")
         if weather and hasattr(weather, "set_units"):
             weather.set_units(units)
+        _orchestrator()._save_prefs()
         _orchestrator()._action_queue.put(("force_refresh", None))
         _orchestrator()._timer.interrupt()
         return jsonify({"ok": True, "units": units})

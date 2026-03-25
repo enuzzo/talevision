@@ -134,6 +134,7 @@ class Orchestrator:
         weather = self._modes.get("weather")
         if weather and hasattr(weather, "set_location"):
             weather.set_location(city, lat, lon)
+        self._save_prefs()
         self._action_queue.put(("force_refresh", None))
         self._timer.interrupt()
 
@@ -199,6 +200,13 @@ class Orchestrator:
                     self._playlist = valid
                     self._current_mode_name = valid[0]
                 self._rotation_interval = data.get("rotation_interval", 300)
+                w = data.get("weather")
+                if w:
+                    weather = self._modes.get("weather")
+                    if weather and hasattr(weather, "set_location"):
+                        weather.set_location(w["city"], w["lat"], w["lon"])
+                    if weather and hasattr(weather, "set_units") and "units" in w:
+                        weather.set_units(w["units"])
                 log.debug(f"Loaded user prefs: intervals={self._interval_overrides}, playlist={self._playlist}")
         except Exception as exc:
             log.warning(f"Could not load user_prefs.json: {exc}")
@@ -210,6 +218,14 @@ class Orchestrator:
                 "playlist": self._playlist,
                 "rotation_interval": self._rotation_interval,
             }
+            weather = self._modes.get("weather")
+            if weather:
+                data["weather"] = {
+                    "city": getattr(weather, "_city", ""),
+                    "lat": getattr(weather, "_lat", 0),
+                    "lon": getattr(weather, "_lon", 0),
+                    "units": getattr(weather, "_units", "m"),
+                }
             self._prefs_path.write_text(json.dumps(data, indent=2))
         except Exception as exc:
             log.warning(f"Could not save user_prefs.json: {exc}")
