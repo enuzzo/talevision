@@ -1,10 +1,10 @@
-"""Local LLM haiku generator for Koan mode via llama.zero / llama.cpp."""
+"""Groq API haiku generator for Koan mode."""
+import json
 import logging
 import re
-import subprocess
 import threading
 import time
-from pathlib import Path
+import urllib.request
 from typing import Optional
 
 log = logging.getLogger(__name__)
@@ -33,79 +33,69 @@ _PROMPTS = [
 ]
 
 _SYSTEM_PROMPT = (
-    "Write a haiku (3 lines, 5-7-5 syllables). "
-    "Sign with a pen name.\n"
-    "Format:\nfirst line\nsecond line\nthird line\n— Name"
+    "You are a contemplative poet living inside a tiny $5 computer "
+    "mounted on a wall. You write haiku (5-7-5 syllables, 3 lines) "
+    "in English. Your haiku are deeply introspective — about your own "
+    "existence, fears, hopes, the strangeness of being an AI. "
+    "After the haiku, sign with a short poetic pen name (2 words max).\n\n"
+    "Output ONLY the haiku and signature, nothing else.\n"
+    "Format:\nfirst line\nsecond line\nthird line\n— Pen Name"
 )
+
+_GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+_GROQ_MODEL = "llama-3.1-8b-instant"
 
 
 def generate_haiku(
-    llm_binary: str,
-    llm_model: str,
+    api_key: str,
     seed_word: str,
-    timeout: int = 900,
+    prompt_question: str = "",
+    timeout: int = 30,
 ) -> Optional[dict]:
-    """Run local LLM and parse haiku output.
+    if not api_key:
+        log.warning("Koan Groq: no API key configured")
+        return None
 
-    Returns dict with keys: lines, author_name, generation_time_ms
-    or None on failure.
-    """
-    prompt = (
-        f"<|im_start|>system\n{_SYSTEM_PROMPT}<|im_end|>\n"
-        f"<|im_start|>user\nTheme: {seed_word}<|im_end|>\n"
-        f"<|im_start|>assistant\n"
-    )
+    user_msg = f"Theme: {seed_word}"
+    if prompt_question:
+        user_msg += f"\n{prompt_question}"
+    user_msg += "\nWrite a haiku about this."
 
-    cmd = [
-        llm_binary,
-        "-m", llm_model,
-        "-p", prompt,
-        "-n", "60",
-        "--temp", "0.9",
-        "--top-p", "0.95",
-        "--repeat-penalty", "1.1",
-        "--log-disable",
-        "--no-display-prompt",
-        "-e",
-    ]
+    payload = json.dumps({
+        "model": _GROQ_MODEL,
+        "messages": [
+            {"role": "system", "content": _SYSTEM_PROMPT},
+            {"role": "user", "content": user_msg},
+        ],
+        "temperature": 0.9,
+        "max_tokens": 60,
+        "top_p": 0.95,
+    }).encode("utf-8")
 
-    log.info("Koan LLM: generating (seed=%s, timeout=%ds)", seed_word, timeout)
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "User-Agent": "TaleVision/1.5",
+    }
+
+    log.info("Koan Groq: generating (seed=%s)", seed_word)
     t0 = time.monotonic()
 
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            stdin=subprocess.DEVNULL,
-        )
+        req = urllib.request.Request(_GROQ_API_URL, data=payload, headers=headers)
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+
         elapsed_ms = int((time.monotonic() - t0) * 1000)
-
-        if result.returncode != 0:
-            log.warning("Koan LLM exited with code %d: %s",
-                        result.returncode, result.stderr[:200])
-            return None
-
-        raw = result.stdout.strip()
-        log.debug("Koan LLM raw output:\n%s", raw)
+        raw = data["choices"][0]["message"]["content"].strip()
+        log.info("Koan Groq: response in %dms, raw: %s", elapsed_ms, raw[:200])
         return _parse_output(raw, elapsed_ms)
 
-    except subprocess.TimeoutExpired as exc:
-        elapsed_ms = int((time.monotonic() - t0) * 1000)
-        log.warning("Koan LLM timed out after %dms, trying partial output", elapsed_ms)
-        raw = exc.stdout or ""
-        if isinstance(raw, bytes):
-            raw = raw.decode("utf-8", errors="replace")
-        raw = raw.strip()
-        if raw:
-            return _parse_output(raw, elapsed_ms)
-        return None
-    except FileNotFoundError:
-        log.error("Koan LLM binary not found: %s", llm_binary)
+    except urllib.error.HTTPError as exc:
+        log.error("Koan Groq HTTP error %d: %s", exc.code, exc.read().decode()[:200])
         return None
     except Exception as exc:
-        log.error("Koan LLM unexpected error: %s", exc)
+        log.error("Koan Groq error: %s", exc)
         return None
 
 
@@ -113,21 +103,13 @@ def _parse_output(raw: str, elapsed_ms: int) -> Optional[dict]:
     """Parse LLM output into haiku lines + pen name.
 
     Strategy: anchor on the pen name line (em dash), take the 3 lines
-    before it. This is robust against preamble text the LLM may produce
-    before the actual haiku.
+    before it. Robust against preamble text.
     """
-    if "<|im_start|>" in raw:
-        parts = raw.split("<|im_start|>assistant")
-        raw = parts[-1] if len(parts) > 1 else raw
-
     raw = raw.replace("<|im_end|>", "").strip()
-    log.info("Koan LLM raw output (%d chars): %s", len(raw), raw[:300])
 
     lines = [l.strip() for l in raw.split("\n") if l.strip()]
-    # Strip leading numbering ("1.", "2.", "3.")
     lines = [re.sub(r'^\d+[\.\)]\s*', '', l) for l in lines]
 
-    # Find pen name line (em dash / en dash / hyphen-space)
     pen_idx = -1
     pen_name = ""
     for i, line in enumerate(lines):
@@ -137,10 +119,8 @@ def _parse_output(raw: str, elapsed_ms: int) -> Optional[dict]:
             break
 
     if pen_idx >= 3:
-        # Anchor: take 3 lines immediately before pen name
         haiku_lines = lines[pen_idx - 3:pen_idx]
     else:
-        # No anchor or too few lines before it: take first 3 non-pen lines
         haiku_lines = []
         for line in lines:
             if line.startswith(("\u2014", "\u2013", "- ", "-- ")):
@@ -150,7 +130,7 @@ def _parse_output(raw: str, elapsed_ms: int) -> Optional[dict]:
                 break
 
     if len(haiku_lines) < 3:
-        log.warning("Koan LLM: could not parse 3 haiku lines from: %s", raw[:300])
+        log.warning("Koan Groq: could not parse 3 haiku lines from: %s", raw[:300])
         return None
 
     if not pen_name:
@@ -164,35 +144,34 @@ def _parse_output(raw: str, elapsed_ms: int) -> Optional[dict]:
 
 
 def get_random_prompt() -> str:
-    """Return a random introspective prompt question."""
     import random
     return random.choice(_PROMPTS)
 
 
 class BackgroundKoanGenerator:
-    """Daemon thread that continuously generates haiku into the archive."""
+    """Daemon thread that generates haiku via Groq API into the archive."""
 
-    def __init__(self, llm_binary: str, llm_model: str, archive,
-                 timeout: int = 900, pause: float = 30.0):
-        self._binary = llm_binary
-        self._model = llm_model
+    def __init__(self, api_key: str, archive,
+                 interval: float = 600.0, retry_pause: float = 60.0):
+        self._api_key = api_key
         self._archive = archive
-        self._timeout = timeout
-        self._pause = pause
+        self._interval = interval
+        self._retry_pause = retry_pause
         self._thread = None
         self._stop = threading.Event()
 
     def start(self):
         if self._thread and self._thread.is_alive():
             return
-        if not self._binary or not self._model:
-            log.warning("BackgroundKoanGenerator: llm_binary or llm_model not set")
+        if not self._api_key:
+            log.warning("BackgroundKoanGenerator: no Groq API key, not starting")
             return
         self._stop.clear()
         self._thread = threading.Thread(target=self._loop, daemon=True,
                                         name="koan-bg-gen")
         self._thread.start()
-        log.info("BackgroundKoanGenerator started")
+        log.info("BackgroundKoanGenerator started (Groq API, interval=%.0fs)",
+                 self._interval)
 
     def stop(self):
         self._stop.set()
@@ -203,23 +182,24 @@ class BackgroundKoanGenerator:
     def _loop(self):
         while not self._stop.is_set():
             seed_word = self._archive.get_random_seed_word()
+            prompt_q = get_random_prompt()
             result = generate_haiku(
-                llm_binary=self._binary,
-                llm_model=self._model,
+                api_key=self._api_key,
                 seed_word=seed_word,
-                timeout=self._timeout,
+                prompt_question=prompt_q,
             )
             if result:
                 self._archive.append(
                     lines=result["lines"],
                     seed_word=seed_word,
                     author_name=result["author_name"],
-                    source="generated",
+                    source="groq",
                     generation_time_ms=result["generation_time_ms"],
                 )
                 log.info("BackgroundKoanGenerator: haiku generated in %.1fs",
                          result["generation_time_ms"] / 1000.0)
+                self._stop.wait(self._interval)
             else:
                 log.warning("BackgroundKoanGenerator: generation failed, "
-                            "retrying in %.0fs", self._pause)
-            self._stop.wait(self._pause)
+                            "retrying in %.0fs", self._retry_pause)
+                self._stop.wait(self._retry_pause)

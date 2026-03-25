@@ -178,9 +178,6 @@ class KoanConfig:
     refresh_interval: int = 900
     archive_dir: str = "cache/koan_archive"
     seed_data: str = "assets/data/koan_seeds.json"
-    llm_binary: str = "/home/enuzzo/llama.zero/build/bin/llama-cli"
-    llm_model: str = "/home/enuzzo/models/smollm-135m-instruct-q4_k_m.gguf"
-    llm_timeout: int = 3600
 
 
 @dataclass

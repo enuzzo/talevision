@@ -45,13 +45,22 @@ class KoanMode(DisplayMode):
         )
         self._last_haiku: dict = {}
         self._last_shown_id: int = 0
+        api_key = self._load_groq_key(base_dir / "secrets.yaml")
         self._bg_gen = BackgroundKoanGenerator(
-            llm_binary=self._cfg.llm_binary,
-            llm_model=self._cfg.llm_model,
+            api_key=api_key,
             archive=self._archive,
-            timeout=self._cfg.llm_timeout,
+            interval=float(self._cfg.refresh_interval),
         )
         self._bg_gen.start()
+
+    @staticmethod
+    def _load_groq_key(secrets_path: Path) -> str:
+        try:
+            import yaml
+            data = yaml.safe_load(secrets_path.read_text()) or {}
+            return data.get("groq_api_key", "")
+        except Exception:
+            return ""
 
     @property
     def name(self) -> str:
@@ -149,11 +158,13 @@ class KoanMode(DisplayMode):
         # --- Tech stats: below pen name ---
         source = haiku.get("source", "archive")
         gen_ms = haiku.get("generation_time_ms", 0)
-        if source == "generated" and gen_ms > 0:
+        if source == "groq" and gen_ms > 0:
             gen_s = gen_ms / 1000.0
-            tech_text = f"SmolLM-135M \u00b7 {gen_s:.0f}s \u00b7 seed:{seed_word}"
-        else:
+            tech_text = f"Groq \u00b7 {gen_s:.1f}s \u00b7 seed:{seed_word}"
+        elif source == "curated":
             tech_text = f"CURATED \u00b7 seed:{seed_word}"
+        else:
+            tech_text = f"seed:{seed_word}"
         tw = draw.textbbox((0, 0), tech_text, font=self._font_tech)[2]
         draw.text((RIGHT_EDGE - tw, pen_y + 26), tech_text,
                   font=self._font_tech, fill=FILL)
