@@ -13,6 +13,10 @@
 >
 > The Pis were already there. The wall was already there. The reasoning was air-tight.
 
+<p align="center">
+  <img src="docs/screenshots/grid.png" alt="TaleVision — 7 modes on e-ink" width="800" />
+</p>
+
 <br />
 
 **TaleVision** is a Raspberry Pi Zero W that doesn't know if it's a clock or a cinema, and has decided that's fine.
