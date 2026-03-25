@@ -546,7 +546,7 @@ function PlaylistEditor({
           disabled={saving}
           className="font-display text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-xs bg-accent text-bg hover:bg-accent-hover transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
         >
-          {saving ? 'Saving…' : 'Save playlist'}
+          {saving ? '…' : 'Save'}
         </button>
         <button
           onClick={onRefresh}
@@ -564,7 +564,7 @@ function PlaylistEditor({
           {refreshing ? 'Rendering…' : 'Force refresh'}
         </button>
         {saved && (
-          <span className="label animate-fade-in" style={{ color: '#7FA87F' }}>Saved</span>
+          <span className="label animate-fade-in" style={{ color: '#7FA87F' }}>✓</span>
         )}
       </div>
     </div>
@@ -654,7 +654,7 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
 
       <div>
         <div className="label mb-2">Active days</div>
-        <div className="flex gap-1.5">
+        <div className="flex items-center gap-1.5">
           {DAYS.map((d, i) => (
             <button
               key={i}
@@ -670,20 +670,17 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
               {d}
             </button>
           ))}
+          <button
+            onClick={() => mut.mutate()}
+            disabled={mut.isPending}
+            className="ml-auto font-display text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-xs bg-accent text-bg hover:bg-accent-hover transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
+          >
+            {mut.isPending ? '…' : 'Save'}
+          </button>
+          {saved && (
+            <span className="label animate-fade-in" style={{ color: '#7FA87F' }}>✓</span>
+          )}
         </div>
-      </div>
-
-      <div className="flex items-center gap-3 pt-1">
-        <button
-          onClick={() => mut.mutate()}
-          disabled={mut.isPending}
-          className="font-display text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-xs bg-accent text-bg hover:bg-accent-hover transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
-        >
-          {mut.isPending ? 'Saving…' : 'Save schedule'}
-        </button>
-        {saved && (
-          <span className="label animate-fade-in" style={{ color: '#7FA87F' }}>Saved</span>
-        )}
       </div>
     </div>
   )
@@ -832,7 +829,8 @@ function LanguageSelector({ current }: { current?: string }) {
           </Select.Content>
         </Select.Portal>
       </Select.Root>
-      <span className="label" style={{ color: '#6A9FBF' }}>LitClock + Wikipedia</span>
+      {mut.isPending && <span className="label animate-fade-in" style={{ color: '#E8A838' }}>…</span>}
+      {!mut.isPending && mut.isSuccess && <span className="label animate-fade-in" style={{ color: '#7FA87F' }}>✓</span>}
     </div>
   )
 }
@@ -1418,7 +1416,7 @@ export default function App() {
           </>
         )}
 
-        {currentMode === 'weather' && (
+        {playlist.includes('weather') && (
           <>
             <Divider />
             <section className="animate-fade-in">
