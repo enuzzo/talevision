@@ -174,6 +174,15 @@ class MuseoConfig:
 
 
 @dataclass
+class CucinaConfig:
+    refresh_interval: int = 300
+    timeout: int = 30
+    brightness: float = 1.1
+    contrast: float = 1.2
+    color: float = 1.3
+
+
+@dataclass
 class KoanConfig:
     refresh_interval: int = 900
     archive_dir: str = "cache/koan_archive"
@@ -206,5 +215,6 @@ class AppConfig:
     wikipedia: WikipediaConfig = field(default_factory=WikipediaConfig)
     weather: WeatherConfig = field(default_factory=WeatherConfig)
     museo: MuseoConfig = field(default_factory=MuseoConfig)
+    cucina: CucinaConfig = field(default_factory=CucinaConfig)
     koan: KoanConfig = field(default_factory=KoanConfig)
     buttons: ButtonsConfig = field(default_factory=ButtonsConfig)

@@ -266,6 +266,28 @@ def koan_archive():
     return jsonify({"haiku": haiku_list, "count": len(haiku_list)})
 
 
+@api_bp.get("/koan/archive/export")
+def koan_archive_export():
+    """GET /api/koan/archive/export — download all haiku as a ZIP."""
+    import io
+    import zipfile
+
+    koan = _orchestrator()._modes.get("koan")
+    if not koan:
+        return jsonify({"error": "Koan mode not available"}), 404
+    files = koan._archive._list_files()
+    if not files:
+        return jsonify({"error": "No haiku in archive"}), 404
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for fp in files:
+            zf.write(str(fp), fp.name)
+    buf.seek(0)
+    return send_file(buf, mimetype="application/zip",
+                     as_attachment=True, download_name="koan_archive.zip")
+
+
 @api_bp.get("/frame")
 def get_frame():
     """GET /api/frame — serve last rendered frame for current mode."""

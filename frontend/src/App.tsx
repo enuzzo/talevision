@@ -88,6 +88,7 @@ const ALL_MODES: ModeInfo[] = [
   { id: 'weather',   label: 'Weather',   icon: '🌤', color: '#7FA87F', available: true },
   { id: 'museo',     label: 'Museo',     icon: '🎨', color: '#B8860B', available: true },
   { id: 'koan',      label: 'Koan',      icon: '禅', color: '#8B7D6B', available: true },
+  { id: 'cucina',    label: 'Cucina',    icon: '🍽', color: '#D2691E', available: true },
 ]
 
 const MODE_MAP = Object.fromEntries(ALL_MODES.map(m => [m.id, m]))
@@ -838,6 +839,96 @@ function LanguageSelector({ current }: { current?: string }) {
 
 // ─── Weather Settings ────────────────────────────────────────────────────────
 
+// ─── Koan Archive Panel ─────────────────────────────────────────────────────
+
+interface KoanHaiku {
+  id: number
+  timestamp: string
+  lines: string[]
+  seed_word: string
+  author_name: string
+  source: string
+  generation_time_ms: number
+  model?: string
+  total_tokens?: number
+}
+
+function KoanArchivePanel() {
+  const [expanded, setExpanded] = useState(false)
+  const { data } = useQuery({
+    queryKey: ['koan-archive'],
+    queryFn: async () => {
+      const r = await fetch(`/api/koan/archive`)
+      return r.json() as Promise<{ haiku: KoanHaiku[]; count: number }>
+    },
+    refetchInterval: 60_000,
+  })
+
+  const count = data?.count ?? 0
+  const haiku = data?.haiku ?? []
+
+  if (count === 0) return null
+
+  return (
+    <section>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between mb-3 group"
+      >
+        <h2 className="label">Koan archive</h2>
+        <span className="font-mono text-xs text-muted group-hover:text-accent transition-colors">
+          {count} haiku {expanded ? '▲' : '▼'}
+        </span>
+      </button>
+
+      {expanded && (
+        <div className="animate-fade-in space-y-3">
+          <div className="flex justify-end mb-2">
+            <a
+              href={`/api/koan/archive/export`}
+              download
+              className="font-mono text-xs px-3 py-1 rounded border border-accent/30 text-accent hover:bg-accent/10 transition-colors"
+            >
+              Export ZIP ↓
+            </a>
+          </div>
+
+          {haiku.slice(0, 20).map((h) => (
+            <div
+              key={h.id}
+              className="p-3 rounded-lg border border-border/50 bg-surface/50"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-mono text-xs text-muted">
+                  {h.seed_word} · №{h.id}
+                </span>
+                <span className="font-mono text-[10px] text-muted/60">
+                  {h.model?.split('/').pop() ?? h.source} · {(h.generation_time_ms / 1000).toFixed(1)}s
+                </span>
+              </div>
+              <div className="font-serif italic text-sm text-text leading-relaxed">
+                {h.lines.map((line, i) => (
+                  <div key={i}>{line}</div>
+                ))}
+              </div>
+              <div className="mt-2 font-mono text-xs text-muted/80">
+                — {h.author_name}
+              </div>
+            </div>
+          ))}
+
+          {count > 20 && (
+            <p className="font-mono text-xs text-muted text-center">
+              + {count - 20} more in archive
+            </p>
+          )}
+        </div>
+      )}
+    </section>
+  )
+}
+
+
 function WeatherSettings({ currentLocation }: { currentLocation?: string }) {
   const qc = useQueryClient()
   const [input, setInput] = useState(currentLocation ?? '')
@@ -1157,6 +1248,9 @@ export default function App() {
             </section>
           </>
         )}
+
+        <Divider />
+        <KoanArchivePanel />
 
         <footer className="pt-6 pb-4">
           <Divider />
