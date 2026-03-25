@@ -43,7 +43,7 @@ _SYSTEM_PROMPT = (
 )
 
 
-_GROQ_MODEL = "llama-3.1-8b-instant"
+_GROQ_MODEL = "llama-3.3-70b-versatile"
 _GEMINI_MODEL = "gemini-2.0-flash-lite"
 
 
