@@ -47,6 +47,31 @@ def _wrap_text(text: str, font, max_width: int, draw: ImageDraw.ImageDraw) -> li
     return lines
 
 
+_LOWERCASE_WORDS = {"a", "an", "and", "at", "by", "de", "del", "di", "for",
+                    "from", "in", "of", "on", "or", "the", "to", "with"}
+
+
+def _smart_title(s: str) -> str:
+    words = s.split()
+    result = []
+    for i, w in enumerate(words):
+        if i == 0 or w.lower() not in _LOWERCASE_WORDS:
+            result.append(w.capitalize())
+        else:
+            result.append(w.lower())
+    return " ".join(result)
+
+
+def _round_corners(img: Image.Image, radius: int) -> Image.Image:
+    """Return image with rounded corners using an alpha mask."""
+    mask = Image.new("L", img.size, 0)
+    draw = ImageDraw.Draw(mask)
+    draw.rounded_rectangle([(0, 0), img.size], radius=radius, fill=255)
+    out = img.copy()
+    out.putalpha(mask)
+    return out
+
+
 class CucinaMode(DisplayMode):
 
     def __init__(self, config: AppConfig, base_dir: Path = Path(".")):
@@ -55,10 +80,10 @@ class CucinaMode(DisplayMode):
         self._base_dir = base_dir
 
         fonts = base_dir / "assets" / "fonts"
-        self._font_title = _load_font(fonts / "Signika-Bold.ttf", 26)
+        self._font_title = _load_font(fonts / "Lobster-Regular.ttf", 28)
         self._font_origin = _load_font(fonts / "Signika-Bold.ttf", 16)
         self._font_ingredient = _load_font(fonts / "Taviraj-Regular.ttf", 15)
-        self._font_instructions = _load_font(fonts / "Taviraj-Italic.ttf", 14)
+        self._font_instructions = _load_font(fonts / "Taviraj-Italic.ttf", 15)
         self._font_label = _load_font(fonts / "InconsolataNerdFontMono-Bold.ttf", 13)
         self._font_fallback = _load_font(fonts / "Lobster-Regular.ttf", 50)
         self._font_fallback_sub = _load_font(fonts / "Taviraj-Regular.ttf", 18)
@@ -151,18 +176,19 @@ class CucinaMode(DisplayMode):
         QR_SIZE = 70
         QR_MARGIN = 16
 
-        # --- Food photo: top-left ---
+        # --- Food photo: top-left, rounded corners ---
         if food_img:
             photo = ImageOps.fit(food_img, (PHOTO_W, PHOTO_H), Image.LANCZOS)
-            canvas.paste(photo, (MARGIN, MARGIN))
+            rounded = _round_corners(photo, 14)
+            canvas.paste(rounded, (MARGIN, MARGIN), rounded)
 
-        # --- Title: top-right area ---
-        title = meal.get("strMeal", "Unknown Dish")
-        y = MARGIN + 4
-        title_lines = _wrap_text(title.upper(), self._font_title, TEXT_MAX_W, draw)
-        for line in title_lines[:3]:
+        # --- Title: top-right, aligned with photo top ---
+        title = _smart_title(meal.get("strMeal", "Unknown Dish"))
+        y = MARGIN
+        title_lines = _wrap_text(title, self._font_title, TEXT_MAX_W, draw)
+        for line in title_lines[:2]:
             draw.text((TEXT_X, y), line, font=self._font_title, fill=(30, 30, 30))
-            y += 32
+            y += 34
 
         # --- Origin · Category ---
         y += 6
@@ -188,26 +214,26 @@ class CucinaMode(DisplayMode):
                   fill=(220, 210, 195), width=1)
         y += 10
 
-        # --- Ingredients (right side, compact two-column) ---
+        # --- Ingredients (right side, 1 col ≤6, 2 cols >6) ---
         ingredients = self._get_ingredients(meal)
         if ingredients:
             draw.text((TEXT_X, y), "INGREDIENTS", font=self._font_label, fill=(140, 140, 140))
             y += 18
-            col_w = TEXT_MAX_W // 2
+            two_cols = len(ingredients) > 6
+            col_w = TEXT_MAX_W // 2 if two_cols else TEXT_MAX_W
+            half = (len(ingredients) + 1) // 2 if two_cols else len(ingredients)
+            max_chars = 26 if two_cols else 50
             start_y = y
-            col = 0
             for i, (ing, meas) in enumerate(ingredients):
-                cy = start_y + (i % 10) * 17
+                col = 0 if i < half else 1
+                row = i if i < half else i - half
                 cx = TEXT_X + col * col_w
-                if i == 10:
-                    col = 1
-                if i >= 20:
-                    break
+                cy = start_y + row * 17
                 text = f"{meas} {ing}".strip() if meas else ing
-                if len(text) > 22:
-                    text = text[:21] + "…"
+                if len(text) > max_chars:
+                    text = text[:max_chars - 1] + "…"
                 draw.text((cx, cy), text, font=self._font_ingredient, fill=(60, 60, 60))
-            y = start_y + min(len(ingredients), 10) * 17
+            y = start_y + half * 17
 
         # --- Instructions: below photo, full width ---
         instructions = (meal.get("strInstructions") or "").strip()
