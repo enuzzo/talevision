@@ -165,21 +165,27 @@ class CucinaMode(DisplayMode):
         return pairs
 
     def _compose(self, w: int, h: int, meal: dict, food_img: Optional[Image.Image]) -> Image.Image:
+        from datetime import datetime
+        from babel.dates import format_date
+
         canvas = Image.new("RGB", (w, h), (255, 255, 255))
         draw = ImageDraw.Draw(canvas)
 
         MARGIN = 24
         PHOTO_SIZE = 240
-        PHOTO_W = PHOTO_SIZE
-        PHOTO_H = PHOTO_SIZE
-        TEXT_X = MARGIN + PHOTO_W + 22
+        DARK_H = MARGIN + PHOTO_SIZE + MARGIN
+        TEXT_X = MARGIN + PHOTO_SIZE + 22
         TEXT_MAX_W = w - TEXT_X - MARGIN
         QR_SIZE = 70
         QR_MARGIN = 16
 
+        # --- Dark band: top half ---
+        DARK_BG = (35, 30, 25)
+        draw.rectangle([(0, 0), (w, DARK_H)], fill=DARK_BG)
+
         # --- Food photo: top-left, rounded corners ---
         if food_img:
-            photo = ImageOps.fit(food_img, (PHOTO_W, PHOTO_H), Image.LANCZOS)
+            photo = ImageOps.fit(food_img, (PHOTO_SIZE, PHOTO_SIZE), Image.LANCZOS)
             rounded = _round_corners(photo, 14)
             canvas.paste(rounded, (MARGIN, MARGIN), rounded)
 
@@ -188,7 +194,7 @@ class CucinaMode(DisplayMode):
         y = MARGIN
         title_lines = _wrap_text(title, self._font_title, TEXT_MAX_W, draw)
         for line in title_lines[:2]:
-            draw.text((TEXT_X, y), line, font=self._font_title, fill=(30, 30, 30))
+            draw.text((TEXT_X, y), line, font=self._font_title, fill=(255, 255, 255))
             y += 34
 
         # --- Origin · Category ---
@@ -198,7 +204,7 @@ class CucinaMode(DisplayMode):
         origin_parts = [p for p in [area, category] if p]
         if origin_parts:
             origin_text = " · ".join(origin_parts)
-            draw.text((TEXT_X, y), origin_text, font=self._font_origin, fill=(180, 80, 40))
+            draw.text((TEXT_X, y), origin_text, font=self._font_origin, fill=(230, 160, 80))
             y += 24
 
         # --- Tags ---
@@ -206,20 +212,20 @@ class CucinaMode(DisplayMode):
         if tags:
             tag_list = [t.strip() for t in tags.split(",") if t.strip()]
             tag_text = " · ".join(tag_list[:5])
-            draw.text((TEXT_X, y), tag_text, font=self._font_label, fill=(160, 160, 160))
+            draw.text((TEXT_X, y), tag_text, font=self._font_label, fill=(140, 130, 110))
             y += 20
 
         # --- Separator ---
         y += 6
         draw.line([(TEXT_X, y), (TEXT_X + min(TEXT_MAX_W, 220), y)],
-                  fill=(220, 210, 195), width=1)
+                  fill=(80, 70, 60), width=1)
         y += 10
 
         # --- Ingredients (right side, 1 col ≤6, 2 cols >6) ---
         ingredients = self._get_ingredients(meal)
         if ingredients:
-            draw.text((TEXT_X, y), "INGREDIENTS", font=self._font_label, fill=(80, 80, 80))
-            y += 18
+            draw.text((TEXT_X, y), "Ingredients", font=self._font_label, fill=(180, 170, 150))
+            y += 20
             two_cols = len(ingredients) > 6
             col_w = TEXT_MAX_W // 2 if two_cols else TEXT_MAX_W
             half = (len(ingredients) + 1) // 2 if two_cols else len(ingredients)
@@ -233,23 +239,23 @@ class CucinaMode(DisplayMode):
                 text = f"{meas} {ing}".strip() if meas else ing
                 if len(text) > max_chars:
                     text = text[:max_chars - 1] + "…"
-                draw.text((cx, cy), text, font=self._font_ingredient, fill=(40, 40, 40))
+                draw.text((cx, cy), text, font=self._font_ingredient, fill=(220, 210, 195))
             y = start_y + half * 18
 
-        # --- Instructions: below photo, full width ---
+        # --- Instructions: bottom half (white bg), full width ---
         instructions = (meal.get("strInstructions") or "").strip()
         if instructions:
-            instr_y = max(MARGIN + PHOTO_H + 12, y + 8)
+            instr_y = DARK_H + 10
             instr_max_w = w - MARGIN * 2 - QR_SIZE - QR_MARGIN
-            draw.text((MARGIN, instr_y), "INSTRUCTIONS", font=self._font_label, fill=(80, 80, 80))
-            instr_y += 16
+            draw.text((MARGIN, instr_y), "Instructions", font=self._font_label, fill=(100, 90, 80))
+            instr_y += 20
             instr_lines = _wrap_text(instructions, self._font_instructions, instr_max_w, draw)
             max_lines = (h - instr_y - 30) // 20
             for line in instr_lines[:max_lines]:
                 draw.text((MARGIN, instr_y), line, font=self._font_instructions, fill=(30, 30, 30))
                 instr_y += 20
             if len(instr_lines) > max_lines:
-                draw.text((MARGIN, instr_y), " …", font=self._font_instructions, fill=(80, 80, 80))
+                draw.text((MARGIN, instr_y), " …", font=self._font_instructions, fill=(140, 140, 140))
 
         # --- QR code: bottom-right ---
         qr_url = (meal.get("strYoutube") or meal.get("strSource") or
@@ -266,8 +272,15 @@ class CucinaMode(DisplayMode):
             except Exception:
                 pass
 
-        # --- CUCINA label: bottom-left ---
-        draw.text((MARGIN, h - 28), "CUCINA", font=self._font_label, fill=(200, 200, 200))
+        # --- Date/time: bottom-left ---
+        now = datetime.now()
+        try:
+            date_str = format_date(now, "d MMMM", locale="it")
+        except Exception:
+            date_str = now.strftime("%d %b")
+        time_str = now.strftime("%H:%M")
+        timestamp = f"{time_str} · {date_str}"
+        draw.text((MARGIN, h - 26), timestamp, font=self._font_label, fill=(180, 180, 180))
 
         # Save cache
         try:
