@@ -178,6 +178,7 @@ class KoanConfig:
     refresh_interval: int = 900
     archive_dir: str = "cache/koan_archive"
     seed_data: str = "assets/data/koan_seeds.json"
+    language: str = "it"
 
 
 @dataclass

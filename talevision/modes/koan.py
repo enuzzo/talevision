@@ -44,7 +44,7 @@ class KoanMode(DisplayMode):
             seed_data_path=base_dir / self._cfg.seed_data,
         )
         self._api_key, self._backend = self._load_api_config(base_dir / "secrets.yaml")
-        self._language = config.app.default_language if hasattr(config.app, 'default_language') else "en"
+        self._language = self._cfg.language
         self._last_haiku: dict = {}
 
     @staticmethod
