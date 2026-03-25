@@ -31,7 +31,9 @@ class KoanArchive:
         return sorted(self._dir.glob("*.json"))
 
     def append(self, lines: list, seed_word: str, author_name: str,
-               source: str = "generated", generation_time_ms: int = 0) -> int:
+               source: str = "generated", generation_time_ms: int = 0,
+               model: str = "", prompt_tokens: int = 0,
+               completion_tokens: int = 0, total_tokens: int = 0) -> int:
         files = self._list_files()
         new_id = len(files) + 1
         ts = datetime.now(timezone.utc)
@@ -44,6 +46,10 @@ class KoanArchive:
             "author_name": author_name,
             "source": source,
             "generation_time_ms": generation_time_ms,
+            "model": model,
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": total_tokens,
         }
         filename = f"{ts_str}_{seed_word}.json"
         filepath = self._dir / filename

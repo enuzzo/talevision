@@ -45,22 +45,30 @@ class KoanMode(DisplayMode):
         )
         self._last_haiku: dict = {}
         self._last_shown_id: int = 0
-        api_key = self._load_groq_key(base_dir / "secrets.yaml")
+        api_key, backend = self._load_api_config(base_dir / "secrets.yaml")
         self._bg_gen = BackgroundKoanGenerator(
             api_key=api_key,
+            backend=backend,
             archive=self._archive,
             interval=float(self._cfg.refresh_interval),
         )
         self._bg_gen.start()
 
     @staticmethod
-    def _load_groq_key(secrets_path: Path) -> str:
+    def _load_api_config(secrets_path: Path) -> tuple:
+        """Return (api_key, backend) from secrets.yaml. Groq first, then Gemini."""
         try:
             import yaml
             data = yaml.safe_load(secrets_path.read_text()) or {}
-            return data.get("groq_api_key", "")
         except Exception:
-            return ""
+            return ("", "none")
+        groq = data.get("groq_api_key", "")
+        if groq:
+            return (groq, "groq")
+        gemini = data.get("gemini_api_key", "")
+        if gemini:
+            return (gemini, "gemini")
+        return ("", "none")
 
     @property
     def name(self) -> str:
@@ -158,9 +166,12 @@ class KoanMode(DisplayMode):
         # --- Tech stats: below pen name ---
         source = haiku.get("source", "archive")
         gen_ms = haiku.get("generation_time_ms", 0)
-        if source == "groq" and gen_ms > 0:
+        model = haiku.get("model", "")
+        if source in ("gemini", "groq") and gen_ms > 0:
             gen_s = gen_ms / 1000.0
-            tech_text = f"Groq \u00b7 {gen_s:.1f}s \u00b7 seed:{seed_word}"
+            model_short = model.split("/")[-1] if model else source
+            tokens = haiku.get("total_tokens", 0)
+            tech_text = f"{model_short} \u00b7 {gen_s:.1f}s \u00b7 {tokens}tok"
         elif source == "curated":
             tech_text = f"CURATED \u00b7 seed:{seed_word}"
         else:

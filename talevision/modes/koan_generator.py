@@ -1,4 +1,4 @@
-"""Groq API haiku generator for Koan mode."""
+"""Cloud API haiku generator for Koan mode (Groq / Gemini)."""
 import json
 import logging
 import re
@@ -42,25 +42,13 @@ _SYSTEM_PROMPT = (
     "Format:\nfirst line\nsecond line\nthird line\n— Pen Name"
 )
 
-_GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+
 _GROQ_MODEL = "llama-3.1-8b-instant"
+_GEMINI_MODEL = "gemini-2.0-flash-lite"
 
 
-def generate_haiku(
-    api_key: str,
-    seed_word: str,
-    prompt_question: str = "",
-    timeout: int = 30,
-) -> Optional[dict]:
-    if not api_key:
-        log.warning("Koan Groq: no API key configured")
-        return None
-
-    user_msg = f"Theme: {seed_word}"
-    if prompt_question:
-        user_msg += f"\n{prompt_question}"
-    user_msg += "\nWrite a haiku about this."
-
+def _call_groq(api_key: str, user_msg: str, timeout: int) -> dict:
+    """Returns {raw, model, prompt_tokens, completion_tokens, total_tokens}."""
     payload = json.dumps({
         "model": _GROQ_MODEL,
         "messages": [
@@ -71,31 +59,100 @@ def generate_haiku(
         "max_tokens": 60,
         "top_p": 0.95,
     }).encode("utf-8")
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-        "User-Agent": "TaleVision/1.5",
+    req = urllib.request.Request(
+        "https://api.groq.com/openai/v1/chat/completions",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "User-Agent": "TaleVision/1.5",
+        },
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    usage = data.get("usage", {})
+    return {
+        "raw": data["choices"][0]["message"]["content"].strip(),
+        "model": data.get("model", _GROQ_MODEL),
+        "prompt_tokens": usage.get("prompt_tokens", 0),
+        "completion_tokens": usage.get("completion_tokens", 0),
+        "total_tokens": usage.get("total_tokens", 0),
     }
 
-    log.info("Koan Groq: generating (seed=%s)", seed_word)
+
+def _call_gemini(api_key: str, user_msg: str, timeout: int) -> dict:
+    """Returns {raw, model, prompt_tokens, completion_tokens, total_tokens}."""
+    payload = json.dumps({
+        "system_instruction": {"parts": [{"text": _SYSTEM_PROMPT}]},
+        "contents": [{"parts": [{"text": user_msg}]}],
+        "generationConfig": {
+            "temperature": 0.9,
+            "maxOutputTokens": 60,
+            "topP": 0.95,
+        },
+    }).encode("utf-8")
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/"
+        f"models/{_GEMINI_MODEL}:generateContent?key={api_key}"
+    )
+    req = urllib.request.Request(
+        url, data=payload,
+        headers={"Content-Type": "application/json", "User-Agent": "TaleVision/1.5"},
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    usage = data.get("usageMetadata", {})
+    return {
+        "raw": data["candidates"][0]["content"]["parts"][0]["text"].strip(),
+        "model": _GEMINI_MODEL,
+        "prompt_tokens": usage.get("promptTokenCount", 0),
+        "completion_tokens": usage.get("candidatesTokenCount", 0),
+        "total_tokens": usage.get("totalTokenCount", 0),
+    }
+
+
+def generate_haiku(
+    api_key: str,
+    backend: str,
+    seed_word: str,
+    prompt_question: str = "",
+    timeout: int = 30,
+) -> Optional[dict]:
+    if not api_key:
+        log.warning("Koan: no API key configured")
+        return None
+
+    user_msg = f"Theme: {seed_word}"
+    if prompt_question:
+        user_msg += f"\n{prompt_question}"
+    user_msg += "\nWrite a haiku about this."
+
+    log.info("Koan %s: generating (seed=%s)", backend, seed_word)
     t0 = time.monotonic()
 
     try:
-        req = urllib.request.Request(_GROQ_API_URL, data=payload, headers=headers)
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
+        if backend == "groq":
+            resp = _call_groq(api_key, user_msg, timeout)
+        else:
+            resp = _call_gemini(api_key, user_msg, timeout)
 
         elapsed_ms = int((time.monotonic() - t0) * 1000)
-        raw = data["choices"][0]["message"]["content"].strip()
-        log.info("Koan Groq: response in %dms, raw: %s", elapsed_ms, raw[:200])
-        return _parse_output(raw, elapsed_ms)
+        log.info("Koan %s: response in %dms (%d tok), raw: %s",
+                 backend, elapsed_ms, resp["total_tokens"], resp["raw"][:200])
+        result = _parse_output(resp["raw"], elapsed_ms)
+        if result:
+            result["model"] = resp["model"]
+            result["prompt_tokens"] = resp["prompt_tokens"]
+            result["completion_tokens"] = resp["completion_tokens"]
+            result["total_tokens"] = resp["total_tokens"]
+        return result
 
     except urllib.error.HTTPError as exc:
-        log.error("Koan Groq HTTP error %d: %s", exc.code, exc.read().decode()[:200])
+        body = exc.read().decode("utf-8", errors="replace")[:300]
+        log.error("Koan %s HTTP error %d: %s", backend, exc.code, body)
         return None
     except Exception as exc:
-        log.error("Koan Groq error: %s", exc)
+        log.error("Koan %s error: %s", backend, exc)
         return None
 
 
@@ -105,7 +162,7 @@ def _parse_output(raw: str, elapsed_ms: int) -> Optional[dict]:
     Strategy: anchor on the pen name line (em dash), take the 3 lines
     before it. Robust against preamble text.
     """
-    raw = raw.replace("<|im_end|>", "").strip()
+    raw = re.sub(r'<\|im_\w+\|>', '', raw).strip()
 
     lines = [l.strip() for l in raw.split("\n") if l.strip()]
     lines = [re.sub(r'^\d+[\.\)]\s*', '', l) for l in lines]
@@ -130,7 +187,7 @@ def _parse_output(raw: str, elapsed_ms: int) -> Optional[dict]:
                 break
 
     if len(haiku_lines) < 3:
-        log.warning("Koan Groq: could not parse 3 haiku lines from: %s", raw[:300])
+        log.warning("Koan: could not parse 3 haiku lines from: %s", raw[:300])
         return None
 
     if not pen_name:
@@ -149,11 +206,12 @@ def get_random_prompt() -> str:
 
 
 class BackgroundKoanGenerator:
-    """Daemon thread that generates haiku via Groq API into the archive."""
+    """Daemon thread that generates haiku via cloud API into the archive."""
 
-    def __init__(self, api_key: str, archive,
+    def __init__(self, api_key: str, backend: str, archive,
                  interval: float = 600.0, retry_pause: float = 60.0):
         self._api_key = api_key
+        self._backend = backend
         self._archive = archive
         self._interval = interval
         self._retry_pause = retry_pause
@@ -164,14 +222,14 @@ class BackgroundKoanGenerator:
         if self._thread and self._thread.is_alive():
             return
         if not self._api_key:
-            log.warning("BackgroundKoanGenerator: no Groq API key, not starting")
+            log.warning("BackgroundKoanGenerator: no API key, not starting")
             return
         self._stop.clear()
         self._thread = threading.Thread(target=self._loop, daemon=True,
                                         name="koan-bg-gen")
         self._thread.start()
-        log.info("BackgroundKoanGenerator started (Groq API, interval=%.0fs)",
-                 self._interval)
+        log.info("BackgroundKoanGenerator started (%s, interval=%.0fs)",
+                 self._backend, self._interval)
 
     def stop(self):
         self._stop.set()
@@ -185,6 +243,7 @@ class BackgroundKoanGenerator:
             prompt_q = get_random_prompt()
             result = generate_haiku(
                 api_key=self._api_key,
+                backend=self._backend,
                 seed_word=seed_word,
                 prompt_question=prompt_q,
             )
@@ -193,8 +252,12 @@ class BackgroundKoanGenerator:
                     lines=result["lines"],
                     seed_word=seed_word,
                     author_name=result["author_name"],
-                    source="groq",
+                    source=self._backend,
                     generation_time_ms=result["generation_time_ms"],
+                    model=result.get("model", ""),
+                    prompt_tokens=result.get("prompt_tokens", 0),
+                    completion_tokens=result.get("completion_tokens", 0),
+                    total_tokens=result.get("total_tokens", 0),
                 )
                 log.info("BackgroundKoanGenerator: haiku generated in %.1fs",
                          result["generation_time_ms"] / 1000.0)
