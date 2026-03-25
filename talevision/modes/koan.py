@@ -136,10 +136,10 @@ class KoanMode(DisplayMode):
         pen_name = haiku.get("author_name", "")
         seed_word = haiku.get("seed_word", "")
 
-        # --- Seed №: top-right ---
-        seed_text = f"\u2116 {haiku_id}"
-        sw = draw.textbbox((0, 0), seed_text, font=self._font_mono)[2]
-        draw.text((RIGHT_EDGE - sw, TOP_MARGIN), seed_text,
+        # --- Theme + №: top-right ---
+        header_text = f"{seed_word} \u00b7 \u2116 {haiku_id}"
+        hw = draw.textbbox((0, 0), header_text, font=self._font_mono)[2]
+        draw.text((RIGHT_EDGE - hw, TOP_MARGIN), header_text,
                   font=self._font_mono, fill=FILL)
 
         # --- Haiku: right-aligned, optical center ---
