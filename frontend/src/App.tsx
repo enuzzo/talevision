@@ -1306,7 +1306,7 @@ export default function App() {
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <span className="w-2 h-2 rounded-full bg-accent" style={{ boxShadow: '0 0 10px rgba(255,29,165,0.35)' }} />
-            <span className="font-title text-lg leading-tight text-primary">TaleVision</span>
+            <span className="font-title text-2xl leading-tight text-primary">TaleVision</span>
           </div>
           <div className="flex items-center gap-4">
             <span className="font-mono text-xs text-tertiary tabular-nums">{clock}</span>
