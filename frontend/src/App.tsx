@@ -82,19 +82,19 @@ interface ModeInfo {
 }
 
 const ALL_MODES: ModeInfo[] = [
-  { id: 'litclock',  label: 'LitClock',  icon: '🕐', color: '#6A9FBF', available: true },
-  { id: 'slowmovie', label: 'SlowMovie', icon: '🎬', color: '#E8A838', available: true },
-  { id: 'wikipedia', label: 'Wikipedia', icon: '📖', color: '#D06B50', available: true },
-  { id: 'weather',   label: 'Weather',   icon: '🌤', color: '#7FA87F', available: true },
-  { id: 'museo',     label: 'Museo',     icon: '🎨', color: '#B8860B', available: true },
-  { id: 'koan',      label: 'Koan',      icon: '禅', color: '#8B7D6B', available: true },
-  { id: 'cucina',    label: 'Cucina',    icon: '🍽', color: '#D2691E', available: true },
+  { id: 'litclock',  label: 'LitClock',  icon: '🕐', color: '#2E7DAF', available: true },
+  { id: 'slowmovie', label: 'SlowMovie', icon: '🎬', color: '#C48C15', available: true },
+  { id: 'wikipedia', label: 'Wikipedia', icon: '📖', color: '#C0523A', available: true },
+  { id: 'weather',   label: 'Weather',   icon: '🌤', color: '#3D8B45', available: true },
+  { id: 'museo',     label: 'Museo',     icon: '🎨', color: '#8A6F0A', available: true },
+  { id: 'koan',      label: 'Koan',      icon: '禅', color: '#6B5E50', available: true },
+  { id: 'cucina',    label: 'Cucina',    icon: '🍽', color: '#B05520', available: true },
 ]
 
 const MODE_MAP = Object.fromEntries(ALL_MODES.map(m => [m.id, m]))
 
 function getModeInfo(id: string): ModeInfo {
-  return MODE_MAP[id] ?? { id, label: id, icon: '?', color: '#5E5044', available: false }
+  return MODE_MAP[id] ?? { id, label: id, icon: '?', color: '#9E9EB5', available: false }
 }
 
 // ─── Language names ──────────────────────────────────────────────────────────
@@ -196,7 +196,7 @@ function RenderingOverlay({ mode }: { mode: string }) {
   return (
     <div
       className="absolute inset-0 z-20 rounded-sm overflow-hidden flex items-center justify-center"
-      style={{ backgroundColor: '#1A1410' }}
+      style={{ backgroundColor: '#1A1A2E' }}
     >
       <NoiseCanvas />
       <div
@@ -210,7 +210,7 @@ function RenderingOverlay({ mode }: { mode: string }) {
         className="absolute left-0 right-0 pointer-events-none"
         style={{
           height: '80px',
-          background: 'linear-gradient(to bottom, transparent, rgba(232,168,56,0.06) 30%, rgba(232,168,56,0.13) 50%, rgba(232,168,56,0.06) 70%, transparent)',
+          background: 'linear-gradient(to bottom, transparent, rgba(255,29,165,0.06) 30%, rgba(255,29,165,0.13) 50%, rgba(255,29,165,0.06) 70%, transparent)',
           top: '-80px',
           animation: 'scanSweep 3.2s linear infinite',
           zIndex: 2,
@@ -222,7 +222,7 @@ function RenderingOverlay({ mode }: { mode: string }) {
           style={{
             fontSize: '3.2rem',
             lineHeight: 1.1,
-            color: '#F0E6D6',
+            color: '#FFFFFF',
             textShadow: `0 0 24px ${info.color}55, 0 0 60px ${info.color}22`,
           }}
         >
@@ -239,7 +239,7 @@ function RenderingOverlay({ mode }: { mode: string }) {
       <div
         className="absolute inset-0 pointer-events-none rounded-sm"
         style={{
-          background: 'radial-gradient(ellipse at center, transparent 40%, rgba(26,20,16,0.65) 100%)',
+          background: 'radial-gradient(ellipse at center, transparent 40%, rgba(26,26,46,0.65) 100%)',
           zIndex: 4,
         }}
       />
@@ -260,7 +260,7 @@ function FramePreview({ refreshKey, waiting, waitingMode }: { refreshKey: number
   }, [refreshKey])
 
   return (
-    <div className="relative w-full rounded-sm overflow-hidden" style={{ aspectRatio: '5/3', border: '1px solid rgba(232,168,56,0.14)' }}>
+    <div className="relative w-full rounded-sm overflow-hidden" style={{ aspectRatio: '5/3', border: '1px solid rgba(0,0,0,0.08)' }}>
       {waiting && <RenderingOverlay mode={waitingMode} />}
 
       {!waiting && !loaded && !errored && (
@@ -433,7 +433,7 @@ function PlaylistEditor({
           return (
             <div key={id}>
               {showDivider && (
-                <div className="h-0.5 rounded-full mx-3 my-0.5 bg-accent" style={{ boxShadow: '0 0 6px rgba(232,168,56,0.5)' }} />
+                <div className="h-0.5 rounded-full mx-3 my-0.5 bg-accent" style={{ boxShadow: '0 0 6px rgba(255,29,165,0.35)' }} />
               )}
               <div
                 draggable={!isComingSoon}
@@ -452,12 +452,12 @@ function PlaylistEditor({
                 )}
                 style={{
                   border: isEnabled && !isComingSoon
-                    ? `1px solid rgba(232,168,56,0.18)`
-                    : '1px solid rgba(232,168,56,0.08)',
+                    ? `1px solid rgba(0,0,0,0.10)`
+                    : '1px solid rgba(0,0,0,0.06)',
                   borderLeft: isEnabled && !isComingSoon
                     ? `3px solid ${info.color}`
                     : '3px solid transparent',
-                  backgroundColor: isEnabled && !isComingSoon ? 'rgba(232,168,56,0.04)' : undefined,
+                  backgroundColor: isEnabled && !isComingSoon ? 'rgba(255,29,165,0.04)' : undefined,
                   cursor: isComingSoon ? 'default' : 'grab',
                 }}
               >
@@ -475,18 +475,18 @@ function PlaylistEditor({
                     isComingSoon ? 'cursor-not-allowed' : 'cursor-pointer',
                   )}
                   style={{
-                    border: isEnabled ? `1px solid ${info.color}` : '1px solid rgba(232,168,56,0.22)',
+                    border: isEnabled ? `1px solid ${info.color}` : '1px solid rgba(0,0,0,0.12)',
                     backgroundColor: isEnabled ? info.color : 'transparent',
                   }}
                 >
                   {isEnabled && (
                     <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                      <path d="M1 4l2.5 2.5L9 1" stroke="#1A1410" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M1 4l2.5 2.5L9 1" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   )}
                 </button>
 
-                <span className="text-sm flex-shrink-0 w-5 text-center" style={{ color: isEnabled ? info.color : '#5E5044' }}>
+                <span className="text-sm flex-shrink-0 w-5 text-center" style={{ color: isEnabled ? info.color : '#9E9EB5' }}>
                   {info.icon}
                 </span>
                 <span
@@ -529,12 +529,12 @@ function PlaylistEditor({
             value={interval}
             onChange={e => setIntervalVal(Math.max(1, parseInt(e.target.value) || 1))}
             className="w-16 bg-surface rounded-xs text-primary font-mono text-sm px-2 py-1.5 outline-none transition-all duration-200 text-center"
-            style={{ border: '1px solid rgba(232,168,56,0.18)' }}
-            onFocus={e => (e.target.style.borderColor = '#E8A838')}
-            onBlur={e => (e.target.style.borderColor = 'rgba(232,168,56,0.18)')}
+            style={{ border: '1px solid rgba(0,0,0,0.10)' }}
+            onFocus={e => (e.target.style.borderColor = '#FF1DA5')}
+            onBlur={e => (e.target.style.borderColor = 'rgba(0,0,0,0.10)')}
           />
           <span className="label">min</span>
-          <span className="label ml-auto" style={{ color: '#6A9FBF' }}>
+          <span className="label ml-auto" style={{ color: '#5D84DF' }}>
             {enabledCount} modes · {interval * enabledCount} min cycle
           </span>
         </div>
@@ -544,7 +544,7 @@ function PlaylistEditor({
         <button
           onClick={handleSave}
           disabled={saving}
-          className="font-display text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-xs bg-accent text-bg hover:bg-accent-hover transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
+          className="font-display text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-xs bg-accent text-white hover:bg-accent-hover transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
         >
           {saving ? '…' : 'Save'}
         </button>
@@ -558,13 +558,13 @@ function PlaylistEditor({
               ? 'text-accent/50 cursor-wait'
               : 'text-secondary hover:text-accent cursor-pointer',
           )}
-          style={{ border: '1px solid rgba(232,168,56,0.14)' }}
+          style={{ border: '1px solid rgba(0,0,0,0.08)' }}
         >
           <RefreshIcon spinning={refreshing} />
           {refreshing ? 'Rendering…' : 'Force refresh'}
         </button>
         {saved && (
-          <span className="label animate-fade-in" style={{ color: '#7FA87F' }}>✓</span>
+          <span className="label animate-fade-in" style={{ color: '#01B574' }}>✓</span>
         )}
       </div>
     </div>
@@ -632,12 +632,12 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
             value={activeFrom}
             onChange={e => setActiveFrom(e.target.value)}
             className="w-full bg-surface rounded-xs text-primary font-mono text-sm px-3 py-2 outline-none transition-all duration-200"
-            style={{ border: '1px solid rgba(232,168,56,0.18)' }}
-            onFocus={e => (e.target.style.borderColor = '#E8A838')}
-            onBlur={e => (e.target.style.borderColor = 'rgba(232,168,56,0.18)')}
+            style={{ border: '1px solid rgba(0,0,0,0.10)' }}
+            onFocus={e => (e.target.style.borderColor = '#FF1DA5')}
+            onBlur={e => (e.target.style.borderColor = 'rgba(0,0,0,0.10)')}
           />
         </div>
-        <span className="label pb-2" style={{ color: '#E8A838' }}>→</span>
+        <span className="label pb-2" style={{ color: '#FF1DA5' }}>→</span>
         <div>
           <div className="label mb-1">Off at</div>
           <input
@@ -645,9 +645,9 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
             value={activeTo}
             onChange={e => setActiveTo(e.target.value)}
             className="w-full bg-surface rounded-xs text-primary font-mono text-sm px-3 py-2 outline-none transition-all duration-200"
-            style={{ border: '1px solid rgba(232,168,56,0.18)' }}
-            onFocus={e => (e.target.style.borderColor = '#E8A838')}
-            onBlur={e => (e.target.style.borderColor = 'rgba(232,168,56,0.18)')}
+            style={{ border: '1px solid rgba(0,0,0,0.10)' }}
+            onFocus={e => (e.target.style.borderColor = '#FF1DA5')}
+            onBlur={e => (e.target.style.borderColor = 'rgba(0,0,0,0.10)')}
           />
         </div>
       </div>
@@ -662,10 +662,10 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
               className={cx(
                 'w-9 h-9 text-[12px] font-display font-bold rounded-xs transition-all duration-200 outline-none',
                 days.includes(i)
-                  ? 'bg-accent text-bg'
+                  ? 'bg-accent text-white'
                   : 'text-tertiary hover:text-primary cursor-pointer',
               )}
-              style={{ border: days.includes(i) ? '1px solid #E8A838' : '1px solid rgba(232,168,56,0.18)' }}
+              style={{ border: days.includes(i) ? '1px solid #FF1DA5' : '1px solid rgba(0,0,0,0.10)' }}
             >
               {d}
             </button>
@@ -673,12 +673,12 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
           <button
             onClick={() => mut.mutate()}
             disabled={mut.isPending}
-            className="ml-auto font-display text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-xs bg-accent text-bg hover:bg-accent-hover transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
+            className="ml-auto font-display text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-xs bg-accent text-white hover:bg-accent-hover transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
           >
             {mut.isPending ? '…' : 'Save'}
           </button>
           {saved && (
-            <span className="label animate-fade-in" style={{ color: '#7FA87F' }}>✓</span>
+            <span className="label animate-fade-in" style={{ color: '#01B574' }}>✓</span>
           )}
         </div>
       </div>
@@ -727,7 +727,7 @@ function IntervalRow({
   })
 
   return (
-    <div className="flex items-center gap-3 py-2.5" style={{ borderBottom: '1px solid rgba(232,168,56,0.10)' }}>
+    <div className="flex items-center gap-3 py-2.5" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
       <span className="text-sm" style={{ color }}>{icon}</span>
       <span className="font-display text-sm flex-shrink-0 w-20" style={{ color }}>{modeName}</span>
       <input
@@ -737,16 +737,16 @@ function IntervalRow({
         value={minutes}
         onChange={e => setMinutes(Math.max(1, parseInt(e.target.value) || 1))}
         className="w-16 bg-surface rounded-xs text-primary font-mono text-sm px-2 py-1.5 outline-none transition-all duration-200 text-center"
-        style={{ border: '1px solid rgba(232,168,56,0.18)' }}
-        onFocus={e => (e.target.style.borderColor = '#E8A838')}
-        onBlur={e => (e.target.style.borderColor = 'rgba(232,168,56,0.18)')}
+        style={{ border: '1px solid rgba(0,0,0,0.10)' }}
+        onFocus={e => (e.target.style.borderColor = '#FF1DA5')}
+        onBlur={e => (e.target.style.borderColor = 'rgba(0,0,0,0.10)')}
       />
       <span className="label">min</span>
       <button
         onClick={() => setMut.mutate()}
         disabled={setMut.isPending}
         className="font-display text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-xs text-secondary hover:text-accent transition-all duration-200 disabled:opacity-50"
-        style={{ border: '1px solid rgba(232,168,56,0.14)' }}
+        style={{ border: '1px solid rgba(0,0,0,0.08)' }}
       >
         {setMut.isPending ? '…' : 'Set'}
       </button>
@@ -755,7 +755,7 @@ function IntervalRow({
           onClick={() => resetMut.mutate()}
           disabled={resetMut.isPending}
           className="label hover:text-danger transition-colors"
-          style={{ color: '#C94430' }}
+          style={{ color: '#EE5D50' }}
         >
           reset
         </button>
@@ -829,8 +829,8 @@ function LanguageSelector({ current }: { current?: string }) {
           </Select.Content>
         </Select.Portal>
       </Select.Root>
-      {mut.isPending && <span className="label animate-fade-in" style={{ color: '#E8A838' }}>…</span>}
-      {!mut.isPending && mut.isSuccess && <span className="label animate-fade-in" style={{ color: '#7FA87F' }}>✓</span>}
+      {mut.isPending && <span className="label animate-fade-in" style={{ color: '#FF1DA5' }}>…</span>}
+      {!mut.isPending && mut.isSuccess && <span className="label animate-fade-in" style={{ color: '#01B574' }}>✓</span>}
     </div>
   )
 }
@@ -881,7 +881,7 @@ function KoanArchivePanel({ onViewAll }: { onViewAll: () => void }) {
       {latest && (
         <div className="p-3 rounded-lg border border-border/50 bg-surface/50">
           <div className="font-mono text-[10px] text-muted mb-2">{latest.seed_word} · №{latest.id}</div>
-          <div style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontStyle: 'italic' }} className="text-sm text-text leading-relaxed">
+          <div style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontStyle: 'italic' }} className="text-sm text-primary leading-relaxed">
             {latest.lines.map((line, i) => <div key={i}>{line}</div>)}
           </div>
           <div className="mt-2 font-mono text-xs text-muted/80">— {latest.author_name}</div>
@@ -919,9 +919,9 @@ function KoanArchivePage({ onBack }: { onBack: () => void }) {
   const hasMore = visibleCount < filtered.length
 
   return (
-    <div className="min-h-screen" style={{ background: '#0F0C08' }}>
+    <div className="min-h-screen" style={{ background: '#121225' }}>
       {/* ── Header ── */}
-      <header className="sticky top-0 z-10 backdrop-blur-md" style={{ background: 'rgba(15,12,8,0.92)' }}>
+      <header className="sticky top-0 z-10 backdrop-blur-md" style={{ background: 'rgba(18,18,37,0.92)' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -931,10 +931,10 @@ function KoanArchivePage({ onBack }: { onBack: () => void }) {
               >
                 ← dashboard
               </button>
-              <h1 className="font-title text-2xl sm:text-3xl text-text">Koan Archive</h1>
+              <h1 className="font-title text-2xl sm:text-3xl text-white/90">Koan Archive</h1>
               <span
                 className="font-mono text-xs px-2 py-0.5 rounded-full"
-                style={{ background: 'rgba(232,168,56,0.15)', color: '#E8A838' }}
+                style={{ background: 'rgba(255,29,165,0.10)', color: '#FF1DA5' }}
               >
                 {count}
               </span>
@@ -944,8 +944,8 @@ function KoanArchivePage({ onBack }: { onBack: () => void }) {
               download
               className="font-mono text-xs px-4 py-2 rounded-md transition-all duration-200 hover:shadow-lg"
               style={{
-                background: '#E8A838',
-                color: '#1A1410',
+                background: '#FF1DA5',
+                color: '#FFFFFF',
                 fontWeight: 700,
               }}
             >
@@ -960,15 +960,15 @@ function KoanArchivePage({ onBack }: { onBack: () => void }) {
               value={search}
               onChange={(e) => { setSearch(e.target.value); setVisibleCount(30) }}
               placeholder="search themes, pen names, words…"
-              className="w-full sm:w-80 px-3 py-2 rounded-md font-mono text-xs text-text placeholder:text-muted/50 outline-none transition-colors"
+              className="w-full sm:w-80 px-3 py-2 rounded-md font-mono text-xs text-white/90 placeholder:text-white/30 outline-none transition-colors"
               style={{
-                background: 'rgba(232,168,56,0.06)',
-                border: '1px solid rgba(232,168,56,0.12)',
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.10)',
               }}
             />
           </div>
         </div>
-        <div style={{ height: 1, background: 'rgba(232,168,56,0.12)' }} />
+        <div style={{ height: 1, background: 'rgba(255,255,255,0.08)' }} />
       </header>
 
       {/* ── Grid ── */}
@@ -999,9 +999,9 @@ function KoanArchivePage({ onBack }: { onBack: () => void }) {
                   onClick={() => setVisibleCount(v => v + 30)}
                   className="font-mono text-xs px-6 py-2 rounded-md transition-all duration-200 hover:shadow-lg"
                   style={{
-                    background: 'rgba(232,168,56,0.1)',
-                    border: '1px solid rgba(232,168,56,0.2)',
-                    color: '#E8A838',
+                    background: 'rgba(255,29,165,0.06)',
+                    border: '1px solid rgba(255,29,165,0.12)',
+                    color: '#FF1DA5',
                   }}
                 >
                   load more ({filtered.length - visibleCount} remaining)
@@ -1036,9 +1036,9 @@ function HaikuCard({ haiku: h, index }: { haiku: KoanHaiku; index: number }) {
       className="mb-4 rounded-lg overflow-hidden transition-all duration-300 hover:-translate-y-0.5"
       style={{
         breakInside: 'avoid',
-        background: 'rgba(240,230,214,0.04)',
-        border: '1px solid rgba(232,168,56,0.08)',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(240,230,214,0.03)',
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.03)',
         animationDelay: `${Math.min(index * 30, 300)}ms`,
       }}
     >
@@ -1047,13 +1047,13 @@ function HaikuCard({ haiku: h, index }: { haiku: KoanHaiku; index: number }) {
         <div className="flex items-start justify-between mb-3">
           <span
             className="font-mono text-[10px] leading-tight"
-            style={{ color: 'rgba(232,168,56,0.5)' }}
+            style={{ color: 'rgba(255,29,165,0.35)' }}
           >
             {h.seed_word}
           </span>
           <span
             className="font-mono text-[10px] shrink-0 ml-2"
-            style={{ color: 'rgba(240,230,214,0.2)' }}
+            style={{ color: 'rgba(255,255,255,0.2)' }}
           >
             №{h.id}
           </span>
@@ -1067,7 +1067,7 @@ function HaikuCard({ haiku: h, index }: { haiku: KoanHaiku; index: number }) {
             fontStyle: 'italic',
             fontSize: '14px',
             lineHeight: '1.7',
-            color: '#F0E6D6',
+            color: '#FAF8F5',
           }}
         >
           {h.lines.map((line, i) => (
@@ -1078,7 +1078,7 @@ function HaikuCard({ haiku: h, index }: { haiku: KoanHaiku; index: number }) {
         {/* Pen name */}
         <div
           className="font-mono text-xs mb-2"
-          style={{ color: 'rgba(208,107,80,0.7)' }}
+          style={{ color: 'rgba(255,29,165,0.65)' }}
         >
           — {h.author_name}
         </div>
@@ -1086,12 +1086,12 @@ function HaikuCard({ haiku: h, index }: { haiku: KoanHaiku; index: number }) {
         {/* Metadata footer */}
         <div
           className="flex items-center justify-between pt-2"
-          style={{ borderTop: '1px solid rgba(232,168,56,0.06)' }}
+          style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
         >
-          <span className="font-mono text-[9px]" style={{ color: 'rgba(240,230,214,0.15)' }}>
+          <span className="font-mono text-[9px]" style={{ color: 'rgba(255,255,255,0.15)' }}>
             {modelShort} · {genSec}s · {h.total_tokens ?? '?'}tok
           </span>
-          <span className="font-mono text-[9px]" style={{ color: 'rgba(240,230,214,0.15)' }}>
+          <span className="font-mono text-[9px]" style={{ color: 'rgba(255,255,255,0.15)' }}>
             {dateStr}
           </span>
         </div>
@@ -1183,13 +1183,13 @@ function WeatherSettings({ currentLocation }: { currentLocation?: string }) {
             onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
             placeholder="City name…"
             className="w-full bg-surface rounded-xs text-primary font-display text-sm px-3 py-2 outline-none transition-all duration-200"
-            style={{ border: '1px solid rgba(232,168,56,0.18)' }}
-            onFocus={e => { e.target.style.borderColor = '#E8A838' }}
+            style={{ border: '1px solid rgba(0,0,0,0.10)' }}
+            onFocus={e => (e.target.style.borderColor = '#FF1DA5')}
           />
           {showSuggestions && suggestions.length > 0 && (
             <div
               className="absolute top-full left-0 right-0 mt-1 bg-surface rounded-xs z-50 overflow-hidden"
-              style={{ border: '1px solid rgba(232,168,56,0.18)' }}
+              style={{ border: '1px solid rgba(0,0,0,0.10)' }}
             >
               {suggestions.map((s, i) => (
                 <button
@@ -1209,18 +1209,18 @@ function WeatherSettings({ currentLocation }: { currentLocation?: string }) {
         <button
           onClick={() => saveMut.mutate()}
           disabled={saveMut.isPending || !input.trim() || !selectedCoords}
-          className="font-display text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-xs bg-accent text-bg hover:bg-accent-hover transition-all duration-200 disabled:opacity-50"
+          className="font-display text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-xs bg-accent text-white hover:bg-accent-hover transition-all duration-200 disabled:opacity-50"
         >
           {saveMut.isPending ? 'Saving…' : 'Set location'}
         </button>
         <button
           onClick={toggleUnits}
           className="font-mono text-xs font-bold uppercase tracking-widest px-4 py-2.5 rounded-xs text-secondary hover:text-accent transition-all duration-200"
-          style={{ border: '1px solid rgba(232,168,56,0.14)' }}
+          style={{ border: '1px solid rgba(0,0,0,0.08)' }}
         >
           {units === 'm' ? '°C · km/h' : '°F · mph'}
         </button>
-        {saved && <span className="label animate-fade-in" style={{ color: '#7FA87F' }}>Saved</span>}
+        {saved && <span className="label animate-fade-in" style={{ color: '#01B574' }}>Saved</span>}
       </div>
     </div>
   )
@@ -1301,10 +1301,10 @@ export default function App() {
     <div className="min-h-screen text-primary font-display animate-fade-in">
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40" style={{ backgroundColor: '#1A1410', borderBottom: '1px solid rgba(232,168,56,0.10)' }}>
+      <header className="sticky top-0 z-40" style={{ backgroundColor: '#FAF8F5', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <span className="w-2 h-2 rounded-full bg-accent" style={{ boxShadow: '0 0 10px rgba(232,168,56,0.5)' }} />
+            <span className="w-2 h-2 rounded-full bg-accent" style={{ boxShadow: '0 0 10px rgba(255,29,165,0.35)' }} />
             <span className="font-title text-lg leading-tight text-primary">TaleVision</span>
           </div>
           <div className="flex items-center gap-4">
@@ -1318,14 +1318,14 @@ export default function App() {
                   'bg-success',
                 )}
                 style={{
-                  boxShadow: isError ? '0 0 6px rgba(201,68,48,0.4)' :
-                             !isSuspended && !isError ? '0 0 6px rgba(127,168,127,0.5)' : undefined,
+                  boxShadow: isError ? '0 0 6px rgba(238,93,80,0.4)' :
+                             !isSuspended && !isError ? '0 0 6px rgba(1,181,116,0.5)' : undefined,
                 }}
               />
               <span className="font-mono text-[10px] uppercase tracking-wider"
                 style={{
-                  color: isError ? '#C94430' :
-                         isSuspended ? '#5E5044' :
+                  color: isError ? '#EE5D50' :
+                         isSuspended ? '#9E9EB5' :
                          currentModeInfo.color,
                 }}
               >
@@ -1368,7 +1368,7 @@ export default function App() {
             </span>
           )}
           {status?.video && (
-            <span style={{ color: '#FBBF24' }}>🎬 {status.video}</span>
+            <span style={{ color: '#C48C15' }}>🎬 {status.video}</span>
           )}
         </div>
 

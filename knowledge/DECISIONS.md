@@ -234,6 +234,12 @@ Entry format:
 - Decision: Full migration to Solar Dust: dark brown-black bg `#1A1410`, gold accent `#E8A838`, terracotta secondary `#D06B50`, cream text `#F0E6D6`. Display font changed to Chakra Petch (self-hosted woff2). Tailwind semantic token names kept identical — only values changed. All hardcoded ScryBar/cream hex values in App.tsx replaced systematically.
 - Impact/Tradeoffs: Dark theme is more dramatic on mobile dashboard. Gold accent on dark bg has excellent contrast. Netmilk logo SVG no longer needs CSS `invert`. Mode accent colours re-tuned to Solar Dust harmonics (LitClock `#6A9FBF`, SlowMovie `#E8A838`, Wikipedia `#D06B50`, Weather `#7FA87F`, Museo `#B8860B`).
 
+## 2026-03-25 - Vibemilk Default Theme Replacing Solar Dust
+
+- Context: Solar Dust (dark brown-black bg, gold accent, Chakra Petch) was dramatic but too heavy for a literary/cinematic wall device dashboard. The Vibemilk design system's default light theme is warmer and more professional.
+- Decision: Full migration to Vibemilk Default: warm milk-white bg `#F0EDE8`, magenta accent `#FF1DA5`, blue secondary `#5D84DF`, navy text `#1A1A2E`. Body font changed from Chakra Petch to Montserrat (variable, self-hosted woff2 already present). Lobster title and Space Mono mono kept. Mode colours re-tuned for light bg readability (LitClock `#2E7DAF`, SlowMovie `#C48C15`, Wikipedia `#C0523A`, Weather `#3D8B45`, Museo `#8A6F0A`, Koan `#6B5E50`, Cucina `#B05520`). Koan archive page stays dark (`#121225`) as a gallery context. Rendering overlay stays dark with magenta scan tones. All ~50 hardcoded Solar Dust hex values in App.tsx replaced. Borders changed from gold-alpha `rgba(232,168,56,x)` to neutral `rgba(0,0,0,x)`.
+- Impact/Tradeoffs: Light theme is easier to read in daylight. Magenta accent is distinctive and high-contrast. Button text changed from `text-bg` to `text-white` for WCAG AA compliance on magenta. Netmilk SVG logo works without filter on light bg (opacity-40).
+
 ## 2026-03-10 - Language Order: it / es / pt / en / fr / de
 
 - Context: Languages were listed alphabetically (de/en/es/fr/it/pt) in default config and UI. Project context is Italian-first (deployed in Italy, Netmilk is Italian).
