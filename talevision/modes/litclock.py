@@ -291,6 +291,14 @@ class LitClockMode(DisplayMode):
             w_auth, _ = get_text_dimensions(auth_t, auth_f, draw) if auth_t else (0, 0)
             w_sep, _ = get_text_dimensions(sep_t, tit_f, draw) if sep_t else (0, 0)
             w_tit, _ = get_text_dimensions(tit_t, tit_f, draw) if tit_t else (0, 0)
+            max_det_w = width - 60
+            if tit_t and w_auth + w_sep + w_tit > max_det_w:
+                avail = max_det_w - w_auth - w_sep
+                while tit_t and w_tit > avail:
+                    tit_t = tit_t[:-1]
+                    w_tit, _ = get_text_dimensions(tit_t, tit_f, draw)
+                tit_t = tit_t.rstrip() + "…"
+                w_tit, _ = get_text_dimensions(tit_t, tit_f, draw)
             total_det_w = w_auth + w_sep + w_tit
 
             # Use typographic baseline ("ls") so italic and regular variants align correctly.
