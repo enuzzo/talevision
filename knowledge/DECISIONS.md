@@ -192,6 +192,24 @@ Entry format:
 - Decision: (1) Synchronous generation: every `render()` generates a fresh haiku directly, no background thread. Archive is purely historical (for dashboard browsing). Poetic error screen on API failure. (2) Expand seed themes from 20 to 210 — wild mix of profound ("consciousness"), surreal ("the autobiography of a pothole"), trivial ("stepping on dog poop at dawn"), and absurd ("a parking ticket on a hearse"). Themes stay in English in the header; haiku is written in the configured language for maximum contrast. (3) Multi-language support via `set_language()` from dashboard (same as LitClock/Wikipedia). Default `it`. System prompt adapts per language; the 70B model handles translation implicitly.
 - Impact/Tradeoffs: Simpler architecture (no threading). Each render requires a working API call — no graceful degradation to cached haiku. Error screen is intentionally poetic. The English theme + local language haiku contrast is a deliberate aesthetic choice.
 
+## 2026-03-25 - Koan Archive Wall Page
+
+- Context: Haiku archive was a collapsible list in the dashboard, showing max 20 items. As haiku accumulate (96/day), this becomes unwieldy and the poems deserve better presentation.
+- Decision: Dedicated full-page archive view with CSS columns masonry grid. Parchment-toned cards on dark gallery background (#0F0C08). Georgia serif italic for haiku text, gold theme headers, terracotta pen names. Search by theme/pen name/words. Load-more pagination (30/batch). Export ZIP button. Accessible via "view all →" link from dashboard panel.
+- Impact/Tradeoffs: No React Router added — implemented as view toggle (useState). Single App.tsx remains the only component file. Export ZIP endpoint needs backend implementation.
+
+## 2026-03-25 - Dashboard UX: Auto-Save Language + Inline Save Schedule
+
+- Context: Multiple save buttons (playlist, language, schedule) created confusion — users didn't know what each button saved. Save Schedule button wasted a full row of vertical space.
+- Decision: Language auto-saves on click (no button). Playlist keeps explicit "Save playlist" button. Schedule "Save" button moved inline after the weekday chips. Clear visual separation of what auto-saves vs explicit-saves.
+- Impact/Tradeoffs: Reduces vertical space. Language change is instant (no "did it save?" confusion). Playlist still needs explicit save because reorder + interval are multi-step operations.
+
+## 2026-03-25 - LitClock: Truncate Long Titles with Ellipsis
+
+- Context: Some LitClock quotes have very long book titles that overflow the details line (author + separator + title), pushing text outside the 800px canvas width.
+- Decision: Measure the full details line width. If it exceeds available width, truncate the title with "…" until it fits. Author name is never truncated (it's the more important attribution).
+- Impact/Tradeoffs: Simple pixel-based truncation. Works for all languages and font sizes. The ellipsis hints that more information exists.
+
 ## 2026-03-25 - Koan: Cloud LLM Replacing Embedded LLM
 
 - Context: Embedded LLM (SmolLM-135M via llama.zero on Pi Zero W) was too slow — ARM1176 at 1GHz produced ~0.05 tok/s effective, with 54MB of model weights swapped to SD. Each haiku attempt timed out at 1 hour without completing. Continuous swap I/O also risked SD card wear on a 24/7 device.
