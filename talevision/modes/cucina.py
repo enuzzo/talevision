@@ -82,9 +82,9 @@ class CucinaMode(DisplayMode):
         fonts = base_dir / "assets" / "fonts"
         self._font_title = _load_font(fonts / "Lobster-Regular.ttf", 28)
         self._font_origin = _load_font(fonts / "Signika-Bold.ttf", 16)
-        self._font_ingredient = _load_font(fonts / "Taviraj-Regular.ttf", 15)
-        self._font_instructions = _load_font(fonts / "Taviraj-Italic.ttf", 15)
-        self._font_label = _load_font(fonts / "InconsolataNerdFontMono-Bold.ttf", 13)
+        self._font_ingredient = _load_font(fonts / "Taviraj-Regular.ttf", 16)
+        self._font_instructions = _load_font(fonts / "Taviraj-Italic.ttf", 16)
+        self._font_label = _load_font(fonts / "InconsolataNerdFontMono-Bold.ttf", 14)
         self._font_fallback = _load_font(fonts / "Lobster-Regular.ttf", 50)
         self._font_fallback_sub = _load_font(fonts / "Taviraj-Regular.ttf", 18)
 
@@ -217,7 +217,7 @@ class CucinaMode(DisplayMode):
         # --- Ingredients (right side, 1 col ≤6, 2 cols >6) ---
         ingredients = self._get_ingredients(meal)
         if ingredients:
-            draw.text((TEXT_X, y), "INGREDIENTS", font=self._font_label, fill=(140, 140, 140))
+            draw.text((TEXT_X, y), "INGREDIENTS", font=self._font_label, fill=(80, 80, 80))
             y += 18
             two_cols = len(ingredients) > 6
             col_w = TEXT_MAX_W // 2 if two_cols else TEXT_MAX_W
@@ -228,27 +228,27 @@ class CucinaMode(DisplayMode):
                 col = 0 if i < half else 1
                 row = i if i < half else i - half
                 cx = TEXT_X + col * col_w
-                cy = start_y + row * 17
+                cy = start_y + row * 18
                 text = f"{meas} {ing}".strip() if meas else ing
                 if len(text) > max_chars:
                     text = text[:max_chars - 1] + "…"
-                draw.text((cx, cy), text, font=self._font_ingredient, fill=(60, 60, 60))
-            y = start_y + half * 17
+                draw.text((cx, cy), text, font=self._font_ingredient, fill=(40, 40, 40))
+            y = start_y + half * 18
 
         # --- Instructions: below photo, full width ---
         instructions = (meal.get("strInstructions") or "").strip()
         if instructions:
             instr_y = max(MARGIN + PHOTO_H + 12, y + 8)
             instr_max_w = w - MARGIN * 2 - QR_SIZE - QR_MARGIN
-            draw.text((MARGIN, instr_y), "INSTRUCTIONS", font=self._font_label, fill=(140, 140, 140))
+            draw.text((MARGIN, instr_y), "INSTRUCTIONS", font=self._font_label, fill=(80, 80, 80))
             instr_y += 16
             instr_lines = _wrap_text(instructions, self._font_instructions, instr_max_w, draw)
-            max_lines = (h - instr_y - 20) // 18
+            max_lines = (h - instr_y - 20) // 19
             for line in instr_lines[:max_lines]:
-                draw.text((MARGIN, instr_y), line, font=self._font_instructions, fill=(80, 80, 80))
-                instr_y += 18
+                draw.text((MARGIN, instr_y), line, font=self._font_instructions, fill=(50, 50, 50))
+                instr_y += 19
             if len(instr_lines) > max_lines:
-                draw.text((MARGIN, instr_y), "…", font=self._font_instructions, fill=(160, 160, 160))
+                draw.text((MARGIN, instr_y), "…", font=self._font_instructions, fill=(100, 100, 100))
 
         # --- QR code: bottom-right ---
         qr_url = (meal.get("strYoutube") or meal.get("strSource") or
