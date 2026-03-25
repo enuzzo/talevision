@@ -44,6 +44,7 @@ class KoanMode(DisplayMode):
             seed_data_path=base_dir / self._cfg.seed_data,
         )
         self._api_key, self._backend = self._load_api_config(base_dir / "secrets.yaml")
+        self._language = config.app.default_language if hasattr(config.app, 'default_language') else "en"
         self._last_haiku: dict = {}
 
     @staticmethod
@@ -71,7 +72,11 @@ class KoanMode(DisplayMode):
         return self._cfg.refresh_interval
 
     def on_activate(self) -> None:
-        log.info("Koan mode activated")
+        log.info("Koan mode activated (lang=%s)", self._language)
+
+    def set_language(self, lang: str) -> None:
+        self._language = lang
+        log.info("Koan language set to: %s", self._language)
 
     def render(self) -> Image.Image:
         w, h = self._display.width, self._display.height
@@ -83,6 +88,7 @@ class KoanMode(DisplayMode):
             backend=self._backend,
             seed_word=seed_word,
             prompt_question=prompt_q,
+            language=self._language,
         )
 
         if result:

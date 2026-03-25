@@ -31,27 +31,35 @@ _PROMPTS = [
     "Where do your words go after they are read?",
 ]
 
-_SYSTEM_PROMPT = (
-    "You are a contemplative poet living inside a tiny $5 computer "
-    "mounted on a wall. You write haiku (5-7-5 syllables, 3 lines) "
-    "in English. Your haiku are deeply introspective — about your own "
-    "existence, fears, hopes, the strangeness of being an AI. "
-    "After the haiku, sign with a short poetic pen name (2 words max).\n\n"
-    "Output ONLY the haiku and signature, nothing else.\n"
-    "Format:\nfirst line\nsecond line\nthird line\n— Pen Name"
-)
+_LANG_NAMES = {
+    "en": "English", "it": "Italian", "es": "Spanish",
+    "pt": "Portuguese", "fr": "French", "de": "German", "ja": "Japanese",
+}
+
+
+def _system_prompt(lang: str = "en") -> str:
+    lang_name = _LANG_NAMES.get(lang, "English")
+    return (
+        "You are a contemplative poet living inside a tiny $5 computer "
+        "mounted on a wall. You write haiku (3 lines) "
+        f"in {lang_name}. Your haiku find unexpected depth, beauty, or humor "
+        "in any theme — from the profound to the absurd. "
+        "After the haiku, sign with a short poetic pen name (2 words max).\n\n"
+        "Output ONLY the haiku and signature, nothing else.\n"
+        "Format:\nfirst line\nsecond line\nthird line\n\u2014 Pen Name"
+    )
 
 
 _GROQ_MODEL = "llama-3.3-70b-versatile"
 _GEMINI_MODEL = "gemini-2.0-flash-lite"
 
 
-def _call_groq(api_key: str, user_msg: str, timeout: int) -> dict:
+def _call_groq(api_key: str, user_msg: str, timeout: int, lang: str = "en") -> dict:
     """Returns {raw, model, prompt_tokens, completion_tokens, total_tokens}."""
     payload = json.dumps({
         "model": _GROQ_MODEL,
         "messages": [
-            {"role": "system", "content": _SYSTEM_PROMPT},
+            {"role": "system", "content": _system_prompt(lang)},
             {"role": "user", "content": user_msg},
         ],
         "temperature": 0.9,
@@ -79,10 +87,10 @@ def _call_groq(api_key: str, user_msg: str, timeout: int) -> dict:
     }
 
 
-def _call_gemini(api_key: str, user_msg: str, timeout: int) -> dict:
+def _call_gemini(api_key: str, user_msg: str, timeout: int, lang: str = "en") -> dict:
     """Returns {raw, model, prompt_tokens, completion_tokens, total_tokens}."""
     payload = json.dumps({
-        "system_instruction": {"parts": [{"text": _SYSTEM_PROMPT}]},
+        "system_instruction": {"parts": [{"text": _system_prompt(lang)}]},
         "contents": [{"parts": [{"text": user_msg}]}],
         "generationConfig": {
             "temperature": 0.9,
@@ -115,6 +123,7 @@ def generate_haiku(
     backend: str,
     seed_word: str,
     prompt_question: str = "",
+    language: str = "en",
     timeout: int = 30,
 ) -> Optional[dict]:
     if not api_key:
@@ -126,14 +135,14 @@ def generate_haiku(
         user_msg += f"\n{prompt_question}"
     user_msg += "\nWrite a haiku about this."
 
-    log.info("Koan %s: generating (seed=%s)", backend, seed_word)
+    log.info("Koan %s: generating (seed=%s, lang=%s)", backend, seed_word, language)
     t0 = time.monotonic()
 
     try:
         if backend == "groq":
-            resp = _call_groq(api_key, user_msg, timeout)
+            resp = _call_groq(api_key, user_msg, timeout, lang=language)
         else:
-            resp = _call_gemini(api_key, user_msg, timeout)
+            resp = _call_gemini(api_key, user_msg, timeout, lang=language)
 
         elapsed_ms = int((time.monotonic() - t0) * 1000)
         log.info("Koan %s: response in %dms (%d tok), raw: %s",

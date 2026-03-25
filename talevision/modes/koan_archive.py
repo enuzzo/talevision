@@ -51,7 +51,8 @@ class KoanArchive:
             "completion_tokens": completion_tokens,
             "total_tokens": total_tokens,
         }
-        filename = f"{ts_str}_{seed_word}.json"
+        slug = seed_word.replace(" ", "-")[:40]
+        filename = f"{ts_str}_{slug}.json"
         filepath = self._dir / filename
         with open(filepath, "w", encoding="utf-8") as f:
             json.dump(entry, f, ensure_ascii=False, indent=2)
