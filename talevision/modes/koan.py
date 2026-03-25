@@ -79,7 +79,7 @@ class KoanMode(DisplayMode):
         return self._cfg.refresh_interval
 
     def on_activate(self) -> None:
-        log.info("Koan mode activated — embedded LLM generation")
+        log.info("Koan mode activated")
 
     def render(self) -> Image.Image:
         w, h = self._display.width, self._display.height
@@ -196,8 +196,8 @@ class KoanMode(DisplayMode):
         draw.text((RIGHT_EDGE - tw, int(h * 0.30)), title,
                   font=self._font_fallback, fill=(170, 170, 170))
         lines = [
-            "generating haiku in background",
-            "this may take hours on Pi Zero W",
+            "waiting for the first haiku",
+            "the machine is learning to speak",
             "patience is the first poem",
         ]
         y = int(h * 0.30) + 70

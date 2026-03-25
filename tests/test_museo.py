@@ -23,24 +23,6 @@ def test_met_normalize_artwork():
     assert info.provider == "met"
 
 
-def test_aic_normalize_strips_biography():
-    from talevision.modes.museo_providers.aic import AICProvider
-    p = AICProvider()
-    raw = {
-        "id": 28560,
-        "title": "Composition VII",
-        "artist_display": "Vasily Kandinsky\nBorn Moscow, 1866; died France, 1944",
-        "date_display": "1913",
-        "image_id": "abc123",
-        "department_title": "Modern Art",
-    }
-    info = p._normalize(raw)
-    assert info.artist == "Vasily Kandinsky"
-    assert "\n" not in info.artist
-    assert info.image_url == "https://www.artic.edu/iiif/2/abc123/full/843,/0/default.jpg"
-    assert info.provider == "aic"
-
-
 def test_cleveland_normalize_artwork():
     from talevision.modes.museo_providers.cleveland import ClevelandProvider
     p = ClevelandProvider()

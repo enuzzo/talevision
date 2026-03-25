@@ -85,11 +85,6 @@ class KoanArchive:
         words = seeds.get("seed_words", ["silence"])
         return random.choice(words)
 
-    def get_random_pen_name(self) -> str:
-        seeds = self._load_seeds()
-        names = seeds.get("pen_names", ["Null Poet"])
-        return random.choice(names)
-
     def get_curated_haiku(self) -> Optional[dict]:
         seeds = self._load_seeds()
         curated = seeds.get("curated_haiku", [])
