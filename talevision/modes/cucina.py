@@ -81,10 +81,11 @@ class CucinaMode(DisplayMode):
 
         fonts = base_dir / "assets" / "fonts"
         self._font_title = _load_font(fonts / "Lobster-Regular.ttf", 28)
-        self._font_origin = _load_font(fonts / "Signika-Bold.ttf", 16)
-        self._font_ingredient = _load_font(fonts / "Taviraj-Regular.ttf", 16)
-        self._font_instructions = _load_font(fonts / "Taviraj-Regular.ttf", 17)
-        self._font_label = _load_font(fonts / "Signika-Bold.ttf", 15)
+        self._font_origin = _load_font(fonts / "Signika-Bold.ttf", 18)
+        self._font_ingredient = _load_font(fonts / "Taviraj-Regular.ttf", 17)
+        self._font_instructions = _load_font(fonts / "Taviraj-Regular.ttf", 19)
+        self._font_label = _load_font(fonts / "Signika-Bold.ttf", 17)
+        self._font_footer = _load_font(fonts / "InconsolataNerdFontMono-Bold.ttf", 15)
         self._font_fallback = _load_font(fonts / "Lobster-Regular.ttf", 50)
         self._font_fallback_sub = _load_font(fonts / "Taviraj-Regular.ttf", 18)
 
@@ -235,12 +236,12 @@ class CucinaMode(DisplayMode):
                 col = 0 if i < half else 1
                 row = i if i < half else i - half
                 cx = TEXT_X + col * col_w
-                cy = start_y + row * 18
+                cy = start_y + row * 20
                 text = f"{meas} {ing}".strip() if meas else ing
                 if len(text) > max_chars:
                     text = text[:max_chars - 1] + "…"
                 draw.text((cx, cy), text, font=self._font_ingredient, fill=(220, 210, 195))
-            y = start_y + half * 18
+            y = start_y + half * 20
 
         # --- Instructions: bottom half (white bg), full width ---
         instructions = (meal.get("strInstructions") or "").strip()
@@ -250,10 +251,10 @@ class CucinaMode(DisplayMode):
             draw.text((MARGIN, instr_y), "Instructions", font=self._font_label, fill=(100, 90, 80))
             instr_y += 20
             instr_lines = _wrap_text(instructions, self._font_instructions, instr_max_w, draw)
-            max_lines = (h - instr_y - 30) // 20
+            max_lines = (h - instr_y - 40) // 22
             for line in instr_lines[:max_lines]:
                 draw.text((MARGIN, instr_y), line, font=self._font_instructions, fill=(30, 30, 30))
-                instr_y += 20
+                instr_y += 22
             if len(instr_lines) > max_lines:
                 draw.text((MARGIN, instr_y), " …", font=self._font_instructions, fill=(140, 140, 140))
 
@@ -272,7 +273,9 @@ class CucinaMode(DisplayMode):
             except Exception:
                 pass
 
-        # --- Date/time: bottom-left ---
+        # --- Footer bar: dark strip with date/time ---
+        FOOTER_H = 30
+        draw.rectangle([(0, h - FOOTER_H), (w, h)], fill=(35, 30, 25))
         now = datetime.now()
         try:
             date_str = format_date(now, "d MMMM", locale="it")
@@ -280,7 +283,8 @@ class CucinaMode(DisplayMode):
             date_str = now.strftime("%d %b")
         time_str = now.strftime("%H:%M")
         timestamp = f"{time_str} · {date_str}"
-        draw.text((MARGIN, h - 26), timestamp, font=self._font_label, fill=(180, 180, 180))
+        draw.text((MARGIN, h - FOOTER_H + 7), timestamp,
+                  font=self._font_footer, fill=(200, 190, 175))
 
         # Save cache
         try:
