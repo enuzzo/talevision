@@ -260,7 +260,7 @@ function FramePreview({ refreshKey, waiting, waitingMode }: { refreshKey: number
   }, [refreshKey])
 
   return (
-    <div className="relative w-full rounded-sm overflow-hidden" style={{ aspectRatio: '5/3', border: '1px solid rgba(0,0,0,0.08)' }}>
+    <div className="relative w-full rounded-sm overflow-hidden" style={{ aspectRatio: '5/3', border: '1px solid rgba(0,0,0,0.12)' }}>
       {waiting && <RenderingOverlay mode={waitingMode} />}
 
       {!waiting && !loaded && !errored && (
@@ -453,7 +453,7 @@ function PlaylistEditor({
                 style={{
                   border: isEnabled && !isComingSoon
                     ? `1px solid rgba(0,0,0,0.10)`
-                    : '1px solid rgba(0,0,0,0.06)',
+                    : '1px solid rgba(0,0,0,0.10)',
                   borderLeft: isEnabled && !isComingSoon
                     ? `3px solid ${info.color}`
                     : '3px solid transparent',
@@ -559,7 +559,7 @@ function PlaylistEditor({
               ? 'text-accent/50 cursor-wait'
               : 'text-secondary hover:text-accent cursor-pointer',
           )}
-          style={{ border: '1px solid rgba(0,0,0,0.08)' }}
+          style={{ border: '1px solid rgba(0,0,0,0.12)' }}
         >
           <RefreshIcon spinning={refreshing} />
           {refreshing ? 'Rendering…' : 'Force refresh'}
@@ -728,7 +728,7 @@ function IntervalRow({
   })
 
   return (
-    <div className="flex items-center gap-3 py-2.5" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+    <div className="flex items-center gap-3 py-2.5" style={{ borderBottom: '1px solid rgba(0,0,0,0.10)' }}>
       <span className="text-sm" style={{ color }}>{icon}</span>
       <span className="font-display text-sm flex-shrink-0 w-20" style={{ color }}>{modeName}</span>
       <input
@@ -747,7 +747,7 @@ function IntervalRow({
         onClick={() => setMut.mutate()}
         disabled={setMut.isPending}
         className="font-display text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-xs text-secondary hover:text-accent transition-all duration-200 disabled:opacity-50"
-        style={{ border: '1px solid rgba(0,0,0,0.08)' }}
+        style={{ border: '1px solid rgba(0,0,0,0.12)' }}
       >
         {setMut.isPending ? '…' : 'Set'}
       </button>
@@ -1217,7 +1217,7 @@ function WeatherSettings({ currentLocation }: { currentLocation?: string }) {
         <button
           onClick={toggleUnits}
           className="font-mono text-xs font-bold uppercase tracking-widest px-4 py-2.5 rounded-xs text-secondary hover:text-accent transition-all duration-200"
-          style={{ border: '1px solid rgba(0,0,0,0.08)' }}
+          style={{ border: '1px solid rgba(0,0,0,0.12)' }}
         >
           {units === 'm' ? '°C · km/h' : '°F · mph'}
         </button>
@@ -1302,7 +1302,7 @@ export default function App() {
     <div className="min-h-screen text-primary font-display animate-fade-in">
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40" style={{ backgroundColor: '#FAF8F5', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+      <header className="sticky top-0 z-40" style={{ backgroundColor: '#FAF8F5', borderBottom: '1px solid rgba(0,0,0,0.10)' }}>
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <span className="w-2 h-2 rounded-full bg-accent" style={{ boxShadow: '0 0 10px rgba(255,29,165,0.35)' }} />

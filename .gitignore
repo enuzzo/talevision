@@ -18,6 +18,7 @@ cache/*
 *.log
 logs/
 talevision_frame.png
+talevision_frame_*.png
 current_frame.jpg
 
 # Claude Code local settings
@@ -40,6 +41,12 @@ build/
 !talevision/web/static/dist/
 # Ignore node_modules inside frontend/
 frontend/node_modules/
+
+# Superpowers IDE artifacts
+.superpowers/
+
+# Debug assets
+assets/debug/
 
 # OS
 .DS_Store

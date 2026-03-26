@@ -125,13 +125,6 @@ class SlowMovieConfig:
 
 
 @dataclass
-class AnsiConfig:
-    refresh_interval: int = 180          # 3 minutes
-    art_dir: str = "assets/ansi"
-    order: str = "sequential"            # sequential | random
-
-
-@dataclass
 class WikipediaConfig:
     refresh_interval: int = 300
     language: str = "it"
@@ -211,7 +204,6 @@ class AppConfig:
     suspend: SuspendConfig = field(default_factory=SuspendConfig)
     litclock: LitClockConfig = field(default_factory=LitClockConfig)
     slowmovie: SlowMovieConfig = field(default_factory=SlowMovieConfig)
-    ansi: AnsiConfig = field(default_factory=AnsiConfig)
     wikipedia: WikipediaConfig = field(default_factory=WikipediaConfig)
     weather: WeatherConfig = field(default_factory=WeatherConfig)
     museo: MuseoConfig = field(default_factory=MuseoConfig)

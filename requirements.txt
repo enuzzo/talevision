@@ -9,4 +9,3 @@ qrcode[pil]>=7.0.0
 dacite>=1.8.0
 RPi.GPIO>=0.7.0
 waitress==3.0.2
-pyte==0.8.1
