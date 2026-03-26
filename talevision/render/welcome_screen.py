@@ -230,7 +230,7 @@ def render_welcome_screen(
     y += 8
 
     # ── Version / credit ──────────────────────────────────────────────────────
-    ver = "TaleVision v1.5  ·  Netmilk Studio"
+    ver = "TaleVision v3.0  ·  Netmilk Studio"
     draw.text(((W - text_w(ver, font_sm)) // 2, y), ver,
               font=font_sm, fill=BLUE)
 

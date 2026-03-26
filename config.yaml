@@ -1,5 +1,5 @@
 app:
-  default_mode: litclock   # litclock | slowmovie | wikipedia | weather | museo | koan
+  default_mode: litclock   # litclock | slowmovie | wikipedia | weather | museo | koan | cucina
 
 display:
   width: 800

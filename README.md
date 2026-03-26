@@ -210,7 +210,7 @@ Single mode? Per-mode interval applies as before. Two or more? Rotation takes ov
 | **Storage** | microSD | 8GB minimum. `media/` lives here. It is gitignored. |
 | **Power** | 5V micro-USB | Any phone charger. The Pi Zero W is not demanding about this. |
 
-The display refreshes slowly on purpose. E-ink panels take ~30 seconds and hold the image at zero power. The software intervals (60s, 90s) are deliberately longer than the panel refresh time. There is no race condition to fix here.
+The display refreshes slowly on purpose. E-ink panels take ~30 seconds and hold the image at zero power. The software intervals (300s default) are deliberately longer than the panel refresh time. There is no race condition to fix here.
 
 ---
 
@@ -251,7 +251,7 @@ The Orchestrator runs in the main thread. Flask runs in a daemon thread. They co
 
 ## Boot Sequence
 
-On power-up, TaleVision renders a **welcome screen** to the e-ink display before anything else. A vintage TV frame graphic (800×480, transparent centre) is composited as background. Inside it: "TaleVision" in Lobster at 75pt, black, centred. Below it: a randomly chosen sardonic tagline from a pool of twenty, in Taviraj Italic. Below that: `— STARTING IN 30 SECONDS —` in red. Then a compact BBS/NFO-style info box — hostname (with `.local` mDNS suffix), LAN IP, dashboard URL — in DejaVuSansMono Bold with box-drawing characters. Closes with "TaleVision v1.5 · Netmilk Studio" in blue.
+On power-up, TaleVision renders a **welcome screen** to the e-ink display before anything else. A vintage TV frame graphic (800×480, transparent centre) is composited as background. Inside it: "TaleVision" in Lobster at 75pt, black, centred. Below it: a randomly chosen sardonic tagline from a pool of twenty, in Taviraj Italic. Below that: `— STARTING IN 30 SECONDS —` in red. Then a compact BBS/NFO-style info box — hostname (with `.local` mDNS suffix), LAN IP, dashboard URL — in DejaVuSansMono Bold with box-drawing characters. Closes with "TaleVision v3.0 · Netmilk Studio" in blue.
 
 The welcome screen holds for 30 seconds. Long enough to confirm the device is alive, read the IP address, and actually look at it. The rendered frame is saved to `cache/welcome_frame.png` on every boot. Then the Orchestrator takes over and renders the first real frame.
 
@@ -333,7 +333,7 @@ Dashboard at `http://<pi-ip>:5000`.
 
 A sardonic tagline rotates with each page load. Twenty options. The display updates roughly once a minute. The tagline changes roughly once per session. Both are fine.
 
-**Frame preview** — when you switch mode or force-refresh, the preview goes dark and shows a vintage CRT overlay: TV grain, scanlines, an amber sweep band, and an oscillating radio tuner needle. The mode name appears in Lobster with a subtle flicker. As soon as the Pi finishes rendering, the overlay clears and the new frame fades in. No manual reload needed.
+**Frame preview** — when you switch mode or force-refresh, the preview goes dark and shows a vintage CRT overlay: TV grain, scanlines, a magenta sweep band, and expanding radio waves. The mode name appears in Lobster with a subtle flicker. As soon as the Pi finishes rendering, the overlay clears and the new frame fades in. No manual reload needed.
 
 **Layout:**
 
@@ -387,10 +387,11 @@ The control dashboard uses the following typefaces, **self-hosted** — no Googl
 |---|---|---|---|
 | **[Lobster](https://fonts.google.com/specimen/Lobster)** | Logotype ("TaleVision"), section headings; also used on e-ink boot and suspend screens | Pablo Impallari | © 2010 Pablo Impallari |
 | **[Funnel Display](https://fonts.google.com/specimen/Funnel+Display)** | Interface text, labels, values | Mirko Velimirović / Undercase Type | © 2024 The Funnel Project Authors |
+| **[Space Mono](https://fonts.google.com/specimen/Space+Mono)** | Monospace: clock, status, technical data, code | Colophon Foundry | © 2016 Google Inc |
 
 Font files (`woff2` + `ttf`) are committed to `frontend/public/fonts/` and served directly by Flask. The e-ink screens use `Lobster-Regular.ttf` from `assets/fonts/`.
 
-Both typefaces are licensed under the [SIL Open Font License 1.1](https://openfontlicense.org/) — free to use, embed, and redistribute with attribution.
+All three typefaces are licensed under the [SIL Open Font License 1.1](https://openfontlicense.org/) — free to use, embed, and redistribute with attribution.
 
 ---
 
@@ -473,7 +474,7 @@ talevision/
 ├── frontend/
 │   ├── src/
 │   │   ├── App.tsx              Main dashboard: mode switch, frame preview, status, controls
-│   │   ├── ParticleBackground.tsx  Amber particle canvas with mouse repulsion
+│   │   ├── ParticleBackground.tsx  Violet/cyan particle canvas with mouse repulsion
 │   │   ├── api.ts               Typed API client
 │   │   ├── types.ts             Shared TypeScript types
 │   │   └── index.css            Tailwind base + scanline/grain overlays + keyframes
@@ -527,7 +528,7 @@ pip-audit -r requirements.txt
 
 **`ffmpeg-python` is not ffmpeg.** It is a Python wrapper. Without `/usr/bin/ffmpeg` present — installed via `apt install ffmpeg` — SlowMovie frame extraction will fail and return a grey error image. This is the correct failure mode. Install ffmpeg.
 
-**The display takes ~30 seconds to refresh.** The software intervals (60s for LitClock, 90s for SlowMovie) are deliberately longer than the panel cycle time. The screen is not frozen. The Pi has not crashed. The film is not broken. It's e-ink. Patience is a feature, not a workaround.
+**The display takes ~30 seconds to refresh.** The software intervals (300s default for all modes) are deliberately longer than the panel cycle time. The screen is not frozen. The Pi has not crashed. The film is not broken. It's e-ink. Patience is a feature, not a workaround.
 
 ---
 
@@ -543,7 +544,7 @@ Use it, fork it, replace the quote database with your own obsessions, point Slow
 
 <div align="center">
 
-*Literature. Cinema. Wikipedia. Weather. Art.*
+*Literature. Cinema. Wikipedia. Weather. Art. Poetry. Cuisine.*
 *One Pi Zero W. One wall. One question at a time.*
 
 </div>
