@@ -245,3 +245,15 @@ Entry format:
 - Context: Languages were listed alphabetically (de/en/es/fr/it/pt) in default config and UI. Project context is Italian-first (deployed in Italy, Netmilk is Italian).
 - Decision: Preferred order `["it", "es", "pt", "en", "fr", "de"]` — Italian first (home language), then Iberian peninsula, then English, then French/German. Applied in: `loader._LANG_ORDER`, `wikipedia.LANGS`, `schema.WikipediaConfig.languages` default.
 - Impact/Tradeoffs: Trivial preference with zero technical cost. Makes language selector more intuitive for the primary user base.
+
+## 2026-03-27 - Flora Mode: Generative Botanical Art via L-Systems
+
+- Context: TaleVision had 7 display modes. All fetched external data (LitClock quotes, SlowMovie frames, Wikipedia articles, weather, museum artworks, recipes, AI haiku). A fully offline, purely algorithmic mode was missing — something that demonstrates the device can be interesting with zero network access.
+- Decision: Add Flora mode — deterministic L-system botanical illustrations seeded by date. Eight botanical species (fern, tree, bush, vine, flower, bamboo, reed, spring bulbs) with production rules, depth-based line coloring (3 green shades), and species-specific terminal flowers (red, orange, yellow, pink, blue). Fake Latin names generated combinatorially. Layout: 500px plant panel (white) + 300px specimen label card (cream). Refresh 3600s — one new plant per day, same plant all day.
+- Impact/Tradeoffs: Zero API calls, zero tokens, 100% offline. Render time ~1s on Pi Zero W. L-system strings capped at 80K chars to prevent runaway growth. The deterministic seed means the same date always produces the same botanical illustration, creating a calendar-like collectible quality.
+
+## 2026-03-27 - Flora Archive: Daily Specimen Archive with Image Grid
+
+- Context: Koan mode saves each generated haiku to a folder-based archive (JSON per entry, web page for browsing). Flora mode generates a unique botanical illustration each day — archiving them creates an ever-growing herbarium that grows richer over time.
+- Decision: Flora saves both JSON metadata (species, genus, epithet, family, date, location) and a full 800×480 PNG to `cache/flora_archive/YYYYMMDD.{json,png}` on each render, idempotent within the same day. Two API endpoints: `GET /api/flora/archive` (metadata list, newest first) and `GET /api/flora/archive/<YYYY-MM-DD>` (serve PNG). Frontend: FloraArchivePage (light Vibemilk theme, responsive image grid, click-to-enlarge lightbox) + FloraArchivePanel (compact preview in dashboard sidebar). Unlike the Koan archive which stays dark, the Flora archive uses the light Vibemilk theme matching the illustrations' white/cream background.
+- Impact/Tradeoffs: Each daily PNG is ~200-400KB; after one year ~100-150MB. Fine for Pi SD card. The archive grows automatically without any manual intervention.

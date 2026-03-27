@@ -1,4 +1,5 @@
 """Flora mode — generative botanical art via L-system grammars."""
+import json
 import math
 import random
 import logging
@@ -238,6 +239,9 @@ class FloraMode(DisplayMode):
         self._last_genus = ""
         self._last_epithet = ""
         self._cache_path = base_dir / "cache" / "flora_frame.png"
+        self._archive_dir = base_dir / "cache" / "flora_archive"
+        self._archive_dir.mkdir(parents=True, exist_ok=True)
+        self._last_archive_date = ""
 
     @property
     def name(self) -> str:
@@ -273,6 +277,8 @@ class FloraMode(DisplayMode):
         except Exception:
             pass
 
+        self._save_archive(img, species, genus, epithet, specimen_num, today)
+
         return img
 
     def get_state(self) -> ModeState:
@@ -280,7 +286,43 @@ class FloraMode(DisplayMode):
             "species": self._last_species_id,
             "genus": self._last_genus,
             "epithet": self._last_epithet,
+            "archive_count": len(list(self._archive_dir.glob("*.json"))),
         })
+
+    def _save_archive(
+        self,
+        img: "Image.Image",
+        species: dict,
+        genus: str,
+        epithet: str,
+        specimen_num: int,
+        today: date,
+    ) -> None:
+        date_str = today.isoformat()
+        if self._last_archive_date == date_str:
+            return
+        json_path = self._archive_dir / f"{date_str}.json"
+        png_path = self._archive_dir / f"{date_str}.png"
+        if json_path.exists() and png_path.exists():
+            self._last_archive_date = date_str
+            return
+        entry = {
+            "date": date_str,
+            "specimen_num": specimen_num,
+            "species_id": species["id"],
+            "genus": genus,
+            "epithet": epithet,
+            "family": species["family"],
+            "order": species["order"],
+            "location": self._cfg.location,
+        }
+        try:
+            json_path.write_text(json.dumps(entry, indent=2, ensure_ascii=False), encoding="utf-8")
+            img.save(str(png_path), format="PNG", optimize=True)
+            self._last_archive_date = date_str
+            log.info("Flora archive: saved %s (%s %s #%04d)", date_str, genus, epithet, specimen_num)
+        except Exception as exc:
+            log.warning("Flora archive: save failed: %s", exc)
 
     def _compose(
         self,

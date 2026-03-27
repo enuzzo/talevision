@@ -74,3 +74,47 @@ def test_all_species_render(tmp_path):
         assert len(s) > 0
         min_x, min_y, max_x, max_y = _turtle_bounds(s, sp["angle"])
         assert max_x >= min_x and max_y >= min_y, f"Species {sp['id']} produced empty bounds"
+
+
+def test_flora_archive_saves_files(tmp_path):
+    cfg = _make_config(tmp_path)
+    from talevision.modes.flora import FloraMode
+    mode = FloraMode(cfg, base_dir=Path("."))
+    mode.render()
+    archive_dir = mode._archive_dir
+    json_files = list(archive_dir.glob("*.json"))
+    png_files = list(archive_dir.glob("*.png"))
+    assert len(json_files) == 1, "Expected 1 JSON archive entry after first render"
+    assert len(png_files) == 1, "Expected 1 PNG archive entry after first render"
+
+
+def test_flora_archive_idempotent(tmp_path):
+    cfg = _make_config(tmp_path)
+    from talevision.modes.flora import FloraMode
+    mode = FloraMode(cfg, base_dir=Path("."))
+    mode.render()
+    mode.render()  # second render same day — must not create duplicate
+    archive_dir = mode._archive_dir
+    assert len(list(archive_dir.glob("*.json"))) == 1
+
+
+def test_flora_archive_json_schema(tmp_path):
+    cfg = _make_config(tmp_path)
+    from talevision.modes.flora import FloraMode
+    import json
+    mode = FloraMode(cfg, base_dir=Path("."))
+    mode.render()
+    json_path = next(mode._archive_dir.glob("*.json"))
+    entry = json.loads(json_path.read_text())
+    for key in ("date", "specimen_num", "species_id", "genus", "epithet", "family", "order", "location"):
+        assert key in entry, f"Missing key '{key}' in archive JSON"
+    assert entry["location"] == "Test City"
+
+
+def test_flora_get_state_archive_count(tmp_path):
+    cfg = _make_config(tmp_path)
+    from talevision.modes.flora import FloraMode
+    mode = FloraMode(cfg, base_dir=Path("."))
+    mode.render()
+    state = mode.get_state()
+    assert state.extra.get("archive_count") == 1

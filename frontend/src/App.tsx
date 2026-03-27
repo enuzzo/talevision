@@ -841,6 +841,18 @@ function LanguageSelector({ current }: { current?: string }) {
 
 // ─── Koan Archive ───────────────────────────────────────────────────────────
 
+interface FloraEntry {
+  date: string
+  specimen_num: number
+  species_id: string
+  genus: string
+  epithet: string
+  family: string
+  order: string
+  location: string
+  has_image: boolean
+}
+
 interface KoanHaiku {
   id: number
   timestamp: string
@@ -1103,6 +1115,215 @@ function HaikuCard({ haiku: h, index }: { haiku: KoanHaiku; index: number }) {
 }
 
 
+// ─── Flora Archive ───────────────────────────────────────────────────────────
+
+function FloraSpecimenCard({ entry, onSelect }: { entry: FloraEntry; onSelect: () => void }) {
+  const d = new Date(entry.date + 'T12:00:00')
+  const dateStr = isNaN(d.getTime()) ? entry.date : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+
+  return (
+    <div
+      onClick={onSelect}
+      className="cursor-pointer rounded-xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+      style={{ background: '#FFFAF0', border: '1px solid #E4DBD0' }}
+    >
+      <div style={{ position: 'relative', paddingBottom: '60%', background: '#F5F0E8' }}>
+        {entry.has_image && (
+          <img
+            src={`/api/flora/archive/${entry.date}`}
+            alt={`${entry.genus} ${entry.epithet}`}
+            loading="lazy"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        )}
+      </div>
+      <div style={{ padding: '12px 16px' }}>
+        <div style={{ fontFamily: 'Lobster, cursive', fontSize: 18, color: '#1A1A2E', lineHeight: 1.2 }}>
+          {entry.genus}
+        </div>
+        <div style={{ fontStyle: 'italic', fontSize: 13, color: '#6B6560', marginTop: 2 }}>
+          {entry.epithet}
+        </div>
+        <div className="flex items-center justify-between mt-2" style={{ fontFamily: 'monospace', fontSize: 10, color: '#A09890' }}>
+          <span>#{String(entry.specimen_num).padStart(4, '0')}</span>
+          <span>{dateStr}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+function FloraArchivePanel({ onViewAll }: { onViewAll: () => void }) {
+  const { data } = useQuery({
+    queryKey: ['flora-archive'],
+    queryFn: async () => {
+      const r = await fetch('/api/flora/archive')
+      return r.json() as Promise<{ specimens: FloraEntry[]; count: number }>
+    },
+    refetchInterval: 60_000,
+  })
+
+  const count = data?.count ?? 0
+  if (count === 0) return null
+
+  const latest = data?.specimens?.[0]
+
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="label">Flora archive</h2>
+        <button
+          onClick={onViewAll}
+          className="font-mono text-xs text-accent hover:text-accent-hover transition-colors"
+        >
+          {count} specimen{count !== 1 ? 's' : ''} — view all →
+        </button>
+      </div>
+      {latest && (
+        <div className="p-3 rounded-lg border border-border/50" style={{ background: '#FFFAF0' }}>
+          <div className="font-mono text-[10px] text-muted mb-1">
+            #{String(latest.specimen_num).padStart(4, '0')} · {latest.date}
+          </div>
+          <div style={{ fontFamily: 'Lobster, cursive', fontSize: 17, color: '#1A1A2E' }}>
+            {latest.genus}
+          </div>
+          <div className="text-sm italic" style={{ color: '#6B6560' }}>
+            {latest.epithet}
+          </div>
+          <div className="mt-1 font-mono text-[10px]" style={{ color: '#A09890' }}>
+            {latest.family} · {latest.location}
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
+
+function FloraArchivePage({ onBack }: { onBack: () => void }) {
+  const [visibleCount, setVisibleCount] = useState(24)
+  const [selected, setSelected] = useState<FloraEntry | null>(null)
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['flora-archive'],
+    queryFn: async () => {
+      const r = await fetch('/api/flora/archive')
+      return r.json() as Promise<{ specimens: FloraEntry[]; count: number }>
+    },
+  })
+
+  const count = data?.count ?? 0
+  const all = data?.specimens ?? []
+  const visible = all.slice(0, visibleCount)
+  const hasMore = visibleCount < all.length
+
+  return (
+    <div className="min-h-screen" style={{ background: '#FAF8F5' }}>
+      {/* ── Header ── */}
+      <header className="sticky top-0 z-10 backdrop-blur-md" style={{ background: 'rgba(250,248,245,0.94)', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={onBack}
+              className="font-mono text-xs transition-colors"
+              style={{ color: '#A09890' }}
+            >
+              ← dashboard
+            </button>
+            <h1 className="font-title text-2xl sm:text-3xl" style={{ color: '#1A1A2E' }}>Flora Archive</h1>
+            <span
+              className="font-mono text-xs px-2 py-0.5 rounded-full"
+              style={{ background: 'rgba(22,163,74,0.10)', color: '#16A34A' }}
+            >
+              {count}
+            </span>
+          </div>
+        </div>
+      </header>
+
+      {/* ── Grid ── */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        {isLoading ? (
+          <p className="font-mono text-sm text-center py-20" style={{ color: '#A09890' }}>loading…</p>
+        ) : all.length === 0 ? (
+          <p className="font-mono text-sm text-center py-20" style={{ color: '#A09890' }}>
+            no specimens yet — Flora will save one at the next render
+          </p>
+        ) : (
+          <>
+            <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
+              {visible.map(entry => (
+                <FloraSpecimenCard key={entry.date} entry={entry} onSelect={() => setSelected(entry)} />
+              ))}
+            </div>
+            {hasMore && (
+              <div className="flex justify-center pt-8 pb-4">
+                <button
+                  onClick={() => setVisibleCount(v => v + 24)}
+                  className="font-mono text-xs px-6 py-2 rounded-md transition-all duration-200"
+                  style={{ background: 'rgba(22,163,74,0.06)', border: '1px solid rgba(22,163,74,0.14)', color: '#16A34A' }}
+                >
+                  load more ({all.length - visibleCount} remaining)
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </main>
+
+      <footer className="text-center py-8">
+        <span className="font-mono text-[10px]" style={{ color: '#C0B8B0' }}>
+          TaleVision · Flora · {count} specimen{count !== 1 ? 's' : ''} preserved
+        </span>
+      </footer>
+
+      {/* ── Lightbox ── */}
+      {selected && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(26,26,46,0.80)', backdropFilter: 'blur(6px)' }}
+          onClick={() => setSelected(null)}
+        >
+          <div
+            className="relative rounded-xl overflow-hidden shadow-2xl max-w-4xl w-full"
+            onClick={e => e.stopPropagation()}
+          >
+            {selected.has_image && (
+              <img
+                src={`/api/flora/archive/${selected.date}`}
+                alt={`${selected.genus} ${selected.epithet}`}
+                style={{ width: '100%', display: 'block' }}
+              />
+            )}
+            <div className="flex items-center justify-between px-5 py-3" style={{ background: '#1A1A2E' }}>
+              <div>
+                <span style={{ fontFamily: 'Lobster, cursive', fontSize: 18, color: '#FAF8F5' }}>
+                  {selected.genus}
+                </span>
+                <span className="italic ml-2 text-sm" style={{ color: '#9E9EB5' }}>
+                  {selected.epithet}
+                </span>
+                <span className="font-mono text-[10px] ml-3" style={{ color: '#6B6B8A' }}>
+                  #{String(selected.specimen_num).padStart(4, '0')} · {selected.date}
+                </span>
+              </div>
+              <button
+                onClick={() => setSelected(null)}
+                className="font-mono text-xs"
+                style={{ color: '#9E9EB5' }}
+              >
+                ✕ close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+
 function WeatherSettings({ currentLocation }: { currentLocation?: string }) {
   const qc = useQueryClient()
   const [input, setInput] = useState(currentLocation ?? '')
@@ -1242,7 +1463,7 @@ export default function App() {
   const [refreshKey, setRefreshKey] = useState(Date.now())
   const [waitingSince, setWaitingSince] = useState<number | null>(null)
   const [pendingMode, setPendingMode] = useState<string | null>(null)
-  const [view, setView] = useState<'dashboard' | 'archive'>('dashboard')
+  const [view, setView] = useState<'dashboard' | 'archive' | 'flora-archive'>('dashboard')
   const waiting = waitingSince !== null
 
   const { data: status, isError } = useQuery({
@@ -1297,6 +1518,10 @@ export default function App() {
 
   if (view === 'archive') {
     return <KoanArchivePage onBack={() => setView('dashboard')} />
+  }
+
+  if (view === 'flora-archive') {
+    return <FloraArchivePage onBack={() => setView('dashboard')} />
   }
 
   return (
@@ -1430,6 +1655,9 @@ export default function App() {
 
         <Divider />
         <KoanArchivePanel onViewAll={() => setView('archive')} />
+
+        <Divider />
+        <FloraArchivePanel onViewAll={() => setView('flora-archive')} />
 
         <footer className="pt-6 pb-4">
           <Divider />

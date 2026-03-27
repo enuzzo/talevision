@@ -299,6 +299,39 @@ def koan_archive_export():
                      as_attachment=True, download_name="koan_archive.zip")
 
 
+@api_bp.get("/flora/archive")
+def flora_archive():
+    """GET /api/flora/archive — list all archived botanical specimens (newest first)."""
+    flora = _orchestrator()._modes.get("flora")
+    if not flora:
+        return jsonify({"specimens": [], "count": 0})
+    archive_dir = flora._archive_dir
+    entries = []
+    for json_path in sorted(archive_dir.glob("*.json"), reverse=True):
+        try:
+            entry = json.loads(json_path.read_text(encoding="utf-8"))
+            entry["has_image"] = (archive_dir / f"{json_path.stem}.png").exists()
+            entries.append(entry)
+        except Exception:
+            pass
+    return jsonify({"specimens": entries, "count": len(entries)})
+
+
+@api_bp.get("/flora/archive/<date_str>")
+def flora_archive_image(date_str: str):
+    """GET /api/flora/archive/<YYYY-MM-DD> — serve the PNG for that day."""
+    import re
+    flora = _orchestrator()._modes.get("flora")
+    if not flora:
+        return jsonify({"error": "Flora mode not available"}), 404
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", date_str):
+        return jsonify({"error": "Invalid date format (YYYY-MM-DD expected)"}), 400
+    png_path = flora._archive_dir / f"{date_str}.png"
+    if not png_path.exists():
+        return jsonify({"error": "No specimen for this date"}), 404
+    return send_file(str(png_path), mimetype="image/png")
+
+
 @api_bp.get("/frame")
 def get_frame():
     """GET /api/frame — serve last rendered frame for current mode."""
