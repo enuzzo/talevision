@@ -26,6 +26,16 @@ def _base_dir() -> Path:
     return current_app.base_dir  # type: ignore[attr-defined]
 
 
+@api_bp.get("/health")
+def health():
+    """GET /api/health — lightweight liveness probe for systemd / monitoring."""
+    try:
+        orch = _orchestrator()
+        return jsonify({"status": "ok", "mode": orch._current_mode_name})
+    except Exception as exc:
+        return jsonify({"status": "error", "detail": str(exc)}), 500
+
+
 @api_bp.get("/status")
 def status():
     """GET /api/status — current mode, suspension state, last update."""

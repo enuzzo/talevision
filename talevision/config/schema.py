@@ -184,6 +184,12 @@ class KoanConfig:
 
 
 @dataclass
+class FloraConfig:
+    refresh_interval: int = 3600
+    location: str = "Milano, IT"
+
+
+@dataclass
 class ButtonsConfig:
     enabled: bool = True
     gpio_map: dict = field(default_factory=lambda: {"a": 5, "b": 6, "c": 16, "d": 24})
@@ -209,4 +215,5 @@ class AppConfig:
     museo: MuseoConfig = field(default_factory=MuseoConfig)
     cucina: CucinaConfig = field(default_factory=CucinaConfig)
     koan: KoanConfig = field(default_factory=KoanConfig)
+    flora: FloraConfig = field(default_factory=FloraConfig)
     buttons: ButtonsConfig = field(default_factory=ButtonsConfig)

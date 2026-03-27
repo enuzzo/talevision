@@ -1,5 +1,6 @@
 """Flask application factory for TaleVision web dashboard."""
 import logging
+import secrets
 from pathlib import Path
 
 from flask import Flask, send_from_directory
@@ -23,7 +24,7 @@ def create_app(orchestrator, config, base_dir: Path = Path(".")) -> Flask:
         template_folder=str(template_dir),
         static_folder=str(static_dir),
     )
-    app.config["SECRET_KEY"] = "talevision-dev-key-not-for-production"
+    app.config["SECRET_KEY"] = secrets.token_hex(32)
 
     # Attach orchestrator and config for use in blueprints
     app.orchestrator = orchestrator  # type: ignore[attr-defined]

@@ -116,6 +116,7 @@ def main():
     from talevision.modes.museo import MuseoMode
     from talevision.modes.koan import KoanMode
     from talevision.modes.cucina import CucinaMode
+    from talevision.modes.flora import FloraMode
 
     modes = {
         "litclock":  LitClockMode(config, base_dir=BASE_DIR),
@@ -125,6 +126,7 @@ def main():
         "museo":     MuseoMode(config, base_dir=BASE_DIR),
         "koan":      KoanMode(config, base_dir=BASE_DIR),
         "cucina":    CucinaMode(config, base_dir=BASE_DIR),
+        "flora":     FloraMode(config, base_dir=BASE_DIR),
     }
 
     # ── Render-only mode (dev/CI) ─────────────────────────────────────────────

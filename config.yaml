@@ -117,6 +117,10 @@ museo:
 koan:
   refresh_interval: 900
 
+flora:
+  refresh_interval: 3600
+  location: "Ponte Capriasca, CH"
+
 buttons:
   enabled: true
   gpio_map:
