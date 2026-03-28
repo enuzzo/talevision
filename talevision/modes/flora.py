@@ -21,18 +21,21 @@ _TEXT_NAVY   = (26, 26, 60)
 _TEXT_GRAY   = (120, 115, 108)
 _TEXT_LIGHT  = (180, 174, 166)
 _SEP_LINE    = (218, 212, 204)
-_ACCENT      = (37, 99, 235)
 
-_STEM_DARK   = (28, 88, 18)
-_STEM_MID    = (44, 128, 34)
-_STEM_LIGHT  = (68, 162, 52)
-_LEAF_GREEN  = (88, 168, 62)
+_TRUNK_DARK  = (72, 42, 18)
+_TRUNK_MID   = (98, 62, 28)
+_STEM_DARK   = (34, 90, 22)
+_STEM_MID    = (52, 128, 38)
+_STEM_LIGHT  = (72, 158, 56)
+_LEAF_GREEN  = (90, 172, 64)
+_LEAF_PALE   = (120, 190, 80)
 
-_FLWR_RED    = (186, 34, 34)
-_FLWR_ORANGE = (206, 106, 18)
-_FLWR_YELLOW = (194, 168, 16)
-_FLWR_PINK   = (196, 78, 116)
-_FLWR_BLUE   = (38, 96, 188)
+_FLWR_RED    = (200, 40, 40)
+_FLWR_ORANGE = (218, 112, 22)
+_FLWR_YELLOW = (208, 178, 18)
+_FLWR_PINK   = (210, 82, 128)
+_FLWR_BLUE   = (48, 108, 200)
+_FLWR_CENTRE = (240, 210, 60)
 
 # ── Species database ──────────────────────────────────────────────────────────
 _SPECIES = [
@@ -64,7 +67,7 @@ _SPECIES = [
         "axiom": "F",
         "rules": {"F": "FF+[+F-F-F]-[-F+F+F]"},
         "angle": 22.0, "iterations": 4,
-        "flower_color": _FLWR_PINK, "flower_prob": 0.25,
+        "flower_color": _FLWR_PINK, "flower_prob": 0.45,
     },
     {
         "id": "vine",
@@ -74,7 +77,7 @@ _SPECIES = [
         "axiom": "X",
         "rules": {"X": "F-[[X]+X]+F[+FX]-X", "F": "FF"},
         "angle": 22.0, "iterations": 5,
-        "flower_color": _FLWR_BLUE, "flower_prob": 0.12,
+        "flower_color": _FLWR_BLUE, "flower_prob": 0.30,
     },
     {
         "id": "flower",
@@ -84,7 +87,7 @@ _SPECIES = [
         "axiom": "F",
         "rules": {"F": "F[+F][-F][++F][--F]F"},
         "angle": 36.0, "iterations": 3,
-        "flower_color": _FLWR_RED, "flower_prob": 0.35,
+        "flower_color": _FLWR_RED, "flower_prob": 0.60,
     },
     {
         "id": "bamboo",
@@ -94,7 +97,7 @@ _SPECIES = [
         "axiom": "A",
         "rules": {"A": "FFF[++FF][--FF]A"},
         "angle": 30.0, "iterations": 5,
-        "flower_color": _FLWR_YELLOW, "flower_prob": 0.06,
+        "flower_color": _FLWR_YELLOW, "flower_prob": 0.18,
     },
     {
         "id": "reed",
@@ -104,7 +107,7 @@ _SPECIES = [
         "axiom": "F",
         "rules": {"F": "FF[+F][-F]"},
         "angle": 18.0, "iterations": 5,
-        "flower_color": _FLWR_ORANGE, "flower_prob": 0.15,
+        "flower_color": _FLWR_ORANGE, "flower_prob": 0.30,
     },
     {
         "id": "spring",
@@ -114,7 +117,7 @@ _SPECIES = [
         "axiom": "X",
         "rules": {"X": "F[+X]F[-X]+X", "F": "FF"},
         "angle": 20.0, "iterations": 5,
-        "flower_color": _FLWR_YELLOW, "flower_prob": 0.22,
+        "flower_color": _FLWR_YELLOW, "flower_prob": 0.45,
     },
 ]
 
@@ -175,6 +178,38 @@ def _turtle_bounds(s: str, angle_deg: float) -> tuple[float, float, float, float
     return (min_x, min_y, max_x, max_y)
 
 
+def _draw_leaf(draw: ImageDraw.ImageDraw, x: float, y: float, direction: float,
+               size: int, rng: random.Random) -> None:
+    """Draw a small leaf cluster at branch tip."""
+    ang = math.radians(direction)
+    perp = math.radians(direction + 90)
+    spread = size * 0.8
+    for dx, dy in [
+        (math.cos(ang) * size * 0.5, math.sin(ang) * size * 0.5),
+        (math.cos(perp) * spread, math.sin(perp) * spread),
+        (-math.cos(perp) * spread, -math.sin(perp) * spread),
+    ]:
+        lx, ly = x + dx, y + dy
+        r = max(1, size - rng.randint(0, 1))
+        col = rng.choice([_LEAF_GREEN, _LEAF_PALE, _STEM_MID])
+        draw.ellipse([(lx - r, ly - r), (lx + r, ly + r)], fill=col)
+
+
+def _draw_flower(draw: ImageDraw.ImageDraw, x: float, y: float,
+                 color: tuple, depth: int) -> None:
+    """Draw a bold flower: petals + yellow centre."""
+    r = max(5, 9 - depth)
+    # Four petals as offset ellipses
+    for ang in (0, 90, 180, 270):
+        ox = math.cos(math.radians(ang)) * r * 0.6
+        oy = math.sin(math.radians(ang)) * r * 0.6
+        pr = max(3, r - 1)
+        draw.ellipse([(x + ox - pr, y + oy - pr), (x + ox + pr, y + oy + pr)], fill=color)
+    # Centre
+    cr = max(2, r // 3)
+    draw.ellipse([(x - cr, y - cr), (x + cr, y + cr)], fill=_FLWR_CENTRE)
+
+
 def _turtle_draw(
     draw: ImageDraw.ImageDraw,
     s: str,
@@ -189,19 +224,34 @@ def _turtle_draw(
     direction = -90.0
     stack: list = []
     depth = 0
+    is_tree_like = species["id"] in ("tree", "bush", "vine")
 
     for cmd in s:
         if cmd == "F":
-            nx = x + step * math.cos(math.radians(direction))
-            ny = y + step * math.sin(math.radians(direction))
-            if depth == 0:
-                color, width = _STEM_DARK, 3
-            elif depth <= 2:
-                color, width = _STEM_MID, 2
-            elif depth <= 4:
-                color, width = _STEM_LIGHT, 1
+            jitter = rng.uniform(-2.5, 2.5)
+            rad = math.radians(direction + jitter)
+            nx = x + step * math.cos(rad)
+            ny = y + step * math.sin(rad)
+            if is_tree_like:
+                if depth == 0:
+                    color, width = _TRUNK_DARK, 5
+                elif depth == 1:
+                    color, width = _TRUNK_MID, 4
+                elif depth == 2:
+                    color, width = _STEM_DARK, 3
+                elif depth == 3:
+                    color, width = _STEM_MID, 2
+                else:
+                    color, width = _STEM_LIGHT, 1
             else:
-                color, width = _LEAF_GREEN, 1
+                if depth == 0:
+                    color, width = _STEM_DARK, 3
+                elif depth <= 2:
+                    color, width = _STEM_MID, 2
+                elif depth <= 4:
+                    color, width = _STEM_LIGHT, 1
+                else:
+                    color, width = _LEAF_GREEN, 1
             draw.line([(x, y), (nx, ny)], fill=color, width=width)
             x, y = nx, ny
         elif cmd == "+":
@@ -212,12 +262,16 @@ def _turtle_draw(
             stack.append((x, y, direction, depth))
             depth += 1
         elif cmd == "]" and stack:
-            old_x, old_y = x, y
+            tip_x, tip_y = x, y
+            tip_dir = direction
             x, y, direction, depth = stack.pop()
             fc = species.get("flower_color")
-            if fc and rng.random() < species.get("flower_prob", 0.0):
-                r = max(2, 5 - depth)
-                draw.ellipse([(old_x - r, old_y - r), (old_x + r, old_y + r)], fill=fc)
+            fp = species.get("flower_prob", 0.0)
+            if fc and rng.random() < fp:
+                _draw_flower(draw, tip_x, tip_y, fc, depth)
+            else:
+                leaf_size = max(2, 5 - min(depth, 4))
+                _draw_leaf(draw, tip_x, tip_y, tip_dir, leaf_size, rng)
 
 
 class FloraMode(DisplayMode):
@@ -289,6 +343,22 @@ class FloraMode(DisplayMode):
             "archive_count": len(list(self._archive_dir.glob("*.json"))),
         })
 
+    def _trim_archive(self) -> None:
+        max_a = getattr(self._cfg, "max_archive", 1000)
+        json_files = sorted(self._archive_dir.glob("*.json"))
+        overflow = len(json_files) - max_a
+        if overflow <= 0:
+            return
+        for old_json in json_files[:overflow]:
+            try:
+                old_json.unlink()
+                old_png = old_json.with_suffix(".png")
+                if old_png.exists():
+                    old_png.unlink()
+                log.info("Flora archive: pruned %s (cap=%d)", old_json.name, max_a)
+            except Exception as exc:
+                log.warning("Flora archive: prune failed: %s", exc)
+
     def _save_archive(
         self,
         img: "Image.Image",
@@ -321,6 +391,7 @@ class FloraMode(DisplayMode):
             img.save(str(png_path), format="PNG", optimize=True)
             self._last_archive_date = date_str
             log.info("Flora archive: saved %s (%s %s #%04d)", date_str, genus, epithet, specimen_num)
+            self._trim_archive()
         except Exception as exc:
             log.warning("Flora archive: save failed: %s", exc)
 
@@ -419,8 +490,9 @@ class FloraMode(DisplayMode):
         draw.text((lx, y), date_str, font=self._font_detail, fill=_TEXT_NAVY)
         y += 22
 
-        # Location
-        draw.text((lx, y), self._cfg.location, font=self._font_detail, fill=_TEXT_GRAY)
+        # Location (optional)
+        if self._cfg.location:
+            draw.text((lx, y), self._cfg.location, font=self._font_detail, fill=_TEXT_GRAY)
 
         # ── Footer bar ────────────────────────────────────────────────────────
         draw.rectangle([(0, h - _FOOTER_H), (w, h)], fill=_DARK_NAVY)

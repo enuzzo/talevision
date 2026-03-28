@@ -52,6 +52,9 @@ class Orchestrator:
             "wikipedia": base_dir / "cache" / "wikipedia_frame.png",
             "weather":   base_dir / "cache" / "weather_frame.png",
             "museo":     base_dir / "cache" / "museo_frame.png",
+            "koan":      base_dir / "cache" / "koan_frame.png",
+            "cucina":    base_dir / "cache" / "cucina_frame.png",
+            "flora":     base_dir / "cache" / "flora_frame.png",
             "welcome":   base_dir / "cache" / "welcome_frame.png",
         }
         for p in self._frame_paths.values():

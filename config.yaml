@@ -119,7 +119,8 @@ koan:
 
 flora:
   refresh_interval: 3600
-  location: "Ponte Capriasca, CH"
+  location: ""
+  max_archive: 1000
 
 buttons:
   enabled: true

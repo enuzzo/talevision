@@ -186,7 +186,8 @@ class KoanConfig:
 @dataclass
 class FloraConfig:
     refresh_interval: int = 3600
-    location: str = "Milano, IT"
+    location: str = ""
+    max_archive: int = 1000
 
 
 @dataclass
