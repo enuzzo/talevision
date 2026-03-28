@@ -257,3 +257,15 @@ Entry format:
 - Context: Koan mode saves each generated haiku to a folder-based archive (JSON per entry, web page for browsing). Flora mode generates a unique botanical illustration each day — archiving them creates an ever-growing herbarium that grows richer over time.
 - Decision: Flora saves both JSON metadata (species, genus, epithet, family, date, location) and a full 800×480 PNG to `cache/flora_archive/YYYYMMDD.{json,png}` on each render, idempotent within the same day. Two API endpoints: `GET /api/flora/archive` (metadata list, newest first) and `GET /api/flora/archive/<YYYY-MM-DD>` (serve PNG). Frontend: FloraArchivePage (light Vibemilk theme, responsive image grid, click-to-enlarge lightbox) + FloraArchivePanel (compact preview in dashboard sidebar). Unlike the Koan archive which stays dark, the Flora archive uses the light Vibemilk theme matching the illustrations' white/cream background.
 - Impact/Tradeoffs: Each daily PNG is ~200-400KB; after one year ~100-150MB. Fine for Pi SD card. The archive grows automatically without any manual intervention.
+
+## 2026-03-29 - Flora Rendering v2: Brown Trunk, Leaf Clusters, Bold Flowers
+
+- Context: First Flora rendering produced bare stick-figure trees with no leaves, invisible flowers (prob too low), and a monochrome green palette with no trunk distinction.
+- Decision: Rewrite `_turtle_draw` with depth-aware coloring (brown trunk `#482A12` at depth 0-1, graduating to green at tips), `_draw_leaf()` at every branch tip (3-ellipse cluster), `_draw_flower()` with 4 petals + yellow centre, ±2.5° angle jitter, line width 5→1 with depth. Flower probabilities raised significantly (bush 0.45, flower 0.60, vine 0.30, spring 0.45). Tree/bush/vine species use brown trunk; grass-like species (fern/bamboo/reed) remain all-green.
+- Impact/Tradeoffs: Visually dramatic improvement — botanical illustrations now look like actual flowering plants. Render time still ~1s on Pi Zero W. Jitter is seeded from the same date-based RNG so remains fully deterministic.
+
+## 2026-03-29 - Orchestrator frame_paths: Add koan/cucina/flora
+
+- Context: The orchestrator had a hardcoded `_frame_paths` dict mapping mode names to PNG cache files. Koan, Cucina, and Flora were missing. Their frames were never saved to disk, causing the dashboard frame preview endpoint (`GET /api/frame`) to return 404 ("no signal") when any of these modes was active.
+- Decision: Add `"koan"`, `"cucina"`, `"flora"` to `_frame_paths` in orchestrator `__init__`. Each mode's render loop already called `_save_frame(frame, active_name)` — it just silently skipped unknown names. The fix is a 3-line addition.
+- Impact/Tradeoffs: All 8 modes now have working frame previews in the dashboard. Future modes must be added to `_frame_paths` at registration time.
