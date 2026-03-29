@@ -933,19 +933,20 @@ function KoanArchivePage({ onBack }: { onBack: () => void }) {
   const hasMore = visibleCount < filtered.length
 
   return (
-    <div className="min-h-screen" style={{ background: '#121225' }}>
+    <div className="min-h-screen" style={{ background: '#FAF8F5' }}>
       {/* ── Header ── */}
-      <header className="sticky top-0 z-10 backdrop-blur-md" style={{ background: 'rgba(18,18,37,0.92)' }}>
+      <header className="sticky top-0 z-10 backdrop-blur-md" style={{ background: 'rgba(250,248,245,0.94)', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <button
                 onClick={onBack}
-                className="font-mono text-xs text-muted hover:text-accent transition-colors"
+                className="font-mono text-xs transition-colors"
+                style={{ color: '#A09890' }}
               >
                 ← dashboard
               </button>
-              <h1 className="font-title text-2xl sm:text-3xl text-white/90">Koan Archive</h1>
+              <h1 className="font-title text-2xl sm:text-3xl" style={{ color: '#1A1A2E' }}>Koan Archive</h1>
               <span
                 className="font-mono text-xs px-2 py-0.5 rounded-full"
                 style={{ background: 'rgba(255,29,165,0.10)', color: '#FF1DA5' }}
@@ -957,11 +958,7 @@ function KoanArchivePage({ onBack }: { onBack: () => void }) {
               href="/api/koan/archive/export"
               download
               className="font-mono text-xs px-4 py-2 rounded-md transition-all duration-200 hover:shadow-lg"
-              style={{
-                background: '#FF1DA5',
-                color: '#FFFFFF',
-                fontWeight: 700,
-              }}
+              style={{ background: '#FF1DA5', color: '#FFFFFF', fontWeight: 700 }}
             >
               Export ZIP ↓
             </a>
@@ -974,34 +971,28 @@ function KoanArchivePage({ onBack }: { onBack: () => void }) {
               value={search}
               onChange={(e) => { setSearch(e.target.value); setVisibleCount(30) }}
               placeholder="search themes, pen names, words…"
-              className="w-full sm:w-80 px-3 py-2 rounded-md font-mono text-xs text-white/90 placeholder:text-white/30 outline-none transition-colors"
+              className="w-full sm:w-80 px-3 py-2 rounded-md font-mono text-xs outline-none transition-colors"
               style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.10)',
+                background: '#FFFFFF',
+                border: '1px solid rgba(0,0,0,0.12)',
+                color: '#1A1A2E',
               }}
             />
           </div>
         </div>
-        <div style={{ height: 1, background: 'rgba(255,255,255,0.08)' }} />
       </header>
 
       {/* ── Grid ── */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         {isLoading ? (
-          <p className="font-mono text-sm text-muted text-center py-20">loading…</p>
+          <p className="font-mono text-sm text-center py-20" style={{ color: '#A09890' }}>loading…</p>
         ) : filtered.length === 0 ? (
-          <p className="font-mono text-sm text-muted text-center py-20">
+          <p className="font-mono text-sm text-center py-20" style={{ color: '#A09890' }}>
             {search ? 'no haiku match your search' : 'no haiku yet'}
           </p>
         ) : (
           <>
-            <div
-              className="gap-4"
-              style={{
-                columns: '280px',
-                columnGap: '16px',
-              }}
-            >
+            <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
               {visible.map((h, idx) => (
                 <HaikuCard key={h.id} haiku={h} index={idx} />
               ))}
@@ -1011,10 +1002,10 @@ function KoanArchivePage({ onBack }: { onBack: () => void }) {
               <div className="flex justify-center pt-8 pb-4">
                 <button
                   onClick={() => setVisibleCount(v => v + 30)}
-                  className="font-mono text-xs px-6 py-2 rounded-md transition-all duration-200 hover:shadow-lg"
+                  className="font-mono text-xs px-6 py-2 rounded-md transition-all duration-200"
                   style={{
                     background: 'rgba(255,29,165,0.06)',
-                    border: '1px solid rgba(255,29,165,0.12)',
+                    border: '1px solid rgba(255,29,165,0.14)',
                     color: '#FF1DA5',
                   }}
                 >
@@ -1028,7 +1019,7 @@ function KoanArchivePage({ onBack }: { onBack: () => void }) {
 
       {/* ── Footer ── */}
       <footer className="text-center py-8">
-        <span className="font-mono text-[10px] text-muted/40">
+        <span className="font-mono text-[10px]" style={{ color: '#C0B8B0' }}>
           TaleVision · Koan · {count} haiku preserved
         </span>
       </footer>
@@ -1037,7 +1028,7 @@ function KoanArchivePage({ onBack }: { onBack: () => void }) {
 }
 
 
-function HaikuCard({ haiku: h, index }: { haiku: KoanHaiku; index: number }) {
+function HaikuCard({ haiku: h }: { haiku: KoanHaiku; index?: number }) {
   const genSec = (h.generation_time_ms / 1000).toFixed(1)
   const modelShort = h.model?.split('/').pop()?.replace('llama-', '').replace('-versatile', '') ?? h.source
   const date = new Date(h.timestamp)
@@ -1047,32 +1038,27 @@ function HaikuCard({ haiku: h, index }: { haiku: KoanHaiku; index: number }) {
 
   return (
     <div
-      className="mb-4 rounded-lg overflow-hidden transition-all duration-300 hover:-translate-y-0.5"
+      className="rounded-xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
       style={{
-        breakInside: 'avoid',
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.06)',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.03)',
-        animationDelay: `${Math.min(index * 30, 300)}ms`,
+        background: '#FFFAF0',
+        border: '1px solid #E4DBD0',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
       }}
     >
-      <div className="p-4">
-        {/* Theme header */}
-        <div className="flex items-start justify-between mb-3">
-          <span
-            className="font-mono text-[10px] leading-tight"
-            style={{ color: 'rgba(255,29,165,0.35)' }}
-          >
-            {h.seed_word}
-          </span>
-          <span
-            className="font-mono text-[10px] shrink-0 ml-2"
-            style={{ color: 'rgba(255,255,255,0.2)' }}
-          >
-            №{h.id}
-          </span>
-        </div>
+      {/* Theme header bar */}
+      <div className="px-4 pt-4 pb-2 flex items-start justify-between">
+        <span
+          className="font-title leading-tight"
+          style={{ fontSize: 20, color: '#FF1DA5' }}
+        >
+          {h.seed_word}
+        </span>
+        <span className="font-mono text-[10px] shrink-0 ml-3 mt-1" style={{ color: '#C0B8B0' }}>
+          №{h.id}
+        </span>
+      </div>
 
+      <div className="px-4 pb-4">
         {/* Haiku lines */}
         <div
           className="leading-relaxed mb-3"
@@ -1080,8 +1066,8 @@ function HaikuCard({ haiku: h, index }: { haiku: KoanHaiku; index: number }) {
             fontFamily: 'Georgia, "Crimson Text", "Times New Roman", serif',
             fontStyle: 'italic',
             fontSize: '14px',
-            lineHeight: '1.7',
-            color: '#FAF8F5',
+            lineHeight: '1.8',
+            color: '#2A2A3E',
           }}
         >
           {h.lines.map((line, i) => (
@@ -1090,22 +1076,19 @@ function HaikuCard({ haiku: h, index }: { haiku: KoanHaiku; index: number }) {
         </div>
 
         {/* Pen name */}
-        <div
-          className="font-mono text-xs mb-2"
-          style={{ color: 'rgba(255,29,165,0.65)' }}
-        >
+        <div className="font-mono text-xs mb-3" style={{ color: '#FF1DA5' }}>
           — {h.author_name}
         </div>
 
         {/* Metadata footer */}
         <div
           className="flex items-center justify-between pt-2"
-          style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+          style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}
         >
-          <span className="font-mono text-[9px]" style={{ color: 'rgba(255,255,255,0.15)' }}>
+          <span className="font-mono text-[9px]" style={{ color: '#C0B8B0' }}>
             {modelShort} · {genSec}s · {h.total_tokens ?? '?'}tok
           </span>
-          <span className="font-mono text-[9px]" style={{ color: 'rgba(255,255,255,0.15)' }}>
+          <span className="font-mono text-[9px]" style={{ color: '#C0B8B0' }}>
             {dateStr}
           </span>
         </div>
