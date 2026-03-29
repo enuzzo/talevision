@@ -25,6 +25,9 @@
 <td align="center"><img src="docs/screenshots/koan.png" width="195" /><br /><b>Koan</b></td>
 <td align="center"><img src="docs/screenshots/cucina.png" width="195" /><br /><b>Cucina</b></td>
 </tr>
+<tr>
+<td align="center"><img src="docs/screenshots/flora.png" width="260" /><br /><b>Flora</b></td>
+</tr>
 </table>
 
 <br />
@@ -45,7 +48,7 @@ As **Koan**, it writes a haiku. A 70-billion-parameter language model receives a
 
 As **Cucina**, it picks a random dish from world cuisines — Thai, Mexican, Moroccan, Japanese, Italian, anything — downloads the food photo, and lays out a full recipe card on the display. The photo sits on a dark background with the dish name in Lobster script; below, the instructions fill the white half. Ingredients in two columns, a QR code linking to the YouTube tutorial. Every five minutes, a new dish. No API key.
 
-All seven modes share one 800×480 seven-colour e-ink panel, one Pi Zero W, one Flask dashboard, and one quiet conviction: the best thing a screen can do is earn its update.
+All eight modes share one 800×480 seven-colour e-ink panel, one Pi Zero W, one Flask dashboard, and one quiet conviction: the best thing a screen can do is earn its update.
 
 ---
 
@@ -70,6 +73,7 @@ TaleVision is the obvious outcome. One device. One config file. One dashboard. S
 - [Museo](#museo)
 - [Koan](#koan)
 - [Cucina](#cucina)
+- [Flora](#flora)
 - [Playlist & Rotation](#playlist--rotation)
 - [Hardware](#hardware)
 - [How It Works](#how-it-works)
@@ -187,6 +191,24 @@ The layout is split in half. The top is a dark band — the food photo sits ther
 **Fallback:** if the network is down, shows the last successfully rendered frame from cache. Cold start with no network: white background, "CUCINA" in Lobster, connection-unavailable message.
 
 TheMealDB's free tier (test key "1") has no rate limits and about 300 recipes. No API key required.
+
+---
+
+## Flora
+
+Once per day: generate a unique botanical specimen from L-system grammars, seeded by today's date, and render it as a scientific illustration on the display.
+
+Eight species rotate through the year — fern, tree, bush, vine, flower, bamboo, reed, and spring bulbs (Narcissus, Galanthus, Tulipa). Each produces a different branching structure via formal grammar rewriting. The daily seed ensures the same plant stays on the wall all day; tomorrow brings a different one. No API calls, no network, no tokens — the entire generation is deterministic and offline.
+
+**Layout:** the display splits into a 500px white plant panel (left) and a 300px cream label card (right). The L-system plant grows upward from the bottom of the white panel, auto-scaled to fit. The label card shows the specimen number, genus (Lobster 38pt), species epithet (Taviraj Italic 24pt), family, order, observation date, and an optional location. Below the taxonomy: the L-system production rules in Inconsolata mono — the recipe that built the plant. A dark navy footer bar shows "FLORA", the seed date, species ID, and current time.
+
+**Rendering:** turtle graphics on PIL. Tree-like species (tree, bush, vine) draw brown trunks that thin with depth — 5px at the base down to 1px at the tips. Non-tree species use green stems throughout. Every branch tip gets a leaf cluster (three small ellipses in randomised greens). Flowering species add four-petal flowers with yellow centres at branch tips, with species-specific colours and probabilities. Angular jitter on every segment prevents the mechanical look that plagues most L-system renderers.
+
+**Deterministic seed:** `random.Random(today.isoformat())` — same date, same plant. Specimen number: `date.toordinal() % 9999 + 1`.
+
+**Archive:** each day's specimen is saved as `cache/flora_archive/YYYY-MM-DD.{json,png}`. Idempotent — re-renders on the same day don't duplicate. Automatic cap at `max_archive` entries (default 1000, approximately 2.7 years). Browsable via `/api/flora/archive`. The archive page uses a light Vibemilk theme with green accents, responsive grid, and click-to-enlarge lightbox.
+
+**Refresh:** 3600 seconds (once per hour). Since the seed is date-based, every render in the same day produces the identical plant — the long interval just saves CPU on the Pi Zero.
 
 ---
 
