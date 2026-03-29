@@ -312,7 +312,8 @@ class FloraMode(DisplayMode):
     def render(self) -> Image.Image:
         w, h = self._display.width, self._display.height
         today = date.today()
-        rng = random.Random(today.isoformat())
+        now = datetime.now()
+        rng = random.Random(now.isoformat())
 
         species = rng.choice(_SPECIES)
         genus   = rng.choice(species["genera"])
