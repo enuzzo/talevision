@@ -120,13 +120,14 @@ python generate_sidecars.py --verify    # validate all sidecars
 - Frame waiting state: when mode switch or force-refresh is triggered, shows `RenderingOverlay` until `status.last_update` advances past the trigger timestamp. 120s safety timeout.
 - Fonts: self-hosted woff2 — Lobster (title), Funnel Display variable (display/body), Space Mono 400/700 (mono). No Google Fonts dependency.
 - **Design system**: Vibemilk Default theme — warm milk-white bg `#F0EDE8`, magenta accent `#FF1DA5`, blue secondary `#5D84DF`, navy text `#1A1A2E`. Lobster for logotype/headings, Funnel Display variable for interface text. Rounded corners (4/6/8/10/12px). Borders use neutral `rgba(0,0,0,x)`.
-- **Mode colours** (vibranti per sfondo chiaro): LitClock `#2563EB`, SlowMovie `#D97706`, Wikipedia `#DC2626`, Weather `#059669`, Museo `#7C3AED`, Koan `#4F46E5`, Cucina `#EA580C`.
+- **Mode colours** (vibranti per sfondo chiaro): LitClock `#2563EB`, SlowMovie `#D97706`, Wikipedia `#DC2626`, Weather `#059669`, Museo `#7C3AED`, Koan `#4F46E5`, Cucina `#EA580C`, Flora `#16A34A`.
 - **RenderingOverlay**: dark `#1A1A2E` background, `NoiseCanvas` (100×62px canvas scaled to fill, ~13fps TV grain), CSS scanlines, magenta sweep band, RadioWaves animation, mode name in Lobster + `animate-flicker`, "Tuning" label.
 - **`pendingMode` state**: set in `playlistMut.onMutate` to `modes[0]`, cleared when `waiting` goes false. Prevents overlay from briefly showing the old mode name. Pass `pendingMode ?? currentMode` to `FramePreview`.
 - **`lastSyncedRef` playlist sync**: tracks `playlist.join(',') + ':' + rotationInterval`. Prevents premature sync on preliminary `['litclock']` before server data arrives.
 - **Language selector**: always visible at top (affects LitClock + Wikipedia + Koan). Shows full language names (`Italiano`, `Español`, etc.) via `LANG_NAMES` dict. `localLang` state for instant update. Auto-saves on click (no separate save button).
 - **Save UX**: language auto-saves on click. Playlist has explicit "Save playlist" button. Suspend schedule has inline "Save" button on the same row as the days. No ambiguity about what saves what.
-- **Koan archive page**: dedicated full-page view, dark gallery bg (`#121225`), CSS columns masonry grid, search by theme/pen name/words, "load more" pagination (30/batch), Export ZIP button. Magenta accents. Accessible via "view all →" link in dashboard.
+- **Koan archive page**: dedicated full-page view, light Vibemilk bg (`#FAF8F5`), responsive grid, search by theme/pen name/words, filter toggle (all/haiku/koan), "load more" pagination (30/batch), Export ZIP button. Magenta accents. Accessible via "view all →" link in dashboard.
+- **Flora archive page**: light Vibemilk bg, green accent `#16A34A`, responsive image grid, click-to-enlarge lightbox. Panel in dashboard sidebar.
 - **Stats card**: shows Uptime (via `formatUptime(status?.uptime_seconds)`), Last render, Mode, Status. `uptime_seconds` field in `/api/status`.
 - **Taglines**: 20 rotating sardonic taglines, one chosen per page load (`Math.random()`), displayed in Lobster italic at 12px below the "TaleVision" title.
 - **Footer**: Netmilk SVG logo (full opacity, `hover:animate-shake`), GitHub repo link, MIT credit.
@@ -159,7 +160,7 @@ waitress is included in `requirements.txt` (`waitress==3.0.2`). Always install i
 - API: `POST /api/playlist` with `{modes: ["litclock", "slowmovie"], rotation_interval: 300}`.
 - `GET /api/status` returns `playlist`, `playlist_index`, `rotation_interval` fields.
 - Dashboard `PlaylistEditor`: checkboxes to enable/disable modes, up/down arrows to reorder, rotation interval input when 2+ modes enabled.
-- 7 modes in registry: `litclock` (active), `slowmovie` (active), `wikipedia` (active), `weather` (active), `museo` (active), `koan` (active), `cucina` (active). ANSi and Teletext removed.
+- 8 modes in registry: `litclock`, `slowmovie`, `wikipedia`, `weather`, `museo`, `koan`, `cucina`, `flora` (all active). ANSi and Teletext removed.
 
 ## Per-mode Interval Overrides
 
@@ -204,7 +205,8 @@ LOOP-step log messages in `orchestrator.py` are at **DEBUG** level (changed from
 - **`/api/status` uptime**: `uptime_seconds` field added — seconds since orchestrator started. Used in Stats card.
 - **Per-mode refresh intervals**: overridable from dashboard, persisted to `user_prefs.json` (visible in single-mode only).
 - **Museo mode**: fetches random public-domain artworks from 3 museum APIs (Met ~200k, Cleveland ~41k, V&A ~732k) in round-robin rotation. No API keys needed. Total pool: ~973k artworks. PIL enhancement (brightness/contrast/colour). Overlay: title·date (Signika-Bold 20pt), artist (Signika-Light 20pt), museum·department (Inconsolata Bold 18pt) in rounded-rect box bottom-left; QR to museum object page bottom-right. 50-ID recent buffer prevents repeats. 24h catalogue cache. Fallback: last cached frame or "MUSEO" splash. Refresh: 300 s.
-- **Koan mode**: AI-generated haiku via Groq API (llama-3.3-70b-versatile). 210 seed themes from profound to absurd. Multi-language (follows dashboard language setting). Synchronous generation (~1s per haiku). Zen minimalist layout: bamboo ink wash bg, Crimson Text 46pt right-aligned, theme+№ header, pen name, tech stats. Poetic error screen on API failure. Folder-based archive for historical browsing. Refresh: 900 s.
+- **Koan mode**: alternates between AI-generated haiku (3 lines + pen name) and paradoxical koan questions (single Zen riddle). 190 surreal seed themes. Multi-language. Synchronous generation via Groq/Gemini (~1s). Zen minimalist layout on bamboo ink wash bg. Archive with type filter (all/haiku/koan). Refresh: 900 s.
+- **Flora mode**: deterministic L-system botanical illustrations. 8 species, time-based seed (new plant every render). 500px plant panel + 300px specimen label. Daily archive. Fully offline. Refresh: 3600 s.
 - **Cucina mode**: random world dishes from TheMealDB API (free, no key). Dark/light split layout: dark top half (food photo 240×240 square with rounded corners, Lobster title, gold origin, cream ingredients in 1-2 columns) + white bottom half (Taviraj Regular 19pt instructions). Dark footer bar with timestamp. QR to YouTube tutorial. Smart title case. Refresh: 300 s.
 - **Physical buttons**: GPIO 5/6/16/24 (A/B/C/D on Inky Impression); remappable in `config.yaml`.
 - **Off-Pi fallback**: no Inky → saves `talevision_frame.png`; no GPIO → one warning, silent from then on.
@@ -239,7 +241,7 @@ LOOP-step log messages in `orchestrator.py` are at **DEBUG** level (changed from
 - **Weather location + units persistence**: `set_weather_location()` and `set_weather_units()` must call `_save_prefs()` to persist in `user_prefs.json`. Without this, location resets to config.yaml defaults on service restart. Fixed in March 2026.
 - **LitClock long titles**: some book titles overflow the details line (author + separator + title) on the 800px canvas. `_draw_details()` truncates title with `…` until it fits. Author name is never truncated.
 - **Cucina 1:1 photo crop**: food photos are always cropped to 1:1 square with `ImageOps.fit()` cover mode, then rounded corners applied via RGBA mask. This ensures layout consistency regardless of source image aspect ratio.
-- **Embedded LLM on Pi Zero W**: SmolLM-135M via llama.zero was too slow (~0.05 tok/s effective, >1h per haiku, never completing within timeout). 54MB of model weights swapped to SD card. Abandoned in favor of cloud API (Groq/Gemini). Binary and model files still present at `~/llama.zero/` and `~/models/` but unused.
+- **Embedded LLM**: abandoned. SmolLM-135M via llama.zero was too slow on Pi Zero W. Replaced by cloud API (Groq/Gemini).
 
 ## Systemd Service
 
@@ -261,7 +263,7 @@ sudo systemctl start talevision
 3. No `media/*.mp4` staged: `git status | grep media/`
 4. Static analysis: `bandit -r talevision/ -ll`
 5. Dependency CVEs: `pip-audit -r requirements.txt`
-6. Render smoke test: `python main.py --render-only --mode litclock && python main.py --render-only --mode slowmovie && python main.py --render-only --mode wikipedia && python main.py --render-only --mode weather && python main.py --render-only --mode museo && python main.py --render-only --mode koan && python main.py --render-only --mode cucina`
+6. Render smoke test: `python main.py --render-only --mode litclock && python main.py --render-only --mode slowmovie && python main.py --render-only --mode wikipedia && python main.py --render-only --mode weather && python main.py --render-only --mode museo && python main.py --render-only --mode koan && python main.py --render-only --mode cucina && python main.py --render-only --mode flora`
 
 ## Wikipedia Mode
 
@@ -310,22 +312,24 @@ sudo systemctl start talevision
 ## Koan Mode
 
 - `talevision/modes/koan.py` — `KoanMode` class. Archive in `talevision/modes/koan_archive.py`.
-- **Concept**: AI-generated haiku in the user's language. Themes range from deeply philosophical to absurdly trivial — the beauty is in the contrast between zen form and unexpected subject matter. Each haiku is signed with a self-chosen pen name.
-- **Synchronous generation**: every `render()` call generates a fresh haiku via cloud API (~0.5-1.5s). No background thread, no caching, no replaying old haiku. If generation fails, a poetic error screen is shown (warm cream bg, Taviraj Italic, "the poet is silent today").
+- **Concept**: AI-generated haiku and paradoxical koan questions in the user's language. Themes are exclusively surreal and creative — no generic philosophical words. Each haiku is signed with a self-chosen pen name; koan questions stand alone.
+- **Haiku/Koan alternation**: strict alternation based on `archive.count() % 2`. Even count = haiku (3 lines + pen name), odd = koan paradoxical question (1 line, no pen name). If koan generation fails, falls back to haiku. Tech stats line shows `HAIKU ·` or `KOAN ·` prefix.
+- **Synchronous generation**: every `render()` call generates a fresh haiku or koan via cloud API (~0.5-1.5s). No background thread, no caching. If generation fails, a poetic error screen is shown (warm cream bg, Taviraj Italic, "the poet is silent today").
 - **Cloud LLM**: dual backend — Groq API (primary) or Google Gemini (fallback), auto-detected from `secrets.yaml` (`groq_api_key` or `gemini_api_key`). Groq model: `llama-3.3-70b-versatile` (free tier: 100K TPD, ~18K used at 96 haiku/day = 18%). Gemini model: `gemini-2.0-flash-lite`.
-- **Generator**: `talevision/modes/koan_generator.py` — urllib POST to Groq/Gemini API, parses 3 haiku lines + pen name from response. 20 introspective prompt questions rotated randomly. System prompt adapts to configured language. Full metadata tracking: model, prompt/completion/total tokens, generation time.
-- **210 seed themes**: `assets/data/koan_seeds.json` — wild mix of profound, surreal, trivial, and absurd themes expressed as 1-5 word phrases. Examples: "existence", "the topology of tangled earphones", "a parking ticket on a hearse", "the thermodynamics of a hug". Themes stay in English in the header; haiku is written in the configured language.
-- **Multi-language**: `set_language()` from dashboard (same as LitClock/Wikipedia). Default `it`. Supported: en/it/es/pt/fr/de/ja. The 70B model handles the translation implicitly from the English theme.
-- **Archive**: `cache/koan_archive/` — folder-based, one JSON file per haiku (e.g. `20260325-080100_an-ant-carrying-something-impossible.json`). Purely historical — for dashboard/API browsing only, never replayed on display. Each entry: id, timestamp, lines, author_name, seed_word, source, generation_time_ms, model, token counts. API: `GET /api/koan/archive` returns all haiku with full metadata (newest first).
+- **Generator**: `talevision/modes/koan_generator.py` — urllib POST to Groq/Gemini API. Two generation functions: `generate_haiku()` (haiku system prompt, `max_tokens=60`, parses 3 lines + pen name) and `generate_koan()` (Zen master system prompt, `max_tokens=100`, parses single question line). 20 introspective prompt questions rotated randomly. `_call_groq`/`_call_gemini` accept `system_prompt` and `max_tokens` params. Full metadata tracking: model, tokens, timing.
+- **190 surreal seed themes**: `assets/data/koan_seeds.json` — exclusively creative, absurd, and surreal themes. No generic philosophical words (removed: existence, consciousness, silence, etc.). Examples: "the topology of tangled earphones", "a parking ticket on a hearse", "the thermodynamics of a hug", "a kettle forgetting to whistle". Themes stay in English in the header; output is in the configured language.
+- **Multi-language**: `set_language()` from dashboard (same as LitClock/Wikipedia). Default `it`. Supported: en/it/es/pt/fr/de/ja. The 70B model writes natively in the target language.
+- **Archive**: `cache/koan_archive/` — folder-based, one JSON file per entry. Each entry has a `"type"` field (`"haiku"` or `"koan"`). API: `GET /api/koan/archive?type=all|haiku|koan` (newest first). No curated fallback — if LLM fails, error screen shows.
 - **Visual layout** (800×480 e-ink, zen minimalist):
   - Background: `assets/img/haiku-bg-min.png` — bamboo ink wash watercolour, left side.
   - All text **right-aligned** to a common right edge (RIGHT_EDGE = W - 50px). Visual order: top-right to bottom-right.
   - Header: `{theme} · № {id}` in InconsolataNerdFontMono-Bold 18pt, dark grey (80,80,80), top-right.
   - Haiku: 3 lines in **Crimson Text Regular 46pt**, near-black (30,30,30), right-aligned, optically centered at 38% height. Line spacing 54px. Text centered in right ~72% of canvas to avoid bamboo.
   - Pen name: `— {PEN NAME}` in InconsolataNerdFontMono-Bold 18pt, uppercase, dark grey (80,80,80), bottom-right.
-  - Tech stats: `llama-3.3-70b-versatile · 1.5s · 185tok` in InconsolataNerdFontMono-Bold 16pt, dark grey (80,80,80), directly below pen name. Shows model, response time, token count — the cold anatomy of the machine that wrote the poem.
+  - Tech stats: `HAIKU · llama-3.3-70b-versatile · 1.5s · 185tok` in InconsolataNerdFontMono-Bold 16pt, dark grey (80,80,80), directly below pen name. Shows type label, model, response time, token count.
+  - **Koan layout**: same bamboo bg. Single question in Crimson Text 38pt, word-wrapped, right-aligned. No pen name. Tech stats: `KOAN · model · time · tokens` at bottom-right.
   - ~70% negative space. No decorative lines or separators — purity.
-- **Fonts**: Crimson Text Regular + Italic (Google Fonts, static TTF, `assets/fonts/CrimsonText-Regular.ttf` / `CrimsonText-Italic.ttf`). InconsolataNerdFontMono-Bold for all metadata.
+- **Fonts**: Crimson Text Regular 46pt (haiku) / 38pt (koan) + Italic (error). InconsolataNerdFontMono-Bold for all metadata.
 - **Error screen**: warm cream bg (#F5F0E6), no bamboo. "the poet is silent today / words could not cross the wire" in Taviraj Italic 28pt terracotta. CONNECTION ERROR status bar at bottom with backend name and archive count.
 - Config: `koan.refresh_interval` (900s), `koan.archive_dir`, `koan.seed_data`, `koan.language` (default "it"). API keys in `secrets.yaml` (`groq_api_key` and/or `gemini_api_key`).
 - `get_state()` exposes `haiku_id`, `seed_prompt`, `pen_name`, `lines`, `source`, `archive_count`, `generation_time_ms` in status extra.

@@ -44,9 +44,11 @@ As **Weather**, it fetches wttr.in's native ANSI terminal output — ASCII art c
 
 As **Museo**, it picks a random public-domain artwork from one of three world museums — the Met, Cleveland Museum of Art, or the Victoria and Albert Museum — downloads the high-resolution image, enhances it for e-ink, and holds it on the wall with the title, artist, and museum name in a discreet overlay. A QR code links to the museum's page for that object. The three museums rotate in order, one per render cycle. Nearly a million artworks, zero API keys.
 
-As **Koan**, it writes a haiku. A 70-billion-parameter language model receives a theme — which might be "consciousness" or "the topology of tangled earphones" or "a parking ticket on a hearse" — and produces three lines of poetry in the language you've chosen, signed with a self-invented pen name. The theme stays in English in the header; the haiku is written in Italian, or Spanish, or Japanese. Every fifteen minutes, a new poem appears on the wall, and the old one is archived forever. There are 210 themes. The machine does not repeat itself.
+As **Koan**, it alternates between haiku and paradoxical Zen questions. A 70-billion-parameter language model receives a theme — "the topology of tangled earphones", "a parking ticket on a hearse", "the retirement plan of a mayfly" — and either writes three lines of poetry with a self-invented pen name, or poses a single unanswerable question. The theme stays in English; the output is in whatever language you've chosen. Every fifteen minutes, a new piece appears on the wall. There are 190 surreal themes. The machine takes itself exactly as seriously as the themes deserve.
 
 As **Cucina**, it picks a random dish from world cuisines — Thai, Mexican, Moroccan, Japanese, Italian, anything — downloads the food photo, and lays out a full recipe card on the display. The photo sits on a dark background with the dish name in Lobster script; below, the instructions fill the white half. Ingredients in two columns, a QR code linking to the YouTube tutorial. Every five minutes, a new dish. No API key.
+
+As **Flora**, it grows a plant. An L-system grammar, seeded by the current time, produces a botanical specimen — fern, bamboo, flowering vine, narcissus — rendered as a scientific illustration with turtle graphics. Brown trunk graduating to green tips, leaf clusters, four-petal flowers with yellow centres. A cream label card shows the Latin name, family, order, and the production rules that built the thing. No API, no network, no tokens — pure math and a random seed. A different plant every render.
 
 All eight modes share one 800×480 seven-colour e-ink panel, one Pi Zero W, one Flask dashboard, and one quiet conviction: the best thing a screen can do is earn its update.
 
@@ -162,17 +164,19 @@ A 50-ID recent buffer prevents the same artwork from appearing twice in a row �
 
 ## Koan
 
-Every 15 minutes: pick one of 210 themes, send it to a 70-billion-parameter language model, receive a haiku and a pen name, render it on the wall, archive it forever.
+Every 15 minutes: pick one of 190 surreal themes, send it to a 70-billion-parameter language model, get back either a haiku or a paradoxical question, put it on the wall.
 
-The themes range from the philosophical ("consciousness", "the weight of a word you cannot say") to the absurd ("a parking ticket on a hearse", "the topology of tangled earphones", "the retirement plan of a mayfly"). The haiku is written in whatever language you've set on the dashboard — Italian, English, Spanish, Portuguese, French, German, or Japanese. The theme stays in English in the header. The contrast is intentional.
+The mode alternates strictly between the two forms. On even renders: a haiku — three lines and a self-invented pen name. On odd renders: a koan — a single unanswerable Zen question about the theme. The themes are exclusively absurd ("a parking ticket on a hearse", "the topology of tangled earphones", "the retirement plan of a mayfly", "a kettle forgetting to whistle"). No "consciousness". No "existence". No "silence". The philosophical pretension has been surgically removed. What remains is a 70B model contemplating the unemployment of a sundial at night, which is more interesting anyway.
 
-**Layout:** zen minimalist on a bamboo ink wash watercolour background. The haiku is right-aligned in Crimson Text Regular at 46pt, near-black, optically centred at 38% height. Above it: the theme and a sequential number in Inconsolata Mono. Below: the pen name in uppercase, and a tech stats line showing the model, response time, and token count — the cold anatomy of the machine that wrote the poem. About 70% of the canvas is negative space.
+The output is written in whatever language you've set — Italian, Spanish, Japanese, whatever. The theme stays in English in the header. The contrast is intentional.
 
-**Backend:** Groq API (primary, `llama-3.3-70b-versatile`) or Google Gemini (fallback, `gemini-2.0-flash-lite`), auto-detected from `secrets.yaml`. Generation takes ~1 second. The Groq free tier allows 100K tokens per day; at ~180 tokens per haiku and 96 haiku per day, TaleVision uses about 18% of the budget.
+**Layout:** zen minimalist on a bamboo ink wash watercolour background. Haiku: right-aligned in Crimson Text Regular at 46pt, pen name in uppercase below, about 70% negative space. Koan: same background, same alignment, larger font (38pt), word-wrapped, no pen name — the question stands alone. Both show a tech stats line at the bottom: `HAIKU · model · 1.2s · 185tok` or `KOAN · model · 0.8s · 92tok`. The cold anatomy of the machine that wrote the poem.
 
-**Error screen:** when the API is unreachable, the display shows a warm cream background with "the poet is silent today / words could not cross the wire" in Taviraj Italic. Poetic, but visually distinct from a real haiku — you'll know something is wrong.
+**Backend:** Groq API (primary, `llama-3.3-70b-versatile`) or Google Gemini (fallback, `gemini-2.0-flash-lite`), auto-detected from `secrets.yaml`. Generation takes ~1 second. The Groq free tier allows 100K tokens per day; TaleVision uses about 18%.
 
-**Archive:** every haiku is saved as an individual JSON file in `cache/koan_archive/`, with full metadata (model, tokens, timing, theme, pen name). The archive is purely historical — it's never replayed on the display, but it's browsable via the dashboard API.
+**Error screen:** when the API is unreachable, the display shows "the poet is silent today / words could not cross the wire" in Taviraj Italic on warm cream. No fallback to pre-written poems — either the machine produces or it admits defeat.
+
+**Archive:** every haiku and koan is saved as an individual JSON file in `cache/koan_archive/`, with a `type` field and full metadata. The archive page has a filter toggle (all / haiku / koan). Browsable via dashboard, exportable as ZIP.
 
 ---
 

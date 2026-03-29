@@ -189,7 +189,7 @@ Entry format:
 ## 2026-03-25 - Koan: Synchronous Generation + 210 Surreal Themes + Multi-Language
 
 - Context: With cloud LLM (~1s per haiku), the background generator and random replay architecture was over-engineered. Themes were limited to 20 contemplative words. Haiku were English-only.
-- Decision: (1) Synchronous generation: every `render()` generates a fresh haiku directly, no background thread. Archive is purely historical (for dashboard browsing). Poetic error screen on API failure. (2) Expand seed themes from 20 to 210 — wild mix of profound ("consciousness"), surreal ("the autobiography of a pothole"), trivial ("stepping on dog poop at dawn"), and absurd ("a parking ticket on a hearse"). Themes stay in English in the header; haiku is written in the configured language for maximum contrast. (3) Multi-language support via `set_language()` from dashboard (same as LitClock/Wikipedia). Default `it`. System prompt adapts per language; the 70B model handles translation implicitly.
+- Decision: (1) Synchronous generation: every `render()` generates a fresh haiku directly, no background thread. Archive is purely historical (for dashboard browsing). Poetic error screen on API failure. (2) Expand seed themes from 20 to 210 — wild mix of surreal ("the autobiography of a pothole"), trivial ("stepping on dog poop at dawn"), and absurd ("a parking ticket on a hearse"). Themes stay in English in the header; haiku is written in the configured language for maximum contrast. (3) Multi-language support via `set_language()` from dashboard (same as LitClock/Wikipedia). Default `it`. System prompt adapts per language; the 70B model handles translation implicitly. **Note**: themes later pruned to 190 — see 2026-03-29 decision.
 - Impact/Tradeoffs: Simpler architecture (no threading). Each render requires a working API call — no graceful degradation to cached haiku. Error screen is intentionally poetic. The English theme + local language haiku contrast is a deliberate aesthetic choice.
 
 ## 2026-03-25 - Koan Archive Wall Page
@@ -269,3 +269,15 @@ Entry format:
 - Context: The orchestrator had a hardcoded `_frame_paths` dict mapping mode names to PNG cache files. Koan, Cucina, and Flora were missing. Their frames were never saved to disk, causing the dashboard frame preview endpoint (`GET /api/frame`) to return 404 ("no signal") when any of these modes was active.
 - Decision: Add `"koan"`, `"cucina"`, `"flora"` to `_frame_paths` in orchestrator `__init__`. Each mode's render loop already called `_save_frame(frame, active_name)` — it just silently skipped unknown names. The fix is a 3-line addition.
 - Impact/Tradeoffs: All 8 modes now have working frame previews in the dashboard. Future modes must be added to `_frame_paths` at registration time.
+
+## 2026-03-29 - Koan: Haiku/Koan Alternation + Surreal Themes Only
+
+- Context: Koan mode only produced haiku. Philosophical themes ("consciousness", "existence", "silence") felt generic and boring on the wall. Curated fallback haiku were a leftover from the abandoned embedded LLM (llama.zero).
+- Decision: (1) Strict alternation between haiku (3 lines + pen name) and paradoxical koan questions (single Zen riddle, no pen name). Based on `archive.count() % 2`. Fallback to haiku if koan generation fails. (2) Remove all 20 generic philosophical themes, keeping 190 exclusively surreal/creative ones. (3) Remove curated fallback haiku — either the LLM generates or the error screen shows. (4) Tech stats line prefixed with `HAIKU ·` or `KOAN ·`. (5) Archive JSON gains `"type"` field; API supports `?type=all|haiku|koan` filter. (6) Frontend: filter toggle in archive page, koan cards show no pen name.
+- Impact/Tradeoffs: More variety on the wall. Koan questions use a different system prompt ("Zen master" vs "contemplative poet") and `max_tokens=100` (vs 60 for haiku). The alternation is deterministic from the archive count — visible in the tech stats line.
+
+## 2026-03-29 - Flora: Time-Based Seed for Variety
+
+- Context: Flora used `date.today().isoformat()` as seed, producing the same plant all day regardless of refresh interval. This was intended as a "one specimen per day" herbarium concept but felt boring.
+- Decision: Changed seed to `datetime.now().isoformat()` — each render produces a unique plant. Archive still saves one per day (first render wins).
+- Impact/Tradeoffs: Every refresh shows a different species/genus/form. Lost the "daily collectible" concept but gained actual visual variety.
