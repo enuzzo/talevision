@@ -863,6 +863,7 @@ interface KoanHaiku {
   generation_time_ms: number
   model?: string
   total_tokens?: number
+  type?: 'haiku' | 'koan'
 }
 
 function KoanArchivePanel({ onViewAll }: { onViewAll: () => void }) {
@@ -888,7 +889,7 @@ function KoanArchivePanel({ onViewAll }: { onViewAll: () => void }) {
           onClick={onViewAll}
           className="font-mono text-xs text-accent hover:text-accent-hover transition-colors"
         >
-          {count} haiku — view all →
+          {count} entries — view all →
         </button>
       </div>
 
@@ -898,7 +899,9 @@ function KoanArchivePanel({ onViewAll }: { onViewAll: () => void }) {
           <div style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontStyle: 'italic' }} className="text-sm text-primary leading-relaxed">
             {latest.lines.map((line, i) => <div key={i}>{line}</div>)}
           </div>
-          <div className="mt-2 font-mono text-xs text-muted/80">— {latest.author_name}</div>
+          {latest.author_name && (
+            <div className="mt-2 font-mono text-xs text-muted/80">— {latest.author_name}</div>
+          )}
         </div>
       )}
     </section>
@@ -909,6 +912,7 @@ function KoanArchivePanel({ onViewAll }: { onViewAll: () => void }) {
 function KoanArchivePage({ onBack }: { onBack: () => void }) {
   const [search, setSearch] = useState('')
   const [visibleCount, setVisibleCount] = useState(30)
+  const [typeFilter, setTypeFilter] = useState<'all' | 'haiku' | 'koan'>('all')
 
   const { data, isLoading } = useQuery({
     queryKey: ['koan-archive'],
@@ -921,13 +925,17 @@ function KoanArchivePage({ onBack }: { onBack: () => void }) {
   const count = data?.count ?? 0
   const allHaiku = data?.haiku ?? []
 
+  const typeFiltered = typeFilter === 'all'
+    ? allHaiku
+    : allHaiku.filter(h => (h.type ?? 'haiku') === typeFilter)
+
   const filtered = search.trim()
-    ? allHaiku.filter(h =>
+    ? typeFiltered.filter(h =>
         h.seed_word.toLowerCase().includes(search.toLowerCase()) ||
         h.author_name.toLowerCase().includes(search.toLowerCase()) ||
         h.lines.some(l => l.toLowerCase().includes(search.toLowerCase()))
       )
-    : allHaiku
+    : typeFiltered
 
   const visible = filtered.slice(0, visibleCount)
   const hasMore = visibleCount < filtered.length
@@ -979,6 +987,22 @@ function KoanArchivePage({ onBack }: { onBack: () => void }) {
               }}
             />
           </div>
+          <div className="flex items-center gap-2 mt-2">
+            {(['all', 'haiku', 'koan'] as const).map(t => (
+              <button
+                key={t}
+                onClick={() => { setTypeFilter(t); setVisibleCount(30) }}
+                className="font-mono text-xs px-3 py-1 rounded-full transition-all duration-200"
+                style={{
+                  background: typeFilter === t ? '#FF1DA5' : 'rgba(0,0,0,0.04)',
+                  color: typeFilter === t ? '#FFFFFF' : '#A09890',
+                  fontWeight: typeFilter === t ? 700 : 400,
+                }}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 
@@ -988,7 +1012,7 @@ function KoanArchivePage({ onBack }: { onBack: () => void }) {
           <p className="font-mono text-sm text-center py-20" style={{ color: '#A09890' }}>loading…</p>
         ) : filtered.length === 0 ? (
           <p className="font-mono text-sm text-center py-20" style={{ color: '#A09890' }}>
-            {search ? 'no haiku match your search' : 'no haiku yet'}
+            {search ? 'no entries match your search' : 'no entries yet'}
           </p>
         ) : (
           <>
@@ -1020,7 +1044,7 @@ function KoanArchivePage({ onBack }: { onBack: () => void }) {
       {/* ── Footer ── */}
       <footer className="text-center py-8">
         <span className="font-mono text-[10px]" style={{ color: '#C0B8B0' }}>
-          TaleVision · Koan · {count} haiku preserved
+          TaleVision · Koan · {count} entries preserved
         </span>
       </footer>
     </div>
@@ -1065,7 +1089,7 @@ function HaikuCard({ haiku: h }: { haiku: KoanHaiku; index?: number }) {
           style={{
             fontFamily: 'Georgia, "Crimson Text", "Times New Roman", serif',
             fontStyle: 'italic',
-            fontSize: '14px',
+            fontSize: (h.type ?? 'haiku') === 'koan' ? '16px' : '14px',
             lineHeight: '1.8',
             color: '#2A2A3E',
           }}
@@ -1076,9 +1100,11 @@ function HaikuCard({ haiku: h }: { haiku: KoanHaiku; index?: number }) {
         </div>
 
         {/* Pen name */}
-        <div className="font-mono text-xs mb-3" style={{ color: '#FF1DA5' }}>
-          — {h.author_name}
-        </div>
+        {(h.type ?? 'haiku') === 'haiku' && h.author_name && (
+          <div className="font-mono text-xs mb-3" style={{ color: '#FF1DA5' }}>
+            — {h.author_name}
+          </div>
+        )}
 
         {/* Metadata footer */}
         <div
