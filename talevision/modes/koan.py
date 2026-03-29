@@ -243,9 +243,9 @@ class KoanMode(DisplayMode):
             gen_s = gen_ms / 1000.0
             model_short = model.split("/")[-1]
             tokens = haiku.get("total_tokens", 0)
-            tech_text = f"{model_short} \u00b7 {gen_s:.1f}s \u00b7 {tokens}tok"
+            tech_text = f"HAIKU \u00b7 {model_short} \u00b7 {gen_s:.1f}s \u00b7 {tokens}tok"
         else:
-            tech_text = f"seed:{seed_word}"
+            tech_text = f"HAIKU \u00b7 seed:{seed_word}"
         tw = draw.textbbox((0, 0), tech_text, font=self._font_tech)[2]
         draw.text((RIGHT_EDGE - tw, pen_y + 26), tech_text,
                   font=self._font_tech, fill=FILL)
@@ -308,9 +308,9 @@ class KoanMode(DisplayMode):
             gen_s = gen_ms / 1000.0
             model_short = model.split("/")[-1]
             tokens = entry.get("total_tokens", 0)
-            tech_text = f"{model_short} \u00b7 {gen_s:.1f}s \u00b7 {tokens}tok"
+            tech_text = f"KOAN \u00b7 {model_short} \u00b7 {gen_s:.1f}s \u00b7 {tokens}tok"
         else:
-            tech_text = f"seed:{seed_word}"
+            tech_text = f"KOAN \u00b7 seed:{seed_word}"
         tw = draw.textbbox((0, 0), tech_text, font=self._font_tech)[2]
         draw.text((RIGHT_EDGE - tw, h - 60), tech_text,
                   font=self._font_tech, fill=FILL)
