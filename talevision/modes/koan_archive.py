@@ -33,13 +33,15 @@ class KoanArchive:
     def append(self, lines: list, seed_word: str, author_name: str,
                source: str = "generated", generation_time_ms: int = 0,
                model: str = "", prompt_tokens: int = 0,
-               completion_tokens: int = 0, total_tokens: int = 0) -> int:
+               completion_tokens: int = 0, total_tokens: int = 0,
+               entry_type: str = "haiku") -> int:
         files = self._list_files()
         new_id = len(files) + 1
         ts = datetime.now(timezone.utc)
         ts_str = ts.strftime("%Y%m%d-%H%M%S")
         entry = {
             "id": new_id,
+            "type": entry_type,
             "timestamp": ts.isoformat(),
             "lines": lines,
             "seed_word": seed_word,

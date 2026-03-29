@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 from talevision.config.schema import AppConfig
 from talevision.modes.base import DisplayMode, ModeState
 from talevision.modes.koan_archive import KoanArchive
-from talevision.modes.koan_generator import generate_haiku, get_random_prompt
+from talevision.modes.koan_generator import generate_haiku, generate_koan, get_random_prompt
 
 log = logging.getLogger(__name__)
 
@@ -29,6 +29,7 @@ class KoanMode(DisplayMode):
         self._font_haiku = _load_font(fonts_dir / "CrimsonText-Regular.ttf", 46)
         self._font_mono = _load_font(fonts_dir / "InconsolataNerdFontMono-Bold.ttf", 18)
         self._font_tech = _load_font(fonts_dir / "InconsolataNerdFontMono-Bold.ttf", 16)
+        self._font_koan = _load_font(fonts_dir / "CrimsonText-Regular.ttf", 38)
         self._font_error = _load_font(fonts_dir / "Taviraj-Italic.ttf", 28)
         self._font_error_small = _load_font(fonts_dir / "InconsolataNerdFontMono-Bold.ttf", 14)
 
@@ -83,15 +84,68 @@ class KoanMode(DisplayMode):
 
         seed_word = self._archive.get_random_seed_word()
         prompt_q = get_random_prompt()
-        result = generate_haiku(
-            api_key=self._api_key,
-            backend=self._backend,
-            seed_word=seed_word,
-            prompt_question=prompt_q,
-            language=self._language,
-        )
 
-        if result:
+        # Strict alternation: even count = haiku, odd = koan
+        current_count = self._archive.count()
+        is_koan = (current_count % 2) == 1
+
+        if is_koan:
+            result = generate_koan(
+                api_key=self._api_key,
+                backend=self._backend,
+                seed_word=seed_word,
+                prompt_question=prompt_q,
+                language=self._language,
+            )
+            # Fallback to haiku if koan generation fails
+            if not result:
+                log.warning("Koan: koan generation failed, falling back to haiku")
+                is_koan = False
+                result = generate_haiku(
+                    api_key=self._api_key,
+                    backend=self._backend,
+                    seed_word=seed_word,
+                    prompt_question=prompt_q,
+                    language=self._language,
+                )
+        else:
+            result = generate_haiku(
+                api_key=self._api_key,
+                backend=self._backend,
+                seed_word=seed_word,
+                prompt_question=prompt_q,
+                language=self._language,
+            )
+
+        if result and is_koan:
+            entry_id = self._archive.append(
+                lines=[result["line"]],
+                seed_word=seed_word,
+                author_name="",
+                source=self._backend,
+                generation_time_ms=result["generation_time_ms"],
+                model=result.get("model", ""),
+                prompt_tokens=result.get("prompt_tokens", 0),
+                completion_tokens=result.get("completion_tokens", 0),
+                total_tokens=result.get("total_tokens", 0),
+                entry_type="koan",
+            )
+            entry = {
+                "id": entry_id,
+                "type": "koan",
+                "lines": [result["line"]],
+                "seed_word": seed_word,
+                "author_name": "",
+                "source": self._backend,
+                "generation_time_ms": result["generation_time_ms"],
+                "model": result.get("model", ""),
+                "total_tokens": result.get("total_tokens", 0),
+            }
+            self._last_haiku = entry
+            log.info("Koan: fresh koan #%d (seed=%s)", entry_id, seed_word)
+            return self._draw_koan_frame(w, h, entry)
+
+        elif result:
             haiku_id = self._archive.append(
                 lines=result["lines"],
                 seed_word=seed_word,
@@ -102,9 +156,11 @@ class KoanMode(DisplayMode):
                 prompt_tokens=result.get("prompt_tokens", 0),
                 completion_tokens=result.get("completion_tokens", 0),
                 total_tokens=result.get("total_tokens", 0),
+                entry_type="haiku",
             )
             haiku = {
                 "id": haiku_id,
+                "type": "haiku",
                 "lines": result["lines"],
                 "seed_word": seed_word,
                 "author_name": result["author_name"],
@@ -196,6 +252,71 @@ class KoanMode(DisplayMode):
 
         return img
 
+    def _draw_koan_frame(self, w: int, h: int, entry: dict) -> Image.Image:
+        """Render a paradoxical koan question — right-aligned, larger font, no pen name."""
+        if self._bg_image:
+            img = ImageOps.fit(self._bg_image.copy(), (w, h), Image.LANCZOS)
+        else:
+            img = Image.new("RGB", (w, h), (255, 255, 255))
+        draw = ImageDraw.Draw(img)
+
+        RIGHT_EDGE = w - 50
+        TOP_MARGIN = 40
+        FILL = (80, 80, 80)
+        KOAN_FILL = (30, 30, 30)
+
+        koan_id = entry.get("id", 0)
+        seed_word = entry.get("seed_word", "")
+        koan_line = entry["lines"][0] if entry.get("lines") else ""
+
+        # --- Theme + №: top-right ---
+        header_text = f"{seed_word} \u00b7 \u2116 {koan_id}"
+        hw = draw.textbbox((0, 0), header_text, font=self._font_mono)[2]
+        draw.text((RIGHT_EDGE - hw, TOP_MARGIN), header_text,
+                  font=self._font_mono, fill=FILL)
+
+        # --- Koan: word-wrapped, right-aligned, optical center ---
+        max_text_w = w - 140
+        words = koan_line.split()
+        wrapped_lines = []
+        current = ""
+        for word in words:
+            test = f"{current} {word}".strip()
+            tw = draw.textbbox((0, 0), test, font=self._font_koan)[2]
+            if tw > max_text_w and current:
+                wrapped_lines.append(current)
+                current = word
+            else:
+                current = test
+        if current:
+            wrapped_lines.append(current)
+
+        line_spacing = 48
+        total_h = len(wrapped_lines) * line_spacing
+        optical_y = int(h * 0.38)
+        top_y = optical_y - total_h // 2
+
+        for i, line in enumerate(wrapped_lines):
+            lw = draw.textbbox((0, 0), line, font=self._font_koan)[2]
+            draw.text((RIGHT_EDGE - lw, top_y + i * line_spacing), line,
+                      font=self._font_koan, fill=KOAN_FILL)
+
+        # --- Tech stats: bottom-right (no pen name for koan) ---
+        gen_ms = entry.get("generation_time_ms", 0)
+        model = entry.get("model", "")
+        if gen_ms > 0 and model:
+            gen_s = gen_ms / 1000.0
+            model_short = model.split("/")[-1]
+            tokens = entry.get("total_tokens", 0)
+            tech_text = f"{model_short} \u00b7 {gen_s:.1f}s \u00b7 {tokens}tok"
+        else:
+            tech_text = f"seed:{seed_word}"
+        tw = draw.textbbox((0, 0), tech_text, font=self._font_tech)[2]
+        draw.text((RIGHT_EDGE - tw, h - 60), tech_text,
+                  font=self._font_tech, fill=FILL)
+
+        return img
+
     def _error_image(self, w: int, h: int) -> Image.Image:
         """Poetic error screen — visually distinct from haiku layout."""
         img = Image.new("RGB", (w, h), (245, 240, 230))
@@ -215,7 +336,7 @@ class KoanMode(DisplayMode):
                       font=self._font_error, fill=ERROR_FILL)
             y += 42
 
-        status = f"CONNECTION ERROR \u00b7 {self._backend} \u00b7 {self._archive.count()} haiku in archive"
+        status = f"CONNECTION ERROR \u00b7 {self._backend} \u00b7 {self._archive.count()} entries in archive"
         sw = draw.textbbox((0, 0), status, font=self._font_error_small)[2]
         draw.text((RIGHT_EDGE - sw, h - 60), status,
                   font=self._font_error_small, fill=(140, 140, 140))

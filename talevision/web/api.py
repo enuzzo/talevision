@@ -263,18 +263,21 @@ def set_weather_units():
 
 @api_bp.get("/koan/archive")
 def koan_archive():
-    """GET /api/koan/archive — list all generated haiku."""
+    """GET /api/koan/archive — list all generated haiku/koan. ?type=haiku|koan|all"""
     koan = _orchestrator()._modes.get("koan")
     if not koan:
         return jsonify({"haiku": [], "count": 0})
     archive = koan._archive
     files = archive._list_files()
-    haiku_list = []
+    type_filter = request.args.get("type", "all")
+    items = []
     for fp in reversed(files):  # newest first
         entry = archive._load_file(fp)
         if entry:
-            haiku_list.append(entry)
-    return jsonify({"haiku": haiku_list, "count": len(haiku_list)})
+            if type_filter != "all" and entry.get("type", "haiku") != type_filter:
+                continue
+            items.append(entry)
+    return jsonify({"haiku": items, "count": len(items)})
 
 
 @api_bp.get("/koan/archive/export")
