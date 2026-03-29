@@ -275,10 +275,10 @@ class KoanMode(DisplayMode):
         draw.text((RIGHT_EDGE - hw, TOP_MARGIN), header_text,
                   font=self._font_mono, fill=FILL)
 
-        # --- Koan: word-wrapped, right-aligned, optical center ---
-        max_text_w = w - 140
+        # --- Koan: word-wrapped, right-aligned, optical center, max 3 lines ---
+        max_text_w = w - 300
         words = koan_line.split()
-        wrapped_lines = []
+        wrapped_lines: list[str] = []
         current = ""
         for word in words:
             test = f"{current} {word}".strip()
@@ -290,6 +290,17 @@ class KoanMode(DisplayMode):
                 current = test
         if current:
             wrapped_lines.append(current)
+
+        # Cap at 3 lines — truncate last with "…" if overflow
+        if len(wrapped_lines) > 3:
+            third = wrapped_lines[2]
+            while True:
+                candidate = third + " \u2026"
+                cw = draw.textbbox((0, 0), candidate, font=self._font_koan)[2]
+                if cw <= max_text_w or " " not in third:
+                    break
+                third = third.rsplit(" ", 1)[0]
+            wrapped_lines = wrapped_lines[:2] + [third + " \u2026"]
 
         line_spacing = 48
         total_h = len(wrapped_lines) * line_spacing
