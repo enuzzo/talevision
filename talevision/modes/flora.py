@@ -3,7 +3,7 @@ import json
 import math
 import random
 import logging
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -123,7 +123,7 @@ _SPECIES = [
 
 _MAX_STR_LEN = 80_000
 _PLANT_PANEL_W = 500
-_FOOTER_H = 40
+_FOOTER_H = 44
 _MARGIN = 18
 _LABEL_X = 504
 _LABEL_PAD = 20
@@ -282,12 +282,13 @@ class FloraMode(DisplayMode):
         self._base_dir = base_dir
 
         fonts = base_dir / "assets" / "fonts"
-        self._font_specimen  = _load_font(fonts / "Signika-Regular.ttf", 15)
-        self._font_genus     = _load_font(fonts / "Lobster-Regular.ttf", 34)
-        self._font_epithet   = _load_font(fonts / "Taviraj-Italic.ttf", 20)
-        self._font_detail    = _load_font(fonts / "Taviraj-Regular.ttf", 14)
+        self._font_specimen  = _load_font(fonts / "Signika-Bold.ttf", 18)
+        self._font_genus     = _load_font(fonts / "Lobster-Regular.ttf", 38)
+        self._font_epithet   = _load_font(fonts / "Taviraj-Italic.ttf", 24)
+        self._font_detail    = _load_font(fonts / "Taviraj-Regular.ttf", 17)
         self._font_footer    = _load_font(fonts / "Signika-Bold.ttf", 16)
-        self._font_footer_sm = _load_font(fonts / "InconsolataNerdFontMono-Bold.ttf", 13)
+        self._font_footer_sm = _load_font(fonts / "InconsolataNerdFontMono-Bold.ttf", 15)
+        self._font_formula   = _load_font(fonts / "InconsolataNerdFontMono-Bold.ttf", 12)
 
         self._last_species_id = ""
         self._last_genus = ""
@@ -447,71 +448,95 @@ class FloraMode(DisplayMode):
         # ── Label card ────────────────────────────────────────────────────────
         lx = _LABEL_X + _LABEL_PAD
         label_inner_w = w - lx - _LABEL_PAD
+        div_w = min(label_inner_w, 220)
 
-        y = 32
+        y = 28
 
-        # "Specimen #XXXX"
-        specimen_str = f"Specimen  #{specimen_num:04d}"
-        draw.text((lx, y), specimen_str, font=self._font_specimen, fill=_TEXT_LIGHT)
-        y += 32
+        # "Specimen #XXXX" — bold, mid-dark
+        draw.text((lx, y), f"Specimen  #{specimen_num:04d}", font=self._font_specimen, fill=_TEXT_GRAY)
+        y += 28
 
-        # Genus name (Lobster, large)
+        # Genus name (Lobster, larger)
         genus_text = genus
         bbox = draw.textbbox((0, 0), genus_text, font=self._font_genus)
         if (bbox[2] - bbox[0]) > label_inner_w:
             genus_text = genus_text[:10] + "…"
         draw.text((lx, y), genus_text, font=self._font_genus, fill=_TEXT_NAVY)
-        y += (bbox[3] - bbox[1]) + 6
+        y += (bbox[3] - bbox[1]) + 4
 
-        # Epithet (italic)
-        draw.text((lx, y), epithet, font=self._font_epithet, fill=_TEXT_GRAY)
-        y += 28
+        # Epithet (italic, bigger and darker)
+        draw.text((lx, y), epithet, font=self._font_epithet, fill=_TEXT_NAVY)
+        y += 34
 
-        # Thin separator
-        y += 6
-        draw.line([(lx, y), (lx + min(label_inner_w, 200), y)], fill=_SEP_LINE, width=1)
-        y += 12
+        # Separator
+        draw.line([(lx, y), (lx + div_w, y)], fill=_TEXT_GRAY, width=2)
+        y += 14
 
-        # Family / Order
-        draw.text((lx, y), f"Fam.  {species['family']}", font=self._font_detail, fill=_TEXT_GRAY)
-        y += 20
-        draw.text((lx, y), f"Ord.  {species['order']}", font=self._font_detail, fill=_TEXT_GRAY)
-        y += 36
+        # Family / Order — bigger and darker
+        draw.text((lx, y), f"Fam.  {species['family']}", font=self._font_detail, fill=_TEXT_NAVY)
+        y += 24
+        draw.text((lx, y), f"Ord.  {species['order']}", font=self._font_detail, fill=_TEXT_NAVY)
+        y += 30
 
-        # Observation date
+        # Separator
+        draw.line([(lx, y), (lx + div_w, y)], fill=_TEXT_GRAY, width=2)
+        y += 14
+
+        # Observation date — both label and text darker/bigger
         try:
             from babel.dates import format_date
             date_str = format_date(today, "d MMMM yyyy", locale="en")
         except Exception:
             date_str = today.strftime("%d %B %Y")
 
-        draw.text((lx, y), "Observed", font=self._font_detail, fill=_TEXT_LIGHT)
-        y += 18
+        draw.text((lx, y), "Observed", font=self._font_detail, fill=_TEXT_GRAY)
+        y += 24
         draw.text((lx, y), date_str, font=self._font_detail, fill=_TEXT_NAVY)
-        y += 22
+        y += 26
 
         # Location (optional)
         if self._cfg.location:
             draw.text((lx, y), self._cfg.location, font=self._font_detail, fill=_TEXT_GRAY)
+            y += 26
 
-        # ── Footer bar ────────────────────────────────────────────────────────
-        draw.rectangle([(0, h - _FOOTER_H), (w, h)], fill=_DARK_NAVY)
+        # Separator
+        draw.line([(lx, y), (lx + div_w, y)], fill=_SEP_LINE, width=2)
+        y += 12
 
+        # L-system formula — Inconsolata mono, strong visual contrast
+        for sym, rule in species["rules"].items():
+            line = f"{sym} \u2192 {rule}"
+            if len(line) > 26:
+                line = line[:24] + "\u2026"
+            draw.text((lx, y), line, font=self._font_formula, fill=_TEXT_GRAY)
+            y += 17
         draw.text(
-            (_MARGIN, h - _FOOTER_H + 11),
-            "FLORA",
-            font=self._font_footer,
-            fill=(255, 255, 255),
-        )
-
-        seed_info = f"Seed: {today.strftime('%Y%m%d')}  ·  L-Sys {species['id']}  ·  iter {species['iterations']}"
-        bbox_info = draw.textbbox((0, 0), seed_info, font=self._font_footer_sm)
-        info_w = bbox_info[2] - bbox_info[0]
-        draw.text(
-            (w - info_w - _MARGIN, h - _FOOTER_H + 12),
-            seed_info,
-            font=self._font_footer_sm,
+            (lx, y),
+            f"\u03b1 = {species['angle']:.0f}\u00b0   n = {species['iterations']}",
+            font=self._font_formula,
             fill=_TEXT_LIGHT,
         )
+
+        # ── Footer bar ────────────────────────────────────────────────────────
+        fy = h - _FOOTER_H
+        draw.rectangle([(0, fy), (w, h)], fill=_DARK_NAVY)
+
+        footer_y = fy + (_FOOTER_H - 16) // 2
+
+        # Left: "FLORA"
+        draw.text((_MARGIN, footer_y), "FLORA", font=self._font_footer, fill=(255, 255, 255))
+
+        # Right: HH:MM · Weekday DD Mon
+        now = datetime.now()
+        time_str = f"{now.strftime('%H:%M')}  \u00b7  {now.strftime('%a %d %b').upper()}"
+        bbox_t = draw.textbbox((0, 0), time_str, font=self._font_footer_sm)
+        draw.text((w - (bbox_t[2] - bbox_t[0]) - _MARGIN, footer_y + 1), time_str,
+                  font=self._font_footer_sm, fill=(255, 255, 255))
+
+        # Centre: seed · species · iter
+        seed_info = f"seed {today.strftime('%Y%m%d')}  \u00b7  {species['id']}  \u00b7  iter {species['iterations']}"
+        bbox_s = draw.textbbox((0, 0), seed_info, font=self._font_footer_sm)
+        cx = w // 2 - (bbox_s[2] - bbox_s[0]) // 2
+        draw.text((cx, footer_y + 1), seed_info, font=self._font_footer_sm, fill=_TEXT_LIGHT)
 
         return canvas
