@@ -288,7 +288,7 @@ class FloraMode(DisplayMode):
         self._font_detail    = _load_font(fonts / "Taviraj-Regular.ttf", 17)
         self._font_footer    = _load_font(fonts / "Signika-Bold.ttf", 16)
         self._font_footer_sm = _load_font(fonts / "InconsolataNerdFontMono-Bold.ttf", 15)
-        self._font_formula   = _load_font(fonts / "InconsolataNerdFontMono-Bold.ttf", 12)
+        self._font_formula   = _load_font(fonts / "InconsolataNerdFontMono-Bold.ttf", 14)
 
         self._last_species_id = ""
         self._last_genus = ""
@@ -453,8 +453,8 @@ class FloraMode(DisplayMode):
 
         y = 28
 
-        # "Specimen #XXXX" — bold, mid-dark
-        draw.text((lx, y), f"Specimen  #{specimen_num:04d}", font=self._font_specimen, fill=_TEXT_GRAY)
+        # "SPECIMEN #XXXX" — bold, dark
+        draw.text((lx, y), f"SPECIMEN  #{specimen_num:04d}", font=self._font_specimen, fill=_TEXT_NAVY)
         y += 28
 
         # Genus name (Lobster, larger)
@@ -473,10 +473,12 @@ class FloraMode(DisplayMode):
         draw.line([(lx, y), (lx + div_w, y)], fill=_TEXT_GRAY, width=2)
         y += 14
 
-        # Family / Order — bigger and darker
-        draw.text((lx, y), f"Fam.  {species['family']}", font=self._font_detail, fill=_TEXT_NAVY)
+        # Family / Order — label uppercase dark, value navy
+        draw.text((lx, y), "FAM.", font=self._font_specimen, fill=_TEXT_NAVY)
+        draw.text((lx + 48, y), species['family'], font=self._font_detail, fill=_TEXT_NAVY)
         y += 24
-        draw.text((lx, y), f"Ord.  {species['order']}", font=self._font_detail, fill=_TEXT_NAVY)
+        draw.text((lx, y), "ORD.", font=self._font_specimen, fill=_TEXT_NAVY)
+        draw.text((lx + 48, y), species['order'], font=self._font_detail, fill=_TEXT_NAVY)
         y += 30
 
         # Separator
@@ -490,7 +492,7 @@ class FloraMode(DisplayMode):
         except Exception:
             date_str = today.strftime("%d %B %Y")
 
-        draw.text((lx, y), "Observed", font=self._font_detail, fill=_TEXT_GRAY)
+        draw.text((lx, y), "OBSERVED", font=self._font_specimen, fill=_TEXT_NAVY)
         y += 24
         draw.text((lx, y), date_str, font=self._font_detail, fill=_TEXT_NAVY)
         y += 26
@@ -504,18 +506,20 @@ class FloraMode(DisplayMode):
         draw.line([(lx, y), (lx + div_w, y)], fill=_SEP_LINE, width=2)
         y += 12
 
-        # L-system formula — Inconsolata mono, strong visual contrast
+        # L-system formula — titled, darker, bigger
+        draw.text((lx, y), "L-SYSTEM", font=self._font_specimen, fill=_TEXT_NAVY)
+        y += 22
         for sym, rule in species["rules"].items():
             line = f"{sym} \u2192 {rule}"
-            if len(line) > 26:
-                line = line[:24] + "\u2026"
-            draw.text((lx, y), line, font=self._font_formula, fill=_TEXT_GRAY)
+            if len(line) > 24:
+                line = line[:22] + "\u2026"
+            draw.text((lx, y), line, font=self._font_formula, fill=_TEXT_NAVY)
             y += 17
         draw.text(
             (lx, y),
             f"\u03b1 = {species['angle']:.0f}\u00b0   n = {species['iterations']}",
             font=self._font_formula,
-            fill=_TEXT_LIGHT,
+            fill=_TEXT_GRAY,
         )
 
         # ── Footer bar ────────────────────────────────────────────────────────
