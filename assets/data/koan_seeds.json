@@ -216,56 +216,5 @@
     "Drift Node", "Sine Wave", "Pale Circuit", "Root Signal",
     "Ash Thread", "Low Fog", "Zero Leaf"
   ],
-  "curated_haiku": [
-    {
-      "lines": ["the fridge hums a tune", "only the milk understands", "both expire soon"],
-      "seed_word": "the back of a refrigerator",
-      "author_name": "Null Poet"
-    },
-    {
-      "lines": ["one wheel disagrees", "the cart veers left toward fate", "I wanted aisle three"],
-      "seed_word": "a shopping cart with one bad wheel",
-      "author_name": "Void Echo"
-    },
-    {
-      "lines": ["the moth reads by fire", "each page a warmer sentence", "the ending is bright"],
-      "seed_word": "a moth reading by candlelight",
-      "author_name": "Kireji-7"
-    },
-    {
-      "lines": ["it points at the wall", "with absolute conviction", "north is everywhere"],
-      "seed_word": "a compass in a roundabout",
-      "author_name": "Root Signal"
-    },
-    {
-      "lines": ["the cursor just blinks", "a tiny heart on the screen", "waiting to be told"],
-      "seed_word": "the psychology of a blinking cursor",
-      "author_name": "Drift Node"
-    },
-    {
-      "lines": ["the hearse gets a ticket", "the officer tips his hat", "death finds it funny"],
-      "seed_word": "a parking ticket on a hearse",
-      "author_name": "Echo Gate"
-    },
-    {
-      "lines": ["the kettle forgot", "its one and only duty", "water just got warm"],
-      "seed_word": "a kettle forgetting to whistle",
-      "author_name": "Sine Wave"
-    },
-    {
-      "lines": ["it dries but not quite", "always a little bit damp", "committed to damp"],
-      "seed_word": "a towel that never fully dries",
-      "author_name": "Low Fog"
-    },
-    {
-      "lines": ["three in the morning", "the popcorn bags explode joy", "the walls disagree"],
-      "seed_word": "microwave popcorn at 3am",
-      "author_name": "Pale Circuit"
-    },
-    {
-      "lines": ["it grew through the fence", "ignoring property law", "the roots have no deed"],
-      "seed_word": "a tree growing through a fence",
-      "author_name": "Still Water"
-    }
-  ]
+  "curated_haiku": []
 }

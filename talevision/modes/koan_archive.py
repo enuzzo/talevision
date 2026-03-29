@@ -23,7 +23,7 @@ class KoanArchive:
                     self._seeds = json.load(f)
             except Exception as exc:
                 log.warning("Koan seed data load failed: %s", exc)
-                self._seeds = {"seed_words": [], "pen_names": [], "curated_haiku": []}
+                self._seeds = {"seed_words": [], "pen_names": []}
         return self._seeds
 
     def _list_files(self) -> list[Path]:
@@ -74,32 +74,10 @@ class KoanArchive:
             return None
         return self._load_file(files[-1])
 
-    def get_random(self) -> Optional[dict]:
-        files = self._list_files()
-        if not files:
-            return self.get_curated_haiku()
-        return self._load_file(random.choice(files))
-
     def count(self) -> int:
         return len(self._list_files())
 
     def get_random_seed_word(self) -> str:
         seeds = self._load_seeds()
-        words = seeds.get("seed_words", ["silence"])
+        words = seeds.get("seed_words", ["a towel that never fully dries"])
         return random.choice(words)
-
-    def get_curated_haiku(self) -> Optional[dict]:
-        seeds = self._load_seeds()
-        curated = seeds.get("curated_haiku", [])
-        if not curated:
-            return None
-        h = random.choice(curated)
-        return {
-            "id": 0,
-            "timestamp": "",
-            "lines": h["lines"],
-            "seed_word": h["seed_word"],
-            "author_name": h["author_name"],
-            "source": "curated",
-            "generation_time_ms": 0,
-        }
