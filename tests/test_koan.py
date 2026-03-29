@@ -1,5 +1,5 @@
 """Tests for Koan mode — parser robustness."""
-from talevision.modes.koan_generator import _parse_output
+from talevision.modes.koan_generator import _parse_output, _parse_koan_output
 
 
 def test_clean_output():
@@ -79,3 +79,44 @@ def test_double_hyphen_pen_name():
     r = _parse_output(raw, 100000)
     assert r is not None
     assert r["author_name"] == "Void Echo"
+
+
+def test_koan_clean_output():
+    raw = "If silence has a shape, why does it shatter when named?"
+    r = _parse_koan_output(raw, 800)
+    assert r is not None
+    assert r["line"] == "If silence has a shape, why does it shatter when named?"
+    assert r["generation_time_ms"] == 800
+
+
+def test_koan_strips_preamble():
+    raw = "Here is a Zen koan:\n\nIf silence has a shape, why does it shatter when named?"
+    r = _parse_koan_output(raw, 800)
+    assert r is not None
+    assert r["line"].startswith("If silence")
+
+
+def test_koan_strips_quotes():
+    raw = '"If silence has a shape, why does it shatter when named?"'
+    r = _parse_koan_output(raw, 800)
+    assert r is not None
+    assert not r["line"].startswith('"')
+
+
+def test_koan_empty_returns_none():
+    r = _parse_koan_output("", 800)
+    assert r is None
+
+
+def test_koan_strips_chatml():
+    raw = "<|im_start|>assistant\nIf silence has a shape, why does it shatter when named?<|im_end|>"
+    r = _parse_koan_output(raw, 800)
+    assert r is not None
+    assert r["line"].startswith("If silence")
+
+
+def test_koan_picks_longest_line():
+    raw = "Sure, here you go:\n\nIf silence has a shape, why does it shatter when named?\n\nI hope you enjoy."
+    r = _parse_koan_output(raw, 800)
+    assert r is not None
+    assert "silence" in r["line"]

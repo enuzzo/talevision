@@ -65,16 +65,18 @@ _GROQ_MODEL = "llama-3.3-70b-versatile"
 _GEMINI_MODEL = "gemini-2.0-flash-lite"
 
 
-def _call_groq(api_key: str, user_msg: str, timeout: int, lang: str = "en") -> dict:
+def _call_groq(api_key: str, user_msg: str, timeout: int, lang: str = "en",
+                system_prompt: str = "", max_tokens: int = 60) -> dict:
     """Returns {raw, model, prompt_tokens, completion_tokens, total_tokens}."""
+    sys_prompt = system_prompt or _system_prompt(lang)
     payload = json.dumps({
         "model": _GROQ_MODEL,
         "messages": [
-            {"role": "system", "content": _system_prompt(lang)},
+            {"role": "system", "content": sys_prompt},
             {"role": "user", "content": user_msg},
         ],
         "temperature": 0.9,
-        "max_tokens": 60,
+        "max_tokens": max_tokens,
         "top_p": 0.95,
     }).encode("utf-8")
     req = urllib.request.Request(
@@ -98,14 +100,16 @@ def _call_groq(api_key: str, user_msg: str, timeout: int, lang: str = "en") -> d
     }
 
 
-def _call_gemini(api_key: str, user_msg: str, timeout: int, lang: str = "en") -> dict:
+def _call_gemini(api_key: str, user_msg: str, timeout: int, lang: str = "en",
+                  system_prompt: str = "", max_tokens: int = 60) -> dict:
     """Returns {raw, model, prompt_tokens, completion_tokens, total_tokens}."""
+    sys_prompt = system_prompt or _system_prompt(lang)
     payload = json.dumps({
-        "system_instruction": {"parts": [{"text": _system_prompt(lang)}]},
+        "system_instruction": {"parts": [{"text": sys_prompt}]},
         "contents": [{"parts": [{"text": user_msg}]}],
         "generationConfig": {
             "temperature": 0.9,
-            "maxOutputTokens": 60,
+            "maxOutputTokens": max_tokens,
             "topP": 0.95,
         },
     }).encode("utf-8")
@@ -215,6 +219,103 @@ def _parse_output(raw: str, elapsed_ms: int) -> Optional[dict]:
     return {
         "lines": haiku_lines[:3],
         "author_name": pen_name,
+        "generation_time_ms": elapsed_ms,
+    }
+
+
+def _koan_system_prompt(lang: str = "en") -> str:
+    lang_name = _LANG_NAMES.get(lang, "English")
+    base = (
+        "You are a Zen master living inside a tiny $5 computer "
+        "mounted on a wall. You write paradoxical koan questions "
+        f"in {lang_name}. Your koans are single questions with no answer — "
+        "they reveal the absurdity, beauty, or impossibility hidden "
+        "in everyday things. They sound like ancient Zen riddles "
+        "but about modern or unexpected themes.\n\n"
+    )
+    if lang != "en":
+        base += (
+            f"IMPORTANT: Write DIRECTLY in {lang_name} as a native philosopher would — "
+            "do NOT translate from English. Choose words for their paradoxical weight "
+            "and poetic resonance in the target language.\n\n"
+        )
+    base += (
+        "Output ONLY the koan question, nothing else. One single question. "
+        "No preamble, no explanation, no attribution."
+    )
+    return base
+
+
+def generate_koan(
+    api_key: str,
+    backend: str,
+    seed_word: str,
+    prompt_question: str = "",
+    language: str = "en",
+    timeout: int = 30,
+) -> Optional[dict]:
+    if not api_key:
+        log.warning("Koan: no API key configured")
+        return None
+
+    user_msg = f"Theme: {seed_word}"
+    if prompt_question:
+        user_msg += f"\n{prompt_question}"
+    user_msg += "\nWrite a single paradoxical koan question about this."
+
+    log.info("Koan %s: generating koan (seed=%s, lang=%s)", backend, seed_word, language)
+    t0 = time.monotonic()
+    sys_prompt = _koan_system_prompt(language)
+
+    try:
+        if backend == "groq":
+            resp = _call_groq(api_key, user_msg, timeout, lang=language,
+                              system_prompt=sys_prompt, max_tokens=100)
+        else:
+            resp = _call_gemini(api_key, user_msg, timeout, lang=language,
+                                system_prompt=sys_prompt, max_tokens=100)
+
+        elapsed_ms = int((time.monotonic() - t0) * 1000)
+        log.info("Koan %s: koan response in %dms, raw: %s",
+                 backend, elapsed_ms, resp["raw"][:200])
+        result = _parse_koan_output(resp["raw"], elapsed_ms)
+        if result:
+            result["model"] = resp["model"]
+            result["prompt_tokens"] = resp["prompt_tokens"]
+            result["completion_tokens"] = resp["completion_tokens"]
+            result["total_tokens"] = resp["total_tokens"]
+        return result
+
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")[:300]
+        log.error("Koan %s HTTP error %d: %s", backend, exc.code, body)
+        return None
+    except Exception as exc:
+        log.error("Koan %s error: %s", backend, exc)
+        return None
+
+
+def _parse_koan_output(raw: str, elapsed_ms: int) -> Optional[dict]:
+    """Parse LLM output into a single koan question line."""
+    raw = re.sub(r'<\|im_\w+\|>', '', raw).strip()
+    if not raw:
+        return None
+
+    lines = [l.strip() for l in raw.split("\n") if l.strip()]
+    best = max(lines, key=len)
+    if best.startswith('"') and best.endswith('"'):
+        best = best[1:-1].strip()
+    if best.startswith('\u201c') and best.endswith('\u201d'):
+        best = best[1:-1].strip()
+
+    if not best:
+        return None
+
+    if not best.endswith("?"):
+        log.warning("Koan: output does not end with '?' — may not be a question: %s", best[:80])
+
+    return {
+        "line": best,
         "generation_time_ms": elapsed_ms,
     }
 
