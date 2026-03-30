@@ -82,7 +82,7 @@ def test_all_species_render(tmp_path):
 def test_flora_archive_saves_files(tmp_path):
     cfg = _make_config(tmp_path)
     from talevision.modes.flora import FloraMode
-    mode = FloraMode(cfg, base_dir=Path("."))
+    mode = FloraMode(cfg, base_dir=tmp_path)
     mode.render()
     archive_dir = mode._archive_dir
     json_files = list(archive_dir.glob("*.json"))
@@ -94,7 +94,7 @@ def test_flora_archive_saves_files(tmp_path):
 def test_flora_archive_idempotent(tmp_path):
     cfg = _make_config(tmp_path)
     from talevision.modes.flora import FloraMode
-    mode = FloraMode(cfg, base_dir=Path("."))
+    mode = FloraMode(cfg, base_dir=tmp_path)
     mode.render()
     mode.render()  # second render same day — must not create duplicate
     archive_dir = mode._archive_dir
@@ -105,7 +105,7 @@ def test_flora_archive_json_schema(tmp_path):
     cfg = _make_config(tmp_path)
     from talevision.modes.flora import FloraMode
     import json
-    mode = FloraMode(cfg, base_dir=Path("."))
+    mode = FloraMode(cfg, base_dir=tmp_path)
     mode.render()
     json_path = next(mode._archive_dir.glob("*.json"))
     entry = json.loads(json_path.read_text())
@@ -117,7 +117,7 @@ def test_flora_archive_json_schema(tmp_path):
 def test_flora_get_state_archive_count(tmp_path):
     cfg = _make_config(tmp_path)
     from talevision.modes.flora import FloraMode
-    mode = FloraMode(cfg, base_dir=Path("."))
+    mode = FloraMode(cfg, base_dir=tmp_path)
     mode.render()
     state = mode.get_state()
     assert state.extra.get("archive_count") == 1
