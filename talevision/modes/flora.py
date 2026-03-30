@@ -288,7 +288,7 @@ class FloraMode(DisplayMode):
         self._font_detail    = _load_font(fonts / "Taviraj-Regular.ttf", 17)
         self._font_footer    = _load_font(fonts / "Signika-Bold.ttf", 16)
         self._font_footer_sm = _load_font(fonts / "InconsolataNerdFontMono-Bold.ttf", 15)
-        self._font_formula   = _load_font(fonts / "InconsolataNerdFontMono-Bold.ttf", 14)
+        self._font_formula   = _load_font(fonts / "InconsolataNerdFontMono-Bold.ttf", 16)
 
         self._last_species_id = ""
         self._last_genus = ""
@@ -473,12 +473,12 @@ class FloraMode(DisplayMode):
         draw.line([(lx, y), (lx + div_w, y)], fill=_TEXT_GRAY, width=2)
         y += 14
 
-        # Family / Order — label uppercase dark, value navy
+        # Family / Order — label uppercase dark, value navy (nudge value up 2px for baseline)
         draw.text((lx, y), "FAM.", font=self._font_specimen, fill=_TEXT_NAVY)
-        draw.text((lx + 48, y), species['family'], font=self._font_detail, fill=_TEXT_NAVY)
+        draw.text((lx + 48, y - 2), species['family'], font=self._font_detail, fill=_TEXT_NAVY)
         y += 24
         draw.text((lx, y), "ORD.", font=self._font_specimen, fill=_TEXT_NAVY)
-        draw.text((lx + 48, y), species['order'], font=self._font_detail, fill=_TEXT_NAVY)
+        draw.text((lx + 48, y - 2), species['order'], font=self._font_detail, fill=_TEXT_NAVY)
         y += 30
 
         # Separator
@@ -514,7 +514,7 @@ class FloraMode(DisplayMode):
             if len(line) > 24:
                 line = line[:22] + "\u2026"
             draw.text((lx, y), line, font=self._font_formula, fill=_TEXT_NAVY)
-            y += 17
+            y += 20
         draw.text(
             (lx, y),
             f"\u03b1 = {species['angle']:.0f}\u00b0   n = {species['iterations']}",
