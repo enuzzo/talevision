@@ -519,7 +519,7 @@ class FloraMode(DisplayMode):
             (lx, y),
             f"\u03b1 = {species['angle']:.0f}\u00b0   n = {species['iterations']}",
             font=self._font_formula,
-            fill=_TEXT_GRAY,
+            fill=_TEXT_NAVY,
         )
 
         # ── Footer bar ────────────────────────────────────────────────────────
