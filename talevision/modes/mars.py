@@ -1,4 +1,4 @@
-"""Mars Rover Photos mode — NASA Mars rover imagery (Curiosity + Perseverance)."""
+"""Mars Rover Photos mode — NASA/JPL Curiosity raw image feed."""
 import io
 import json
 import logging
@@ -15,23 +15,22 @@ from talevision.modes.base import DisplayMode, ModeState
 log = logging.getLogger(__name__)
 
 _UA       = {"User-Agent": "TaleVision/1.0"}
-_MARS_API = "https://api.nasa.gov/mars-photos/api/v1/rovers"
-_ROVERS   = ["curiosity", "perseverance"]
+# api.nasa.gov/mars-photos was deprecated (Heroku free tier shutdown).
+# JPL direct API: no key required, always current.
+_MARS_JPL = "https://mars.nasa.gov/api/v1/raw_image_items"
 
-# Preferred cameras: best scenic/color shots first
+# Preferred cameras: colour/scenic first, hazard cams last
 _CAMERA_PREF = [
-    "MAST",              # Curiosity: colour mast cam — landscape shots
-    "MCZ_RIGHT",         # Perseverance: Mastcam-Z right — colour
-    "MCZ_LEFT",          # Perseverance: Mastcam-Z left — colour
-    "NAVCAM_LEFT",       # Perseverance: B&W navigation
-    "NAVCAM_RIGHT",
-    "NAVCAM",            # Curiosity: B&W navigation
-    "MAHLI",             # Curiosity: macro hand-lens
-    "SHERLOC_WATSON",    # Perseverance: macro/close-up
-    "CHEMCAM",           # Curiosity: remote micro-imager
-    "SUPERCAM_RMI",      # Perseverance: remote micro-imager
-    "FHAZ",              # Front hazard cam
-    "RHAZ",              # Rear hazard cam
+    "MAST_RIGHT",    # Mastcam colour — right eye
+    "MAST_LEFT",     # Mastcam colour — left eye
+    "MAHLI",         # Hand lens macro imager
+    "CHEMCAM_RMI",   # Remote micro-imager
+    "NAV_LEFT_B",    # Navigation (B&W)
+    "NAV_RIGHT_B",
+    "FHAZ_LEFT_B",   # Front hazard (last resort)
+    "FHAZ_RIGHT_B",
+    "RHAZ_LEFT_B",
+    "RHAZ_RIGHT_B",
 ]
 
 
@@ -50,17 +49,23 @@ def _load_font(path: Path, size: int) -> ImageFont.FreeTypeFont:
 
 
 def _fmt_date(iso: str) -> str:
-    """'2026-03-31' → '31 March 2026'"""
+    """'2026-03-30T23:00:15.000Z' or '2026-03-30' → '30 March 2026'"""
     try:
-        d = datetime.strptime(iso, "%Y-%m-%d")
+        d = datetime.strptime(iso[:10], "%Y-%m-%d")
         return d.strftime("%-d %B %Y")
     except Exception:
         return iso
 
 
 def _fmt_count(n: int) -> str:
-    """695423 → '695,423'"""
     return f"{n:,}"
+
+
+def _camera_full_name(photo: dict) -> str:
+    """Extract camera label from title 'Sol N: Mast Camera (Mastcam)' → 'Mast Camera (Mastcam)'."""
+    title = photo.get("title", "")
+    parts = title.split(": ", 1)
+    return parts[1] if len(parts) > 1 else photo.get("instrument", "")
 
 
 class MarsMode(DisplayMode):
@@ -68,12 +73,12 @@ class MarsMode(DisplayMode):
     def __init__(self, config: AppConfig, base_dir: Path = Path("."), api_key: str = "DEMO_KEY"):
         self._cfg     = config.mars
         self._display = config.display
-        self._api_key = api_key
+        # api_key kept for signature compatibility — JPL API needs no key
 
         fonts_dir        = base_dir / "assets" / "fonts"
-        self._font_title = _load_font(fonts_dir / "Signika-Bold.ttf", 26)
-        self._font_body  = _load_font(fonts_dir / "Taviraj-Italic.ttf", 17)
-        self._font_mono  = _load_font(fonts_dir / "InconsolataNerdFontMono-Regular.ttf", 14)
+        self._font_title = _load_font(fonts_dir / "Signika-Bold.ttf", 28)
+        self._font_body  = _load_font(fonts_dir / "Taviraj-Italic.ttf", 19)
+        self._font_mono  = _load_font(fonts_dir / "InconsolataNerdFontMono-Regular.ttf", 16)
 
         self._cache_dir    = base_dir / "cache"
         self._cache_dir.mkdir(parents=True, exist_ok=True)
@@ -100,31 +105,29 @@ class MarsMode(DisplayMode):
     def render(self) -> Image.Image:
         w, h  = self._display.width, self._display.height
         today = date.today().isoformat()
-        rover = _ROVERS[date.today().toordinal() % 2]
 
-        photos = self._load_cached_photos(today, rover)
+        photos = self._load_cached_photos(today)
         if not photos:
-            photos = self._fetch_latest_photos(rover)
+            photos = self._fetch_latest_photos()
             if photos:
-                self._save_cached_photos(photos, today, rover)
+                self._save_cached_photos(photos, today)
 
         if not photos:
             return self._error_image(w, h)
 
-        # Sort by camera preference, then pick by current hour for intra-day variety
-        photos_sorted = sorted(photos, key=lambda p: _camera_score(p["camera"]["name"]))
+        # Sort by camera preference, pick by current hour for intra-day variety
+        photos_sorted = sorted(photos, key=lambda p: _camera_score(p.get("instrument", "")))
         photo = photos_sorted[datetime.now().hour % len(photos_sorted)]
         photo_id = str(photo["id"])
 
         img = self._load_cached_image(photo_id)
         if img is None:
-            img = self._fetch_image(photo["img_src"])
+            img = self._fetch_image(photo["https_url"])
             if img is None:
-                # Try a few alternatives before giving up
                 for alt in photos_sorted[:8]:
                     if str(alt["id"]) == photo_id:
                         continue
-                    img = self._fetch_image(alt["img_src"])
+                    img = self._fetch_image(alt["https_url"])
                     if img:
                         photo = alt
                         photo_id = str(alt["id"])
@@ -142,13 +145,14 @@ class MarsMode(DisplayMode):
             except Exception as exc:
                 log.warning("Mars: image cache write failed: %s", exc)
 
-        self._last_rover       = photo["rover"]["name"]
-        self._last_camera      = photo["camera"]["name"]
-        self._last_camera_full = photo["camera"]["full_name"]
-        self._last_sol         = photo["sol"]
-        self._last_earth_date  = photo["earth_date"]
+        self._last_rover       = "Curiosity"
+        self._last_camera      = photo.get("instrument", "")
+        self._last_camera_full = _camera_full_name(photo)
+        self._last_sol         = photo.get("sol", 0)
+        received               = photo.get("date_received", photo.get("date_taken", ""))
+        self._last_earth_date  = received[:10] if received else ""
         self._last_photo_id    = photo["id"]
-        self._last_total       = photo["rover"].get("total_photos", 0)
+        self._last_total       = photo.get("_total", 0)
 
         img = self._enhance(img)
         img = ImageOps.fit(img, (w, h), Image.LANCZOS)
@@ -156,20 +160,20 @@ class MarsMode(DisplayMode):
 
     # ── Cache ─────────────────────────────────────────────────────────────────
 
-    def _load_cached_photos(self, today: str, rover: str) -> list:
+    def _load_cached_photos(self, today: str) -> list:
         if not self._photos_cache.exists():
             return []
         try:
             data = json.loads(self._photos_cache.read_text(encoding="utf-8"))
-            if data.get("_date") == today and data.get("_rover") == rover:
+            if data.get("_date") == today:
                 return data.get("photos", [])
         except Exception:
             pass
         return []
 
-    def _save_cached_photos(self, photos: list, today: str, rover: str) -> None:
+    def _save_cached_photos(self, photos: list, today: str) -> None:
         try:
-            payload = {"_date": today, "_rover": rover, "photos": photos}
+            payload = {"_date": today, "photos": photos}
             self._photos_cache.write_text(
                 json.dumps(payload, ensure_ascii=False), encoding="utf-8"
             )
@@ -188,16 +192,18 @@ class MarsMode(DisplayMode):
 
     # ── Network ───────────────────────────────────────────────────────────────
 
-    def _fetch_latest_photos(self, rover: str) -> list:
+    def _fetch_latest_photos(self) -> list:
         try:
-            url = f"{_MARS_API}/{rover}/latest_photos?api_key={self._api_key}"
+            url = f"{_MARS_JPL}/?order=sol+desc&per_page=100"
             req = urllib.request.Request(url, headers=_UA)
             with urllib.request.urlopen(req, timeout=self._cfg.timeout) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
-            photos = data.get("latest_photos", [])
-            log.info("Mars: %d photos from %s (sol %s)",
-                     len(photos), rover,
-                     photos[0]["sol"] if photos else "?")
+            photos = data.get("items", [])
+            total  = data.get("total", 0)
+            for p in photos:
+                p["_total"] = total
+            log.info("Mars: %d photos (sol %s, total %s)",
+                     len(photos), photos[0]["sol"] if photos else "?", _fmt_count(total))
             return photos
         except Exception as exc:
             log.warning("Mars: photos fetch failed: %s", exc)
@@ -226,55 +232,55 @@ class MarsMode(DisplayMode):
         overlay  = Image.new("RGBA", img_rgba.size, (0, 0, 0, 0))
         draw     = ImageDraw.Draw(overlay)
         w, h     = img_rgba.size
-        band_h   = 140
+        band_h   = 150
         pad      = 16
 
-        # Dark rust-tinted bottom band
-        draw.rectangle([(0, h - band_h), (w, h)], fill=(22, 10, 4, 192))
+        # Pure-black bottom band
+        draw.rectangle([(0, h - band_h), (w, h)], fill=(0, 0, 0, 220))
 
         # "MARS" label — top right, terracotta
-        draw.text((w - 12, 10), "MARS",
-                  font=self._font_mono, fill=(210, 85, 35, 220), anchor="rt")
+        draw.text((w - 14, 12), "MARS",
+                  font=self._font_mono, fill=(210, 85, 35, 230), anchor="rt")
 
-        rover_name  = photo["rover"]["name"].upper()
-        camera_full = photo["camera"]["full_name"]
-        sol         = photo["sol"]
-        earth_date  = photo["earth_date"]
+        camera_full = _camera_full_name(photo)
+        sol         = photo.get("sol", 0)
+        received    = photo.get("date_received", photo.get("date_taken", ""))
+        earth_date  = received[:10] if received else ""
         photo_id    = photo["id"]
-        total       = photo["rover"].get("total_photos", 0)
+        total       = photo.get("_total", 0)
 
-        ty = h - band_h + 12
+        ty = h - band_h + 14
 
         # Line 1 — rover + camera name
-        title = f"{rover_name}  ·  {camera_full}"
+        line1 = f"CURIOSITY  ·  {camera_full}"
         max_w = w - 2 * pad
-        while title and draw.textlength(title, font=self._font_title) > max_w:
-            title = title[:-1]
-        if len(title) < len(f"{rover_name}  ·  {camera_full}"):
-            title = title.rstrip() + "…"
-        draw.text((pad, ty), title, font=self._font_title,
+        while line1 and draw.textlength(line1, font=self._font_title) > max_w:
+            line1 = line1[:-1]
+        if line1 != f"CURIOSITY  ·  {camera_full}":
+            line1 = line1.rstrip() + "…"
+        draw.text((pad, ty), line1, font=self._font_title,
                   fill=(255, 255, 255, 255), anchor="lt")
-        ty += self._font_title.size + 6
+        ty += self._font_title.size + 8
 
-        # Line 2 — sol + earth date (received on Earth)
-        subtitle = f"Sol {sol}  ·  Received on Earth: {_fmt_date(earth_date)}"
-        draw.text((pad, ty), subtitle, font=self._font_body,
-                  fill=(240, 175, 110, 235), anchor="lt")
-        ty += self._font_body.size + 5
+        # Line 2 — sol + received date
+        line2 = f"Sol {sol}  ·  Received on Earth: {_fmt_date(earth_date)}"
+        draw.text((pad, ty), line2, font=self._font_body,
+                  fill=(240, 175, 110, 240), anchor="lt")
+        ty += self._font_body.size + 6
 
-        # Line 3 — photo ID + total mission photos
-        detail = f"Photo #{photo_id:,}  ·  {_fmt_count(total)} total transmissions from {photo['rover']['name'].capitalize()}"
-        while detail and draw.textlength(detail, font=self._font_mono) > max_w:
-            detail = detail[:-1]
-        if detail[-1] not in ("y", "e", "r"):
-            detail = detail.rstrip() + "…"
-        draw.text((pad, ty), detail, font=self._font_mono,
-                  fill=(180, 130, 90, 200), anchor="lt")
+        # Line 3 — photo ID + total
+        line3 = f"Photo #{photo_id:,}  ·  {_fmt_count(total)} total transmissions from Curiosity"
+        while line3 and draw.textlength(line3, font=self._font_mono) > max_w:
+            line3 = line3[:-1]
+        if len(line3) < len(f"Photo #{photo_id:,}  ·  {_fmt_count(total)} total transmissions from Curiosity"):
+            line3 = line3.rstrip() + "…"
+        draw.text((pad, ty), line3, font=self._font_mono,
+                  fill=(190, 140, 100, 210), anchor="lt")
 
         return Image.alpha_composite(img_rgba, overlay).convert("RGB")
 
     def _error_image(self, w: int, h: int) -> Image.Image:
-        img  = Image.new("RGB", (w, h), (12, 5, 2))
+        img  = Image.new("RGB", (w, h), (0, 0, 0))
         draw = ImageDraw.Draw(img)
         draw.text((w // 2, h // 2 - 20), "MARS",
                   font=self._font_title, fill=(160, 70, 30), anchor="mm")
@@ -284,11 +290,11 @@ class MarsMode(DisplayMode):
 
     def get_state(self) -> ModeState:
         return ModeState(mode="mars", extra={
-            "rover":       self._last_rover,
-            "camera":      self._last_camera,
-            "camera_full": self._last_camera_full,
-            "sol":         self._last_sol,
-            "earth_date":  self._last_earth_date,
-            "photo_id":    self._last_photo_id,
+            "rover":        self._last_rover,
+            "camera":       self._last_camera,
+            "camera_full":  self._last_camera_full,
+            "sol":          self._last_sol,
+            "earth_date":   self._last_earth_date,
+            "photo_id":     self._last_photo_id,
             "total_photos": self._last_total,
         })
