@@ -123,7 +123,7 @@ flora:
   max_archive: 1000
 
 apod:
-  refresh_interval: 3600   # NASA APOD changes once per day; hourly checks are fine
+  refresh_interval: 300    # re-renders every 5 min to keep clock accurate; image cached daily
   timeout: 30
 
 mars:

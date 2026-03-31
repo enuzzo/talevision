@@ -3,7 +3,7 @@ import io
 import json
 import logging
 import urllib.request
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Optional
 
@@ -45,9 +45,11 @@ class APODMode(DisplayMode):
             log.warning("APOD: using DEMO_KEY — rate-limited to 30 req/hour. Add apod_api_key to secrets.yaml.")
 
         fonts_dir = base_dir / "assets" / "fonts"
-        self._font_title = _load_font(fonts_dir / "Signika-Bold.ttf", 28)
-        self._font_body  = _load_font(fonts_dir / "Taviraj-Italic.ttf", 17)
-        self._font_mono  = _load_font(fonts_dir / "InconsolataNerdFontMono-Regular.ttf", 15)
+        self._font_title   = _load_font(fonts_dir / "Signika-Bold.ttf", 28)
+        self._font_clock   = _load_font(fonts_dir / "Signika-Bold.ttf", 38)
+        self._font_body    = _load_font(fonts_dir / "Taviraj-Italic.ttf", 17)
+        self._font_mono    = _load_font(fonts_dir / "InconsolataNerdFontMono-Regular.ttf", 15)
+        self._font_mono_lg = _load_font(fonts_dir / "InconsolataNerdFontMono-Regular.ttf", 18)
 
         self._cache_dir  = base_dir / "cache"
         self._cache_dir.mkdir(parents=True, exist_ok=True)
@@ -186,11 +188,29 @@ class APODMode(DisplayMode):
         # Bottom dark band
         draw.rectangle([(0, h - band_h), (w, h)], fill=(0, 0, 0, 185))
 
-        # Date label — top right
+        # Clock — top left
+        now      = datetime.now()
+        time_str = now.strftime("%H:%M")
+        date_str = now.strftime(f"{now.day} %B %Y")
+        pad_c    = 12
+        time_w   = draw.textlength(time_str, font=self._font_clock)
+        date_w   = draw.textlength(date_str, font=self._font_mono)
+        box_w    = max(time_w, date_w) + 2 * pad_c
+        box_h    = self._font_clock.size + 4 + self._font_mono.size + 2 * pad_c
+        draw.rounded_rectangle(
+            [(pad, pad), (pad + box_w, pad + box_h)],
+            radius=6, fill=(0, 0, 0, 155),
+        )
+        draw.text((pad + pad_c, pad + pad_c), time_str,
+                  font=self._font_clock, fill=(255, 255, 255, 245), anchor="lt")
+        draw.text((pad + pad_c, pad + pad_c + self._font_clock.size + 4), date_str,
+                  font=self._font_mono, fill=(205, 205, 205, 210), anchor="lt")
+
+        # APOD label — top right (slightly larger)
         apod_date = data.get("date", "")
         if apod_date:
-            draw.text((w - 12, 10), f"APOD · {apod_date}",
-                      font=self._font_mono, fill=(255, 255, 255, 170), anchor="rt")
+            draw.text((w - 12, 12), f"APOD · {apod_date}",
+                      font=self._font_mono_lg, fill=(255, 255, 255, 180), anchor="rt")
 
         title       = data.get("title", "")
         explanation = data.get("explanation", "")
