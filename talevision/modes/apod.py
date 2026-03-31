@@ -2,8 +2,9 @@
 import io
 import json
 import logging
+import random
 import urllib.request
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -52,8 +53,9 @@ class APODMode(DisplayMode):
 
         self._cache_dir  = base_dir / "cache"
         self._cache_dir.mkdir(parents=True, exist_ok=True)
-        self._data_cache  = self._cache_dir / "apod_data.json"
-        self._image_cache = self._cache_dir / "apod_image.jpg"
+        self._data_cache   = self._cache_dir / "apod_data.json"
+        self._image_cache  = self._cache_dir / "apod_image.jpg"
+        self._image_date_f = self._cache_dir / "apod_image_date.txt"
 
         self._last_title:      str = ""
         self._last_date:       str = ""
@@ -67,17 +69,24 @@ class APODMode(DisplayMode):
     def refresh_interval(self) -> int:
         return self._cfg.refresh_interval
 
-    def render(self) -> Image.Image:
-        w, h = self._display.width, self._display.height
-        today = date.today().isoformat()
+    def _pick_apod_date(self) -> str:
+        """Pick a random historical APOD date, deterministic per refresh interval."""
+        interval_key = int(datetime.now().timestamp() / self._cfg.refresh_interval)
+        rng   = random.Random(interval_key)
+        start = date(1995, 6, 16)                  # first APOD ever published
+        end   = date.today() - timedelta(days=1)   # yesterday — today's may not be posted yet
+        delta = (end - start).days
+        return (start + timedelta(days=rng.randint(0, delta))).isoformat()
 
-        data = self._load_cached_data(today)
-        is_fresh = data is not None
+    def render(self) -> Image.Image:
+        w, h        = self._display.width, self._display.height
+        target_date = self._pick_apod_date()
+
+        data = self._load_cached_data(target_date)
         if data is None:
-            data = self._fetch_apod_data()
+            data = self._fetch_apod_data(target_date)
             if data:
-                self._save_cached_data(data)
-                is_fresh = True
+                self._save_cached_data(data, target_date)
 
         if data is None:
             return self._error_image(w, h, "APOD unavailable")
@@ -93,11 +102,10 @@ class APODMode(DisplayMode):
         else:
             img_url = data.get("url") or data.get("hdurl")
 
-        img = self._load_cached_image(is_fresh)
+        img = self._load_cached_image(target_date)
         if img is None:
             img = self._fetch_image(img_url) if img_url else None
             if img is None:
-                # stale image cache better than nothing
                 if self._image_cache.exists():
                     try:
                         img = Image.open(str(self._image_cache)).convert("RGB")
@@ -105,11 +113,11 @@ class APODMode(DisplayMode):
                         pass
             if img is None:
                 return self._error_image(w, h, data.get("title", "APOD"))
-            if is_fresh:
-                try:
-                    img.save(str(self._image_cache), format="JPEG", quality=90)
-                except Exception as exc:
-                    log.warning("APOD: image cache write failed: %s", exc)
+            try:
+                img.save(str(self._image_cache), format="JPEG", quality=90)
+                self._image_date_f.write_text(target_date)
+            except Exception as exc:
+                log.warning("APOD: image cache write failed: %s", exc)
 
         img = self._enhance(img)
         img = ImageOps.fit(img, (w, h), Image.LANCZOS)
@@ -117,27 +125,29 @@ class APODMode(DisplayMode):
 
     # ── Cache helpers ─────────────────────────────────────────────────────────
 
-    def _load_cached_data(self, today: str) -> Optional[dict]:
+    def _load_cached_data(self, target_date: str) -> Optional[dict]:
         if not self._data_cache.exists():
             return None
         try:
             data = json.loads(self._data_cache.read_text(encoding="utf-8"))
-            if data.get("_cached_for") == today:
+            if data.get("_cached_for") == target_date:
                 return data
         except Exception:
             pass
         return None
 
-    def _save_cached_data(self, data: dict) -> None:
+    def _save_cached_data(self, data: dict, target_date: str) -> None:
         try:
             payload = dict(data)
-            payload["_cached_for"] = date.today().isoformat()
+            payload["_cached_for"] = target_date
             self._data_cache.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
         except Exception as exc:
             log.warning("APOD: data cache write failed: %s", exc)
 
-    def _load_cached_image(self, is_fresh_data: bool) -> Optional[Image.Image]:
-        if not self._image_cache.exists() or not is_fresh_data:
+    def _load_cached_image(self, target_date: str) -> Optional[Image.Image]:
+        if not self._image_cache.exists() or not self._image_date_f.exists():
+            return None
+        if self._image_date_f.read_text().strip() != target_date:
             return None
         try:
             return Image.open(str(self._image_cache)).convert("RGB")
@@ -146,9 +156,11 @@ class APODMode(DisplayMode):
 
     # ── Network ───────────────────────────────────────────────────────────────
 
-    def _fetch_apod_data(self) -> Optional[dict]:
+    def _fetch_apod_data(self, target_date: str = "") -> Optional[dict]:
         try:
             url = f"{_APOD_URL}?api_key={self._api_key}&thumbs=true"
+            if target_date:
+                url += f"&date={target_date}"
             req = urllib.request.Request(url, headers=_UA)
             with urllib.request.urlopen(req, timeout=self._cfg.timeout) as resp:
                 data = json.loads(resp.read().decode("utf-8"))

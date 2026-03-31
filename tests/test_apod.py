@@ -77,13 +77,15 @@ def test_render_returns_correct_size(tmp_path):
 def test_render_uses_cache(tmp_path):
     mode = _make_mode(tmp_path)
     fake_data = _fake_apod_data()
+    target = "1999-07-20"
 
-    # Pre-populate cache
-    mode._save_cached_data(fake_data)
+    mode._save_cached_data(fake_data, target)
     fake_img = Image.new("RGB", (400, 300), (20, 20, 60))
     fake_img.save(str(mode._image_cache), format="JPEG", quality=90)
+    mode._image_date_f.write_text(target)
 
-    with patch.object(mode, "_fetch_apod_data") as mock_fetch:
+    with patch.object(mode, "_pick_apod_date", return_value=target), \
+         patch.object(mode, "_fetch_apod_data") as mock_fetch:
         img = mode.render()
         mock_fetch.assert_not_called()
 
@@ -125,10 +127,9 @@ def test_render_error_when_image_fetch_fails(tmp_path):
 def test_cache_roundtrip(tmp_path):
     mode = _make_mode(tmp_path)
     fake_data = _fake_apod_data()
-    mode._save_cached_data(fake_data)
+    mode._save_cached_data(fake_data, "1999-07-20")
 
-    from datetime import date
-    loaded = mode._load_cached_data(date.today().isoformat())
+    loaded = mode._load_cached_data("1999-07-20")
     assert loaded is not None
     assert loaded["title"] == "A Distant Galaxy"
     assert loaded["date"] == "2026-03-31"
@@ -137,9 +138,9 @@ def test_cache_roundtrip(tmp_path):
 def test_stale_cache_returns_none(tmp_path):
     mode = _make_mode(tmp_path)
     fake_data = _fake_apod_data()
-    mode._save_cached_data(fake_data)
+    mode._save_cached_data(fake_data, "1999-07-20")
 
-    loaded = mode._load_cached_data("2020-01-01")
+    loaded = mode._load_cached_data("2001-09-11")
     assert loaded is None
 
 
