@@ -194,7 +194,7 @@ class MarsMode(DisplayMode):
 
     def _fetch_latest_photos(self) -> list:
         try:
-            url = f"{_MARS_JPL}/?order=sol+desc&per_page=100"
+            url = f"{_MARS_JPL}/?order=sol+desc&per_page=500"
             req = urllib.request.Request(url, headers=_UA)
             with urllib.request.urlopen(req, timeout=self._cfg.timeout) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
@@ -232,7 +232,7 @@ class MarsMode(DisplayMode):
         overlay  = Image.new("RGBA", img_rgba.size, (0, 0, 0, 0))
         draw     = ImageDraw.Draw(overlay)
         w, h     = img_rgba.size
-        band_h   = 150
+        band_h   = 115
         pad      = 16
 
         # Pure-black bottom band
