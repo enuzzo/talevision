@@ -46,7 +46,6 @@ class APODMode(DisplayMode):
 
         fonts_dir = base_dir / "assets" / "fonts"
         self._font_title   = _load_font(fonts_dir / "Signika-Bold.ttf", 28)
-        self._font_clock   = _load_font(fonts_dir / "Signika-Bold.ttf", 38)
         self._font_body    = _load_font(fonts_dir / "Taviraj-Italic.ttf", 17)
         self._font_mono    = _load_font(fonts_dir / "InconsolataNerdFontMono-Regular.ttf", 15)
         self._font_mono_lg = _load_font(fonts_dir / "InconsolataNerdFontMono-Regular.ttf", 18)
@@ -188,25 +187,7 @@ class APODMode(DisplayMode):
         # Bottom dark band
         draw.rectangle([(0, h - band_h), (w, h)], fill=(0, 0, 0, 185))
 
-        # Clock — top left
-        now      = datetime.now()
-        time_str = now.strftime("%H:%M")
-        date_str = now.strftime(f"{now.day} %B %Y")
-        pad_c    = 12
-        time_w   = draw.textlength(time_str, font=self._font_clock)
-        date_w   = draw.textlength(date_str, font=self._font_mono)
-        box_w    = max(time_w, date_w) + 2 * pad_c
-        box_h    = self._font_clock.size + 4 + self._font_mono.size + 2 * pad_c
-        draw.rounded_rectangle(
-            [(pad, pad), (pad + box_w, pad + box_h)],
-            radius=6, fill=(0, 0, 0, 155),
-        )
-        draw.text((pad + pad_c, pad + pad_c), time_str,
-                  font=self._font_clock, fill=(255, 255, 255, 245), anchor="lt")
-        draw.text((pad + pad_c, pad + pad_c + self._font_clock.size + 4), date_str,
-                  font=self._font_mono, fill=(205, 205, 205, 210), anchor="lt")
-
-        # APOD label — top right (slightly larger)
+        # APOD label — top right
         apod_date = data.get("date", "")
         if apod_date:
             draw.text((w - 12, 12), f"APOD · {apod_date}",
@@ -241,7 +222,11 @@ class APODMode(DisplayMode):
             draw.text((pad, ty), excerpt, font=self._font_body,
                       fill=(215, 215, 215, 225), anchor="lt")
 
-        # Copyright — bottom right
+        # Footer — time/date left · copyright right
+        now = datetime.now()
+        footer_time = f"{now.strftime('%H:%M')}  ·  {now.day} {now.strftime('%B %Y')}"
+        draw.text((pad, h - 10), footer_time,
+                  font=self._font_mono_lg, fill=(210, 210, 210, 220), anchor="lb")
         if copyright_s:
             draw.text((w - pad, h - 10), f"© {copyright_s}",
                       font=self._font_mono, fill=(175, 175, 175, 200), anchor="rb")
