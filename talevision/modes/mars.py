@@ -232,11 +232,11 @@ class MarsMode(DisplayMode):
         overlay  = Image.new("RGBA", img_rgba.size, (0, 0, 0, 0))
         draw     = ImageDraw.Draw(overlay)
         w, h     = img_rgba.size
-        band_h   = 115
+        band_h   = 135
         pad      = 16
 
-        # Pure-black bottom band
-        draw.rectangle([(0, h - band_h), (w, h)], fill=(0, 0, 0, 220))
+        # Pure-black bottom band (fully opaque)
+        draw.rectangle([(0, h - band_h), (w, h)], fill=(0, 0, 0, 255))
 
         # "MARS" label — top right, terracotta
         draw.text((w - 14, 12), "MARS",
@@ -250,10 +250,10 @@ class MarsMode(DisplayMode):
         total       = photo.get("_total", 0)
 
         ty = h - band_h + 14
+        max_w = w - 2 * pad
 
         # Line 1 — rover + camera name
         line1 = f"CURIOSITY  ·  {camera_full}"
-        max_w = w - 2 * pad
         while line1 and draw.textlength(line1, font=self._font_title) > max_w:
             line1 = line1[:-1]
         if line1 != f"CURIOSITY  ·  {camera_full}":
@@ -265,17 +265,24 @@ class MarsMode(DisplayMode):
         # Line 2 — sol + received date
         line2 = f"Sol {sol}  ·  Received on Earth: {_fmt_date(earth_date)}"
         draw.text((pad, ty), line2, font=self._font_body,
-                  fill=(240, 175, 110, 240), anchor="lt")
+                  fill=(240, 175, 110, 255), anchor="lt")
         ty += self._font_body.size + 6
 
-        # Line 3 — photo ID + total
+        # Line 3 — photo ID + total (body size, more readable)
         line3 = f"Photo #{photo_id:,}  ·  {_fmt_count(total)} total transmissions from Curiosity"
-        while line3 and draw.textlength(line3, font=self._font_mono) > max_w:
+        while line3 and draw.textlength(line3, font=self._font_body) > max_w:
             line3 = line3[:-1]
         if len(line3) < len(f"Photo #{photo_id:,}  ·  {_fmt_count(total)} total transmissions from Curiosity"):
             line3 = line3.rstrip() + "…"
-        draw.text((pad, ty), line3, font=self._font_mono,
-                  fill=(190, 140, 100, 210), anchor="lt")
+        draw.text((pad, ty), line3, font=self._font_body,
+                  fill=(190, 140, 100, 255), anchor="lt")
+        ty += self._font_body.size + 6
+
+        # Line 4 — clock (date + time)
+        now = datetime.now()
+        line4 = f"{now.strftime('%H:%M')}  ·  {now.day} {now.strftime('%B %Y')}"
+        draw.text((pad, ty), line4, font=self._font_mono,
+                  fill=(200, 200, 200, 255), anchor="lt")
 
         return Image.alpha_composite(img_rgba, overlay).convert("RGB")
 

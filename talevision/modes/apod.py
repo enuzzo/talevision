@@ -230,15 +230,16 @@ class APODMode(DisplayMode):
 
         ly = 18
 
-        # "APOD" label — larger, white
-        draw.text((lx, ly), "APOD", font=self._font_mono_lg, fill=(255, 255, 255))
-        ly += self._font_mono_lg.size + 4
-
-        # Photo date — larger, light grey
+        # "APOD  ·  18 May 2014" on one line — saves vertical space for text
         apod_date = data.get("date", "")
+        draw.text((lx, ly), "APOD", font=self._font_mono_lg, fill=(255, 255, 255))
         if apod_date:
-            draw.text((lx, ly), _fmt_date(apod_date), font=self._font_mono_lg, fill=(180, 180, 180))
-        ly += self._font_mono_lg.size + 18
+            apod_w  = int(draw.textlength("APOD  ·  ", font=self._font_mono_lg))
+            dot_x   = lx + int(draw.textlength("APOD  ", font=self._font_mono_lg))
+            draw.text((dot_x, ly), "·", font=self._font_mono_lg, fill=(80, 80, 80))
+            draw.text((lx + apod_w, ly + 1), _fmt_date(apod_date),
+                      font=self._font_mono, fill=(180, 180, 180))
+        ly += self._font_mono_lg.size + 14
 
         # Title (Lobster, word-wrapped, max 3 lines)
         title = data.get("title", "")
