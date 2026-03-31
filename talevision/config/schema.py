@@ -191,6 +191,15 @@ class FloraConfig:
 
 
 @dataclass
+class ApodConfig:
+    refresh_interval: int = 3600
+    timeout: int = 30
+    brightness: float = 1.05
+    contrast: float = 1.1
+    color: float = 1.2
+
+
+@dataclass
 class ButtonsConfig:
     enabled: bool = True
     gpio_map: dict = field(default_factory=lambda: {"a": 5, "b": 6, "c": 16, "d": 24})
@@ -217,4 +226,5 @@ class AppConfig:
     cucina: CucinaConfig = field(default_factory=CucinaConfig)
     koan: KoanConfig = field(default_factory=KoanConfig)
     flora: FloraConfig = field(default_factory=FloraConfig)
+    apod: ApodConfig = field(default_factory=ApodConfig)
     buttons: ButtonsConfig = field(default_factory=ButtonsConfig)

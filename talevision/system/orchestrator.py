@@ -55,6 +55,7 @@ class Orchestrator:
             "koan":      base_dir / "cache" / "koan_frame.png",
             "cucina":    base_dir / "cache" / "cucina_frame.png",
             "flora":     base_dir / "cache" / "flora_frame.png",
+            "apod":      base_dir / "cache" / "apod_frame.png",
             "welcome":   base_dir / "cache" / "welcome_frame.png",
         }
         for p in self._frame_paths.values():

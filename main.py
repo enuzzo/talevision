@@ -84,7 +84,7 @@ def main():
     # ── Config ────────────────────────────────────────────────────────────────
     from talevision.config.loader import load_config, load_secrets
     config = load_config(config_path)
-    _secrets = load_secrets(secrets_path)  # noqa: F841 — reserved for future auth
+    _secrets = load_secrets(secrets_path)
 
     if args.mode:
         config.app.default_mode = args.mode
@@ -117,6 +117,7 @@ def main():
     from talevision.modes.koan import KoanMode
     from talevision.modes.cucina import CucinaMode
     from talevision.modes.flora import FloraMode
+    from talevision.modes.apod import APODMode
 
     modes = {
         "litclock":  LitClockMode(config, base_dir=BASE_DIR),
@@ -127,6 +128,7 @@ def main():
         "koan":      KoanMode(config, base_dir=BASE_DIR),
         "cucina":    CucinaMode(config, base_dir=BASE_DIR),
         "flora":     FloraMode(config, base_dir=BASE_DIR),
+        "apod":      APODMode(config, base_dir=BASE_DIR, api_key=_secrets.get("apod_api_key", "DEMO_KEY")),
     }
 
     # ── Render-only mode (dev/CI) ─────────────────────────────────────────────

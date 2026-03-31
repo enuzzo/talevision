@@ -122,6 +122,10 @@ flora:
   location: ""
   max_archive: 1000
 
+apod:
+  refresh_interval: 3600   # NASA APOD changes once per day; hourly checks are fine
+  timeout: 30
+
 buttons:
   enabled: true
   gpio_map:
