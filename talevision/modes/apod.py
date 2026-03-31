@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 _UA       = {"User-Agent": "TaleVision/1.0"}
 _APOD_URL = "https://api.nasa.gov/planetary/apod"
 _PANEL_W  = 300
-_PANEL_BG = (8, 6, 18)
+_PANEL_BG = (0, 0, 0)
 
 
 def _load_font(path: Path, size: int) -> ImageFont.FreeTypeFont:
@@ -225,42 +225,42 @@ class APODMode(DisplayMode):
 
         draw = ImageDraw.Draw(canvas)
 
-        # Subtle separator line
-        draw.line([(IMG_W, 0), (IMG_W, H)], fill=(28, 22, 48), width=2)
+        # Vertical separator line between image and panel
+        draw.line([(IMG_W, 0), (IMG_W, H)], fill=(60, 60, 60), width=2)
 
         ly = 18
 
-        # "APOD" label
-        draw.text((lx, ly), "APOD", font=self._font_mono, fill=(90, 115, 200))
-        ly += self._font_mono.size + 3
+        # "APOD" label — larger, white
+        draw.text((lx, ly), "APOD", font=self._font_mono_lg, fill=(255, 255, 255))
+        ly += self._font_mono_lg.size + 4
 
-        # Photo date
+        # Photo date — larger, light grey
         apod_date = data.get("date", "")
         if apod_date:
-            draw.text((lx, ly), _fmt_date(apod_date), font=self._font_mono, fill=(115, 108, 148))
-        ly += self._font_mono.size + 18
+            draw.text((lx, ly), _fmt_date(apod_date), font=self._font_mono_lg, fill=(180, 180, 180))
+        ly += self._font_mono_lg.size + 18
 
         # Title (Lobster, word-wrapped, max 3 lines)
         title = data.get("title", "")
         if title:
             lines = _wrap_text(title, draw, self._font_lobster, rw)
             for line in lines[:3]:
-                draw.text((lx, ly), line, font=self._font_lobster, fill=(232, 230, 255))
+                draw.text((lx, ly), line, font=self._font_lobster, fill=(255, 255, 255))
                 ly += self._font_lobster.size + 4
         ly += 12
 
         # Explanation (as many lines as fit before the footer area)
         explanation = data.get("explanation", "")
-        footer_top  = H - 52
+        footer_top  = H - 60
         if explanation:
             for line in _wrap_text(explanation, draw, self._font_body, rw):
                 if ly + self._font_body.size > footer_top:
                     break
-                draw.text((lx, ly), line, font=self._font_body, fill=(168, 164, 198))
+                draw.text((lx, ly), line, font=self._font_body, fill=(200, 200, 200))
                 ly += self._font_body.size + 3
 
-        # Separator before footer
-        draw.line([(lx, H - 40), (W - 16, H - 40)], fill=(38, 32, 60), width=1)
+        # Separator before footer — brighter and thicker
+        draw.line([(lx, H - 50), (W - 16, H - 50)], fill=(100, 100, 100), width=2)
 
         # Copyright
         copyright_s = data.get("copyright", "").strip().replace("\n", " ")
@@ -270,13 +270,13 @@ class APODMode(DisplayMode):
                 cr = cr[:-1]
             if len(cr) < len(f"© {copyright_s}"):
                 cr = cr.rstrip() + "…"
-            draw.text((lx, H - 36), cr, font=self._font_mono, fill=(95, 90, 125))
+            draw.text((lx, H - 44), cr, font=self._font_mono, fill=(140, 140, 140))
 
         # Clock footer
         now = datetime.now()
         footer_str = f"{now.strftime('%H:%M')}  ·  {now.day} {now.strftime('%B %Y')}"
-        draw.text((lx, H - 18), footer_str, font=self._font_mono_lg,
-                  fill=(192, 188, 225), anchor="lt")
+        draw.text((lx, H - 26), footer_str, font=self._font_mono_lg,
+                  fill=(255, 255, 255), anchor="lt")
 
         return canvas
 
