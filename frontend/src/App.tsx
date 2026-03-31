@@ -91,6 +91,7 @@ const ALL_MODES: ModeInfo[] = [
   { id: 'cucina',    label: 'Cucina',    icon: '🍽', color: '#EA580C', available: true },
   { id: 'flora',     label: 'Flora',     icon: '🌿', color: '#16A34A', available: true },
   { id: 'apod',      label: 'APOD',      icon: '🔭', color: '#0EA5E9', available: true },
+  { id: 'mars',      label: 'Mars',      icon: '🔴', color: '#C2410C', available: true },
 ]
 
 const MODE_MAP = Object.fromEntries(ALL_MODES.map(m => [m.id, m]))

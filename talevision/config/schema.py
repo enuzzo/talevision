@@ -200,6 +200,15 @@ class ApodConfig:
 
 
 @dataclass
+class MarsConfig:
+    refresh_interval: int = 3600
+    timeout: int = 30
+    brightness: float = 1.05
+    contrast: float = 1.15
+    color: float = 1.0
+
+
+@dataclass
 class ButtonsConfig:
     enabled: bool = True
     gpio_map: dict = field(default_factory=lambda: {"a": 5, "b": 6, "c": 16, "d": 24})
@@ -227,4 +236,5 @@ class AppConfig:
     koan: KoanConfig = field(default_factory=KoanConfig)
     flora: FloraConfig = field(default_factory=FloraConfig)
     apod: ApodConfig = field(default_factory=ApodConfig)
+    mars: MarsConfig = field(default_factory=MarsConfig)
     buttons: ButtonsConfig = field(default_factory=ButtonsConfig)

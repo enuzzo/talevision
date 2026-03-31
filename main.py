@@ -118,6 +118,7 @@ def main():
     from talevision.modes.cucina import CucinaMode
     from talevision.modes.flora import FloraMode
     from talevision.modes.apod import APODMode
+    from talevision.modes.mars import MarsMode
 
     modes = {
         "litclock":  LitClockMode(config, base_dir=BASE_DIR),
@@ -129,6 +130,7 @@ def main():
         "cucina":    CucinaMode(config, base_dir=BASE_DIR),
         "flora":     FloraMode(config, base_dir=BASE_DIR),
         "apod":      APODMode(config, base_dir=BASE_DIR, api_key=_secrets.get("apod_api_key", "DEMO_KEY")),
+        "mars":      MarsMode(config, base_dir=BASE_DIR, api_key=_secrets.get("apod_api_key", "DEMO_KEY")),
     }
 
     # ── Render-only mode (dev/CI) ─────────────────────────────────────────────
