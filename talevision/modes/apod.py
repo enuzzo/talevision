@@ -15,8 +15,10 @@ from talevision.modes.base import DisplayMode, ModeState
 
 log = logging.getLogger(__name__)
 
-_UA = {"User-Agent": "TaleVision/1.0"}
+_UA       = {"User-Agent": "TaleVision/1.0"}
 _APOD_URL = "https://api.nasa.gov/planetary/apod"
+_PANEL_W  = 300
+_PANEL_BG = (8, 6, 18)
 
 
 def _load_font(path: Path, size: int) -> ImageFont.FreeTypeFont:
@@ -26,8 +28,31 @@ def _load_font(path: Path, size: int) -> ImageFont.FreeTypeFont:
         return ImageFont.load_default(size=size)
 
 
+def _wrap_text(text: str, draw: ImageDraw.ImageDraw, font, max_w: int) -> list[str]:
+    words = text.split()
+    lines, cur = [], ""
+    for word in words:
+        test = (cur + " " + word).strip()
+        if draw.textlength(test, font=font) <= max_w:
+            cur = test
+        else:
+            if cur:
+                lines.append(cur)
+            cur = word
+    if cur:
+        lines.append(cur)
+    return lines
+
+
+def _fmt_date(iso: str) -> str:
+    try:
+        d = datetime.strptime(iso, "%Y-%m-%d")
+        return d.strftime(f"{d.day} %B %Y")
+    except Exception:
+        return iso
+
+
 def _first_sentence(text: str, max_chars: int = 160) -> str:
-    """Return first sentence of text, truncated at max_chars."""
     end = text.find(". ")
     if 0 < end < max_chars:
         return text[:end + 1]
@@ -46,12 +71,12 @@ class APODMode(DisplayMode):
             log.warning("APOD: using DEMO_KEY — rate-limited to 30 req/hour. Add apod_api_key to secrets.yaml.")
 
         fonts_dir = base_dir / "assets" / "fonts"
-        self._font_title   = _load_font(fonts_dir / "Signika-Bold.ttf", 28)
-        self._font_body    = _load_font(fonts_dir / "Taviraj-Italic.ttf", 17)
-        self._font_mono    = _load_font(fonts_dir / "InconsolataNerdFontMono-Regular.ttf", 15)
-        self._font_mono_lg = _load_font(fonts_dir / "InconsolataNerdFontMono-Regular.ttf", 18)
+        self._font_lobster = _load_font(fonts_dir / "Lobster-Regular.ttf", 26)
+        self._font_body    = _load_font(fonts_dir / "Taviraj-Italic.ttf", 16)
+        self._font_mono    = _load_font(fonts_dir / "InconsolataNerdFontMono-Regular.ttf", 14)
+        self._font_mono_lg = _load_font(fonts_dir / "InconsolataNerdFontMono-Regular.ttf", 17)
 
-        self._cache_dir  = base_dir / "cache"
+        self._cache_dir    = base_dir / "cache"
         self._cache_dir.mkdir(parents=True, exist_ok=True)
         self._data_cache   = self._cache_dir / "apod_data.json"
         self._image_cache  = self._cache_dir / "apod_image.jpg"
@@ -73,8 +98,8 @@ class APODMode(DisplayMode):
         """Pick a random historical APOD date, deterministic per refresh interval."""
         interval_key = int(datetime.now().timestamp() / self._cfg.refresh_interval)
         rng   = random.Random(interval_key)
-        start = date(1995, 6, 16)                  # first APOD ever published
-        end   = date.today() - timedelta(days=1)   # yesterday — today's may not be posted yet
+        start = date(1995, 6, 16)
+        end   = date.today() - timedelta(days=1)
         delta = (end - start).days
         return (start + timedelta(days=rng.randint(0, delta))).isoformat()
 
@@ -120,8 +145,7 @@ class APODMode(DisplayMode):
                 log.warning("APOD: image cache write failed: %s", exc)
 
         img = self._enhance(img)
-        img = ImageOps.fit(img, (w, h), Image.LANCZOS)
-        return self._draw_overlay(img, data)
+        return self._draw_frame(img, data)
 
     # ── Cache helpers ─────────────────────────────────────────────────────────
 
@@ -188,87 +212,97 @@ class APODMode(DisplayMode):
         img = ImageEnhance.Color(img).enhance(self._cfg.color)
         return img
 
-    def _draw_overlay(self, image: Image.Image, data: dict) -> Image.Image:
-        img_rgba = image.convert("RGBA")
-        overlay  = Image.new("RGBA", img_rgba.size, (0, 0, 0, 0))
-        draw     = ImageDraw.Draw(overlay)
-        w, h     = img_rgba.size
-        band_h   = 130
-        pad      = 16
+    def _draw_frame(self, image: Image.Image, data: dict) -> Image.Image:
+        W, H    = self._display.width, self._display.height
+        IMG_W   = W - _PANEL_W   # 500px
+        lx      = IMG_W + 16     # panel text left edge
+        rw      = _PANEL_W - 32  # 268px usable width
 
-        # Bottom dark band
-        draw.rectangle([(0, h - band_h), (w, h)], fill=(0, 0, 0, 185))
+        # Canvas: dark background + image panel on the left
+        canvas = Image.new("RGB", (W, H), _PANEL_BG)
+        img_panel = ImageOps.fit(image, (IMG_W, H), Image.LANCZOS)
+        canvas.paste(img_panel, (0, 0))
 
-        # APOD label — top right
+        draw = ImageDraw.Draw(canvas)
+
+        # Subtle separator line
+        draw.line([(IMG_W, 0), (IMG_W, H)], fill=(28, 22, 48), width=2)
+
+        ly = 18
+
+        # "APOD" label
+        draw.text((lx, ly), "APOD", font=self._font_mono, fill=(90, 115, 200))
+        ly += self._font_mono.size + 3
+
+        # Photo date
         apod_date = data.get("date", "")
         if apod_date:
-            draw.text((w - 12, 12), f"APOD · {apod_date}",
-                      font=self._font_mono_lg, fill=(255, 255, 255, 180), anchor="rt")
+            draw.text((lx, ly), _fmt_date(apod_date), font=self._font_mono, fill=(115, 108, 148))
+        ly += self._font_mono.size + 18
 
-        title       = data.get("title", "")
-        explanation = data.get("explanation", "")
-        copyright_s = data.get("copyright", "").strip().replace("\n", " ")
-
-        ty = h - band_h + 12
-
-        # Title (truncated to fit)
+        # Title (Lobster, word-wrapped, max 3 lines)
+        title = data.get("title", "")
         if title:
-            max_w = w - 2 * pad
-            t = title
-            while t and draw.textlength(t, font=self._font_title) > max_w:
-                t = t[:-1]
-            if len(t) < len(title):
-                t = t.rstrip() + "…"
-            draw.text((pad, ty), t, font=self._font_title,
-                      fill=(255, 255, 255, 255), anchor="lt")
-            ty += self._font_title.size + 7
+            lines = _wrap_text(title, draw, self._font_lobster, rw)
+            for line in lines[:3]:
+                draw.text((lx, ly), line, font=self._font_lobster, fill=(232, 230, 255))
+                ly += self._font_lobster.size + 4
+        ly += 12
 
-        # Excerpt — first sentence, truncated to one line
+        # Explanation (as many lines as fit before the footer area)
+        explanation = data.get("explanation", "")
+        footer_top  = H - 52
         if explanation:
-            excerpt = _first_sentence(explanation)
-            max_w   = w - 2 * pad
-            while excerpt and draw.textlength(excerpt, font=self._font_body) > max_w:
-                excerpt = excerpt[:-1]
-            if len(excerpt) < len(_first_sentence(explanation)):
-                excerpt = excerpt.rstrip() + "…"
-            draw.text((pad, ty), excerpt, font=self._font_body,
-                      fill=(215, 215, 215, 225), anchor="lt")
+            for line in _wrap_text(explanation, draw, self._font_body, rw):
+                if ly + self._font_body.size > footer_top:
+                    break
+                draw.text((lx, ly), line, font=self._font_body, fill=(168, 164, 198))
+                ly += self._font_body.size + 3
 
-        # Footer — time/date left · copyright right
-        now = datetime.now()
-        footer_time = f"{now.strftime('%H:%M')}  ·  {now.day} {now.strftime('%B %Y')}"
-        draw.text((pad, h - 10), footer_time,
-                  font=self._font_mono_lg, fill=(210, 210, 210, 220), anchor="lb")
+        # Separator before footer
+        draw.line([(lx, H - 40), (W - 16, H - 40)], fill=(38, 32, 60), width=1)
+
+        # Copyright
+        copyright_s = data.get("copyright", "").strip().replace("\n", " ")
         if copyright_s:
-            draw.text((w - pad, h - 10), f"© {copyright_s}",
-                      font=self._font_mono, fill=(175, 175, 175, 200), anchor="rb")
+            cr = f"© {copyright_s}"
+            while cr and draw.textlength(cr, font=self._font_mono) > rw:
+                cr = cr[:-1]
+            if len(cr) < len(f"© {copyright_s}"):
+                cr = cr.rstrip() + "…"
+            draw.text((lx, H - 36), cr, font=self._font_mono, fill=(95, 90, 125))
 
-        return Image.alpha_composite(img_rgba, overlay).convert("RGB")
+        # Clock footer
+        now = datetime.now()
+        footer_str = f"{now.strftime('%H:%M')}  ·  {now.day} {now.strftime('%B %Y')}"
+        draw.text((lx, H - 18), footer_str, font=self._font_mono_lg,
+                  fill=(192, 188, 225), anchor="lt")
+
+        return canvas
 
     def _video_fallback(self, w: int, h: int, data: dict) -> Image.Image:
-        img  = Image.new("RGB", (w, h), (8, 8, 18))
+        img  = Image.new("RGB", (w, h), _PANEL_BG)
         draw = ImageDraw.Draw(img)
-        title     = data.get("title", "")
-        apod_date = data.get("date", "")
-        cx = w // 2
-
+        cx   = w // 2
         draw.text((cx, h // 2 - 50), "APOD — Video today",
-                  font=self._font_title, fill=(180, 180, 220), anchor="mm")
+                  font=self._font_lobster, fill=(180, 178, 220), anchor="mm")
+        title = data.get("title", "")
         if title:
             draw.text((cx, h // 2 + 10), title,
-                      font=self._font_body, fill=(140, 140, 180), anchor="mm")
+                      font=self._font_body, fill=(140, 138, 180), anchor="mm")
+        apod_date = data.get("date", "")
         if apod_date:
             draw.text((cx, h // 2 + 50), apod_date,
-                      font=self._font_mono, fill=(100, 100, 140), anchor="mm")
+                      font=self._font_mono, fill=(95, 90, 130), anchor="mm")
         return img
 
     def _error_image(self, w: int, h: int, title: str = "APOD") -> Image.Image:
-        img  = Image.new("RGB", (w, h), (8, 8, 18))
+        img  = Image.new("RGB", (w, h), _PANEL_BG)
         draw = ImageDraw.Draw(img)
         draw.text((w // 2, h // 2 - 20), title,
-                  font=self._font_title, fill=(160, 160, 200), anchor="mm")
+                  font=self._font_lobster, fill=(155, 152, 200), anchor="mm")
         draw.text((w // 2, h // 2 + 30), "the stars are quiet today",
-                  font=self._font_body, fill=(100, 100, 140), anchor="mm")
+                  font=self._font_body, fill=(95, 90, 130), anchor="mm")
         return img
 
     def get_state(self) -> ModeState:
