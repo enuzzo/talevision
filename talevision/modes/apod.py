@@ -75,6 +75,7 @@ class APODMode(DisplayMode):
         self._font_body    = _load_font(fonts_dir / "Taviraj-Italic.ttf", 16)
         self._font_mono    = _load_font(fonts_dir / "InconsolataNerdFontMono-Regular.ttf", 14)
         self._font_mono_lg = _load_font(fonts_dir / "InconsolataNerdFontMono-Regular.ttf", 17)
+        self._font_mono_xl = _load_font(fonts_dir / "InconsolataNerdFontMono-Regular.ttf", 20)
 
         self._cache_dir    = base_dir / "cache"
         self._cache_dir.mkdir(parents=True, exist_ok=True)
@@ -232,14 +233,14 @@ class APODMode(DisplayMode):
 
         # "APOD  ·  18 May 2014" on one line — saves vertical space for text
         apod_date = data.get("date", "")
-        draw.text((lx, ly), "APOD", font=self._font_mono_lg, fill=(255, 255, 255))
+        draw.text((lx, ly), "APOD", font=self._font_mono_xl, fill=(255, 255, 255))
         if apod_date:
-            apod_w  = int(draw.textlength("APOD  ·  ", font=self._font_mono_lg))
-            dot_x   = lx + int(draw.textlength("APOD  ", font=self._font_mono_lg))
-            draw.text((dot_x, ly), "·", font=self._font_mono_lg, fill=(80, 80, 80))
-            draw.text((lx + apod_w, ly + 1), _fmt_date(apod_date),
-                      font=self._font_mono, fill=(180, 180, 180))
-        ly += self._font_mono_lg.size + 14
+            dot_x  = lx + int(draw.textlength("APOD  ", font=self._font_mono_xl))
+            draw.text((dot_x, ly), "·", font=self._font_mono_xl, fill=(80, 80, 80))
+            date_x = lx + int(draw.textlength("APOD  ·  ", font=self._font_mono_xl))
+            draw.text((date_x, ly + 1), _fmt_date(apod_date),
+                      font=self._font_mono_lg, fill=(180, 180, 180))
+        ly += self._font_mono_xl.size + 14
 
         # Title (Lobster, word-wrapped, max 3 lines)
         title = data.get("title", "")
@@ -271,12 +272,12 @@ class APODMode(DisplayMode):
                 cr = cr[:-1]
             if len(cr) < len(f"© {copyright_s}"):
                 cr = cr.rstrip() + "…"
-            draw.text((lx, H - 44), cr, font=self._font_mono, fill=(140, 140, 140))
+            draw.text((lx, H - 44), cr, font=self._font_mono, fill=(185, 185, 185))
 
         # Clock footer
         now = datetime.now()
         footer_str = f"{now.strftime('%H:%M')}  ·  {now.day} {now.strftime('%B %Y')}"
-        draw.text((lx, H - 26), footer_str, font=self._font_mono_lg,
+        draw.text((lx, H - 22), footer_str, font=self._font_mono_lg,
                   fill=(255, 255, 255), anchor="lt")
 
         return canvas
