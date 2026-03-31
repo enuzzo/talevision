@@ -27,6 +27,8 @@
 </tr>
 <tr>
 <td align="center"><img src="docs/screenshots/flora.png" width="260" /><br /><b>Flora</b></td>
+<td align="center"><img src="docs/screenshots/apod.png" width="260" /><br /><b>APOD</b></td>
+<td align="center"><img src="docs/screenshots/mars.png" width="260" /><br /><b>Mars</b></td>
 </tr>
 </table>
 
@@ -50,7 +52,11 @@ As **Cucina**, it picks a random dish from world cuisines — Thai, Mexican, Mor
 
 As **Flora**, it grows a plant. An L-system grammar, seeded by the current time, produces a botanical specimen — fern, bamboo, flowering vine, narcissus — rendered as a scientific illustration with turtle graphics. Brown trunk graduating to green tips, leaf clusters, four-petal flowers with yellow centres. A cream label card shows the Latin name, family, order, and the production rules that built the thing. No API, no network, no tokens — pure math and a random seed. A different plant every render.
 
-All eight modes share one 800×480 seven-colour e-ink panel, one Pi Zero W, one Flask dashboard, and one quiet conviction: the best thing a screen can do is earn its update.
+As **APOD**, it reaches into the NASA Astronomy Picture of the Day archive — every image from June 1995 to yesterday — picks one at random (deterministically, per refresh interval), downloads it, and renders it in a pure-black sidebar layout. Title in Lobster, explanation below, photographer's copyright at the footer, and the current clock because it's still a clock. On video days, it gracefully degrades to the thumbnail. The image is cached by date; only the clock line updates on re-render. One NASA API key, free from api.nasa.gov, optional but polite.
+
+As **Mars**, it shows the latest raw photos transmitted by the Curiosity rover. Not processed, not colorised, not composited — actual unfiltered images from an actual robot on an actual planet, served by the JPL public API with no key required. Mastcam when available (colour, scenic), navigation or hazard cameras when not. A pure-black overlay band identifies the rover, camera, sol number, Earth receive date, photo ID, and total mission transmissions. The current time is also there. It seemed important.
+
+All ten modes share one 800×480 seven-colour e-ink panel, one Pi Zero W, one Flask dashboard, and one quiet conviction: the best thing a screen can do is earn its update.
 
 ---
 
@@ -76,6 +82,8 @@ TaleVision is the obvious outcome. One device. One config file. One dashboard. S
 - [Koan](#koan)
 - [Cucina](#cucina)
 - [Flora](#flora)
+- [APOD](#apod)
+- [Mars](#mars)
 - [Playlist & Rotation](#playlist--rotation)
 - [Hardware](#hardware)
 - [How It Works](#how-it-works)
@@ -216,6 +224,45 @@ Eight species rotate through the year — fern, tree, bush, vine, flower, bamboo
 
 ---
 
+## APOD
+
+Once per refresh: pick a random date from the entire NASA APOD archive (June 16, 1995 to yesterday), seeded deterministically to the current refresh interval so the same image stays up for five minutes before the clock updates. Check the cache — if this date's metadata and image are already stored, use them. If not, hit the NASA API with `thumbs=true` (so video days return a thumbnail instead of a YouTube link), download the image, and cache it. The network call only happens once per unique date.
+
+The display splits into two panels. The left 500px: the image, PIL-enhanced (brightness, contrast, colour), cover-fitted to fill the space. The right 300px: pure black background, no dithering, white text on darkness.
+
+At the top: `APOD · DD Month YYYY` — label in Inconsolata 20pt white, date in 17pt grey, on a single line. Below: the image title in Lobster 26pt, word-wrapped to three lines maximum. Then as much of the explanation as fits. A horizontal separator. The photographer's copyright, truncated with an ellipsis if it overruns the panel width. At the bottom: the current clock — `HH:MM · D Month YYYY` — because five-minute re-renders are for the clock, not the image.
+
+**Video days:** when NASA publishes a YouTube embed instead of a direct image (happens occasionally), TaleVision uses `thumbnail_url` from the API. If the thumbnail is absent too, the panel shows the title on a black background and calls it a night.
+
+**API key:** `apod_api_key` in `secrets.yaml`. Omit it and the mode falls back to `DEMO_KEY`, which NASA rate-limits to 30 requests per hour. For the 5-minute re-render cycle — which hits the network at most once per date, not once per render — this is sufficient.
+
+**Cache:** `cache/apod_data.json` (API metadata, keyed by target date), `cache/apod_image.jpg`, `cache/apod_image_date.txt`. Stale cache is used as fallback if the network is unavailable.
+
+---
+
+## Mars
+
+Once per hour: fetch the latest raw images transmitted by the Curiosity rover from the JPL Mars Raw Images API (`mars.nasa.gov/api/v1/raw_image_items`). Five hundred photos per call, sorted by sol descending. Rank them by camera preference — Mastcam first (colour, scenic), then MAHLI (hand-lens macro imager), then ChemCam RMI, then navigation cameras, then hazard cameras as a last resort. Select the photo for the current hour from the ranked list, cycling through them for intra-day variety.
+
+The photo fills the entire 800×480 panel, PIL-enhanced. A pure-black band at the bottom (135px, fully opaque — no translucency, no dithering compromise) carries four lines:
+
+1. `CURIOSITY  ·  {Camera Full Name}` — Signika Bold 28pt, white
+2. `Sol {N}  ·  Received on Earth: {DD Month YYYY}` — Taviraj Italic 19pt, amber
+3. `Photo #{ID}  ·  {N} total transmissions from Curiosity` — Taviraj Italic 19pt, warm brown
+4. `HH:MM  ·  D Month YYYY` — Inconsolata 16pt, grey
+
+Because an image of Mars should have its provenance on it, and because it's still a clock.
+
+**No API key required.** The JPL endpoint is fully public and unauthenticated. The `apod_api_key` field in `secrets.yaml` is ignored by this mode — a rare case of a NASA API being easier than it should be.
+
+**A note on Perseverance:** the JPL API accepts `?mission=mars2020` as a filter parameter, and silently ignores it, returning Curiosity data regardless. So this mode shows Curiosity exclusively. Perseverance fans will need to wait for the API to develop opinions.
+
+**Camera names:** the JPL `title` field uses the format `"Sol 4850: Mast Camera (Mastcam)"`. TaleVision strips the sol prefix and surfaces the human-readable camera name directly. `MAST_RIGHT` is an instrument identifier; `Mast Camera (Mastcam)` is what goes on the display.
+
+**Cache:** `cache/mars_photos.json` (daily photo list), `cache/mars_image.jpg`, `cache/mars_image_id.txt`. Stale image cache is used as fallback on network failure.
+
+---
+
 ## Playlist & Rotation
 
 TaleVision doesn't make you choose. Enable any combination of modes and the Orchestrator cycles through them in order. A unified rotation interval (default: 5 minutes, configurable 30s–60min) replaces per-mode intervals during rotation. After each render, it waits, then advances to the next mode in the playlist.
@@ -347,6 +394,10 @@ Dashboard at `http://<pi-ip>:5000`.
 | `weather.units` | `m` | `m` (metric), `u` (imperial), `M` (metric + m/s wind) |
 | `museo.refresh_interval` | `300` | Seconds between artwork fetches |
 | `museo.timeout` | `60` | HTTP timeout for museum API calls |
+| `apod.refresh_interval` | `300` | Seconds between re-renders (image cached by date; only the clock updates within a day) |
+| `apod.timeout` | `30` | HTTP timeout for NASA APOD API calls |
+| `mars.refresh_interval` | `3600` | Seconds between Mars photo rotations |
+| `mars.timeout` | `30` | HTTP timeout for JPL API calls |
 | `suspend.start` / `.end` | `18:00` / `08:00` | Sleep/wake time — overnight ranges handled correctly (start > end wraps midnight) |
 | `suspend.days` | `[5,6]` | Fully-off days (0=Mon … 6=Sun). Default: Sat+Sun fully off, Mon–Fri follow the time window |
 | `buttons.actions` | see below | Remap GPIO buttons to any action |
@@ -475,6 +526,9 @@ talevision/
 │   │   ├── koan_generator.py    Cloud LLM API (Groq/Gemini) + output parser
 │   │   ├── koan_archive.py      Folder-based haiku archive
 │   │   ├── cucina.py            Cucina — TheMealDB recipes + dark/light layout
+│   │   ├── flora.py             Flora — L-system botanical specimens, turtle graphics
+│   │   ├── apod.py              APOD — NASA Astronomy Picture of the Day, sidebar layout
+│   │   ├── mars.py              Mars — JPL Curiosity raw photos, full-bleed + overlay
 │   │   └── museo_providers/     Provider ABC + Met, Cleveland, V&A implementations
 │   ├── render/
 │   │   ├── typography.py        FontManager, wrap_text_block, get_text_dimensions
@@ -570,7 +624,7 @@ Use it, fork it, replace the quote database with your own obsessions, point Slow
 
 <div align="center">
 
-*Literature. Cinema. Wikipedia. Weather. Art. Poetry. Cuisine.*
+*Literature. Cinema. Wikipedia. Weather. Art. Poetry. Cuisine. Plants. Space.*
 *One Pi Zero W. One wall. One question at a time.*
 
 </div>
