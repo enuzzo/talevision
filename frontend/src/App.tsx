@@ -1752,14 +1752,13 @@ export default function App() {
           <div className="space-y-4">
             <SettingsCard title="Active schedule">
               <SuspendForm initial={status?.suspend} onChange={setPendingSchedule} />
-              <Divider />
-              <div className="mt-3">
-                <LanguageSelector current={pendingLanguage ?? status?.language ?? undefined} onChange={setPendingLanguage} />
-              </div>
               {playlist.includes('weather') && (
-                <div className="mt-3">
-                  <WeatherSettings currentLocation={status?.weather_location ?? undefined} onChange={setPendingWeather} />
-                </div>
+                <>
+                  <Divider />
+                  <div className="mt-3">
+                    <WeatherSettings currentLocation={status?.weather_location ?? undefined} onChange={setPendingWeather} />
+                  </div>
+                </>
               )}
             </SettingsCard>
           </div>
@@ -1790,12 +1789,17 @@ export default function App() {
               </SettingsCard>
             )}
 
-            <SettingsCard title="Archives">
-              <ArchivesSection
-                onViewKoan={() => navigateTo('archive')}
-                onViewFlora={() => navigateTo('flora-archive')}
-                onViewSheep={() => navigateTo('sheep-archive')}
-              />
+            <SettingsCard>
+              <LanguageSelector current={pendingLanguage ?? status?.language ?? undefined} onChange={setPendingLanguage} />
+              <Divider />
+              <div className="mt-3">
+                <h2 className="label mb-3">Archives</h2>
+                <ArchivesSection
+                  onViewKoan={() => navigateTo('archive')}
+                  onViewFlora={() => navigateTo('flora-archive')}
+                  onViewSheep={() => navigateTo('sheep-archive')}
+                />
+              </div>
             </SettingsCard>
           </div>
         </div>
