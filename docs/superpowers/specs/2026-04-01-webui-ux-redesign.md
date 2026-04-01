@@ -32,8 +32,8 @@
 **Sticky header:** Logo + clock + status indicator + Save button + Force Refresh button. Save and Force Refresh live in the header on desktop — always visible without a bottom bar.
 
 **Top row — 2 columns:**
-- Left (~60%): Frame preview (aspect 5:3, `object-contain`) + status bar below (uptime, last render, wake time, rotation sequence)
-- Right (~40%): Playlist editor (mode toggles with drag-and-drop, rotation interval input)
+- Left (~60%): Frame preview (aspect 5:3, `object-contain`) + status bar below (uptime, last render, wake time, and rotation sequence shown as mode icons with interval — this already exists in the current code)
+- Right (~40%): Playlist editor (existing drag-and-drop reordering + mode toggle checkboxes + rotation interval input — no changes to interaction logic, only layout/styling)
 
 **Below — settings cards grid (2 columns):**
 - Left column: Schedule card, then Weather + Language card (combined)
@@ -128,12 +128,14 @@ Single column, all sections stacked vertically. Fixed bottom action bar.
 
 ### 4.1 Dirty State Tracking
 
-A `dirtyFields` set tracks which sections have unsaved changes. Populated by comparing local form state to the last-synced server values. Sections tracked:
+A `dirtyFields` set tracks which sections have unsaved changes. Populated by comparing local form state to the last-synced server values. The baseline for dirty detection is the most recent successful `/api/status` response. After a successful global save, the app refetches status to update the baseline.
+
+Sections tracked:
 
 - `playlist` — mode order, enabled set, or rotation interval changed
 - `schedule` — enabled, times, or days changed
 - `intervals` — any mode's interval value changed
-- `weather` — location or units changed
+- `weather` — location (`{city, lat, lon}` from search-select flow) or units changed
 - `language` — language changed
 
 ### 4.2 Save Button States
@@ -155,11 +157,15 @@ On click, fires all pending mutations in parallel:
 - If `weather` dirty → `api.setWeatherLocation(...)` and/or `api.setWeatherUnits(...)`
 - If `language` dirty → `api.setLanguage(lang)`
 
-All mutations fire via `Promise.allSettled()`. Success → mark clean, show confirmation. Partial failure → show which section failed.
+All mutations fire via `Promise.allSettled()`. Success → clear all `dirtyFields`, show green confirmation. On partial failure: (a) only the failed sections remain in `dirtyFields`, (b) the Save button returns to "dirty" state (filled magenta), (c) a brief inline toast indicates which section(s) failed (e.g., "Schedule save failed"), (d) the user can retry by clicking Save again — it will only re-send the still-dirty sections.
 
 ### 4.4 Force Refresh Button
 
 Always enabled (not dependent on dirty state). Triggers `api.refresh()` and enters the existing render-waiting state with the overlay animation.
+
+### 4.5 Unsaved Changes Guard
+
+When `dirtyFields` is non-empty and the user navigates to an archive page, show a confirmation: "You have unsaved changes. Discard?" with Cancel/Discard options. Also register a `beforeunload` handler to warn on tab close/reload.
 
 ---
 
@@ -170,7 +176,7 @@ Always enabled (not dependent on dirty state). Triggers `api.refresh()` and ente
 - **PlaylistEditor**: remove the sticky Save bar and Force Refresh button from the component. These move to the global action bar/header.
 - **SuspendForm**: remove the Save button and saved state.
 - **IntervalRow**: remove the "Set" button. Keep only input + optional reset icon.
-- **WeatherSettings**: remove the "Set location" button and saved state.
+- **WeatherSettings**: remove the "Set location" button and saved state. The search-suggest-select flow remains internal to the component; only the final selected `{city: string, lat: number, lon: number}` and units value are lifted to App as the pending weather change via an `onChange` callback.
 
 ### 5.2 Lift State Up
 
@@ -181,8 +187,7 @@ Recommended: pass `onChange` callbacks from App into each section component. App
 ### 5.3 New Components
 
 **`ActionBar`** — the fixed bottom bar on mobile.
-- Props: `dirty: boolean`, `saving: boolean`, `saved: boolean`, `error: boolean`
-- Props: `onSave: () => void`, `onRefresh: () => void`, `refreshing: boolean`
+- Props: `dirty: boolean`, `saving: boolean`, `saved: boolean`, `error: boolean`, `onSave: () => void`, `onRefresh: () => void`, `refreshing: boolean`
 
 **`SettingsCard`** — generic card wrapper for settings sections.
 - Props: `title: string`, `children: ReactNode`
@@ -207,7 +212,7 @@ New:
 
 ### 5.5 Weather + Language Combined Card
 
-Single card titled "Preferences" or "Settings":
+Single card titled "Preferences":
 - Top: Weather location input + units toggle
 - Divider
 - Bottom: Language dropdown
@@ -269,7 +274,7 @@ New header (mobile):
 ```
 [● TaleVision]    [● mode]
 ```
-(clock can move to status bar below frame, or stay in header if space allows)
+On mobile, the clock moves to the status bar below the frame preview (header stays compact).
 
 Action buttons are in the header on desktop, in the fixed bottom bar on mobile.
 
