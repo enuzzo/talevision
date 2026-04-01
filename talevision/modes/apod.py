@@ -3,6 +3,8 @@ import io
 import json
 import logging
 import random
+import socket
+import urllib.error
 import urllib.request
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -61,6 +63,42 @@ def _first_sentence(text: str, max_chars: int = 160) -> str:
     return text[:max_chars].rsplit(" ", 1)[0] + "…"
 
 
+def _classify_http_error(exc: urllib.error.HTTPError) -> str:
+    code = exc.code
+    if code == 403:
+        try:
+            body = json.loads(exc.read().decode("utf-8"))
+            msg = body.get("error", {}).get("message", "")
+            if "OVER_RATE_LIMIT" in msg.upper() or "rate limit" in msg.lower():
+                return "API rate limit exceeded. Wait a few minutes or add a personal API key to secrets.yaml"
+            if "INVALID" in msg.upper():
+                return "Invalid API key. Get a free key at api.nasa.gov and add it to secrets.yaml"
+            return f"Access denied (403): {msg[:80]}" if msg else "Access denied by NASA API (403)"
+        except Exception:
+            pass
+        return "Access denied by NASA API (HTTP 403)"
+    if code == 429:
+        return "Rate limit exceeded. DEMO_KEY allows 30 req/hour. Add a personal API key to secrets.yaml"
+    if code == 404:
+        return "APOD not found for this date (HTTP 404)"
+    if code >= 500:
+        return f"NASA server error (HTTP {code}). Try again later"
+    return f"NASA API returned HTTP {code}"
+
+
+def _classify_url_error(exc: urllib.error.URLError, prefix: str = "") -> str:
+    reason = exc.reason
+    if isinstance(reason, socket.timeout):
+        return f"{prefix}Connection timed out. Check Pi network or increase timeout in config"
+    if isinstance(reason, socket.gaierror):
+        return f"{prefix}DNS lookup failed. Check Pi internet connection"
+    if isinstance(reason, ConnectionRefusedError):
+        return f"{prefix}Connection refused by server"
+    if isinstance(reason, OSError) and "Network is unreachable" in str(reason):
+        return f"{prefix}Network unreachable. Check Pi WiFi connection"
+    return f"{prefix}Network error: {reason}"
+
+
 class APODMode(DisplayMode):
 
     def __init__(self, config: AppConfig, base_dir: Path = Path("."), api_key: str = "DEMO_KEY"):
@@ -86,6 +124,11 @@ class APODMode(DisplayMode):
         self._last_title:      str = ""
         self._last_date:       str = ""
         self._last_media_type: str = "image"
+        self._last_error:      str = ""
+
+        self._font_err_title = _load_font(fonts_dir / "Lobster-Regular.ttf", 38)
+        self._font_err_body  = _load_font(fonts_dir / "Taviraj-Italic.ttf", 22)
+        self._font_err_hint  = _load_font(fonts_dir / "InconsolataNerdFontMono-Regular.ttf", 15)
 
     @property
     def name(self) -> str:
@@ -190,8 +233,18 @@ class APODMode(DisplayMode):
             with urllib.request.urlopen(req, timeout=self._cfg.timeout) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
             log.info("APOD: fetched %s — %s", data.get("date"), data.get("title"))
+            self._last_error = ""
             return data
+        except urllib.error.HTTPError as exc:
+            self._last_error = _classify_http_error(exc)
+            log.warning("APOD: metadata fetch failed: HTTP %s — %s", exc.code, self._last_error)
+            return None
+        except urllib.error.URLError as exc:
+            self._last_error = _classify_url_error(exc)
+            log.warning("APOD: metadata fetch failed: %s — %s", exc.reason, self._last_error)
+            return None
         except Exception as exc:
+            self._last_error = f"Unexpected error: {type(exc).__name__}"
             log.warning("APOD: metadata fetch failed: %s", exc)
             return None
 
@@ -201,7 +254,16 @@ class APODMode(DisplayMode):
             with urllib.request.urlopen(req, timeout=self._cfg.timeout) as resp:
                 raw = resp.read()
             return Image.open(io.BytesIO(raw)).convert("RGB")
+        except urllib.error.HTTPError as exc:
+            self._last_error = f"Image download failed: HTTP {exc.code}"
+            log.warning("APOD: image fetch failed: HTTP %s", exc.code)
+            return None
+        except urllib.error.URLError as exc:
+            self._last_error = _classify_url_error(exc, prefix="Image: ")
+            log.warning("APOD: image fetch failed: %s", exc.reason)
+            return None
         except Exception as exc:
+            self._last_error = f"Image error: {type(exc).__name__}"
             log.warning("APOD: image fetch failed: %s", exc)
             return None
 
@@ -286,25 +348,55 @@ class APODMode(DisplayMode):
         img  = Image.new("RGB", (w, h), _PANEL_BG)
         draw = ImageDraw.Draw(img)
         cx   = w // 2
-        draw.text((cx, h // 2 - 50), "APOD — Video today",
-                  font=self._font_lobster, fill=(180, 178, 220), anchor="mm")
+        draw.text((cx, h // 2 - 60), "APOD — Video today",
+                  font=self._font_err_title, fill=(180, 178, 220), anchor="mm")
+        draw.text((cx, h // 2 - 15), "no thumbnail available for this video",
+                  font=self._font_err_body, fill=(120, 115, 160), anchor="mm")
         title = data.get("title", "")
         if title:
-            draw.text((cx, h // 2 + 10), title,
-                      font=self._font_body, fill=(140, 138, 180), anchor="mm")
+            for i, line in enumerate(_wrap_text(title, draw, self._font_err_body, w - 80)[:2]):
+                draw.text((cx, h // 2 + 30 + i * 28), line,
+                          font=self._font_err_body, fill=(140, 138, 180), anchor="mm")
         apod_date = data.get("date", "")
         if apod_date:
-            draw.text((cx, h // 2 + 50), apod_date,
-                      font=self._font_mono, fill=(95, 90, 130), anchor="mm")
+            draw.text((cx, h - 40), _fmt_date(apod_date),
+                      font=self._font_err_hint, fill=(95, 90, 130), anchor="mm")
         return img
 
     def _error_image(self, w: int, h: int, title: str = "APOD") -> Image.Image:
         img  = Image.new("RGB", (w, h), _PANEL_BG)
         draw = ImageDraw.Draw(img)
-        draw.text((w // 2, h // 2 - 20), title,
-                  font=self._font_lobster, fill=(155, 152, 200), anchor="mm")
-        draw.text((w // 2, h // 2 + 30), "the stars are quiet today",
-                  font=self._font_body, fill=(95, 90, 130), anchor="mm")
+        cx   = w // 2
+        ly   = 60
+
+        draw.text((cx, ly), title,
+                  font=self._font_err_title, fill=(180, 175, 220), anchor="mm")
+        ly += 50
+
+        draw.text((cx, ly), "the stars are quiet today",
+                  font=self._font_err_body, fill=(120, 115, 160), anchor="mm")
+        ly += 50
+
+        reason = self._last_error
+        if reason:
+            draw.line([(cx - 180, ly), (cx + 180, ly)], fill=(60, 55, 90), width=1)
+            ly += 20
+            for line in _wrap_text(reason, draw, self._font_err_hint, w - 80):
+                draw.text((cx, ly), line,
+                          font=self._font_err_hint, fill=(160, 155, 190), anchor="mm")
+                ly += self._font_err_hint.size + 6
+
+        key_hint = "DEMO_KEY" if self._api_key == "DEMO_KEY" else "custom key"
+        footer_lines = [
+            f"API key: {key_hint}   |   timeout: {self._cfg.timeout}s",
+            f"{datetime.now().strftime('%H:%M')}  ·  {datetime.now().day} {datetime.now().strftime('%B %Y')}",
+        ]
+        fy = h - 55
+        for fl in footer_lines:
+            draw.text((cx, fy), fl,
+                      font=self._font_err_hint, fill=(100, 95, 130), anchor="mm")
+            fy += 22
+
         return img
 
     def get_state(self) -> ModeState:

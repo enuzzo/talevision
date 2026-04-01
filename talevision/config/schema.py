@@ -193,7 +193,7 @@ class FloraConfig:
 @dataclass
 class ApodConfig:
     refresh_interval: int = 300
-    timeout: int = 30
+    timeout: int = 45
     brightness: float = 1.05
     contrast: float = 1.1
     color: float = 1.2

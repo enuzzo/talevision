@@ -2,6 +2,8 @@
 import io
 import json
 import logging
+import socket
+import urllib.error
 import urllib.request
 from datetime import date, datetime
 from pathlib import Path
@@ -68,6 +70,42 @@ def _camera_full_name(photo: dict) -> str:
     return parts[1] if len(parts) > 1 else photo.get("instrument", "")
 
 
+def _wrap_text(text: str, draw: ImageDraw.ImageDraw, font, max_w: int) -> list[str]:
+    words = text.split()
+    lines, cur = [], ""
+    for word in words:
+        test = (cur + " " + word).strip()
+        if draw.textlength(test, font=font) <= max_w:
+            cur = test
+        else:
+            if cur:
+                lines.append(cur)
+            cur = word
+    if cur:
+        lines.append(cur)
+    return lines
+
+
+def _classify_mars_error(exc: Exception) -> str:
+    if isinstance(exc, urllib.error.HTTPError):
+        code = exc.code
+        if code >= 500:
+            return f"JPL server error (HTTP {code}). Try again later"
+        if code == 403:
+            return "Access denied by JPL API (HTTP 403)"
+        return f"JPL API returned HTTP {code}"
+    if isinstance(exc, urllib.error.URLError):
+        reason = exc.reason
+        if isinstance(reason, socket.timeout):
+            return "Connection timed out. Check Pi network or increase timeout"
+        if isinstance(reason, socket.gaierror):
+            return "DNS lookup failed. Check Pi internet connection"
+        if isinstance(reason, OSError) and "Network is unreachable" in str(reason):
+            return "Network unreachable. Check Pi WiFi connection"
+        return f"Network error: {reason}"
+    return f"Unexpected error: {type(exc).__name__}"
+
+
 class MarsMode(DisplayMode):
 
     def __init__(self, config: AppConfig, base_dir: Path = Path("."), api_key: str = "DEMO_KEY"):
@@ -93,6 +131,11 @@ class MarsMode(DisplayMode):
         self._last_earth_date:  str = ""
         self._last_photo_id:    int = 0
         self._last_total:       int = 0
+        self._last_error:       str = ""
+
+        self._font_err_title = _load_font(fonts_dir / "Signika-Bold.ttf", 36)
+        self._font_err_body  = _load_font(fonts_dir / "Taviraj-Italic.ttf", 22)
+        self._font_err_hint  = _load_font(fonts_dir / "InconsolataNerdFontMono-Regular.ttf", 15)
 
     @property
     def name(self) -> str:
@@ -204,9 +247,11 @@ class MarsMode(DisplayMode):
                 p["_total"] = total
             log.info("Mars: %d photos (sol %s, total %s)",
                      len(photos), photos[0]["sol"] if photos else "?", _fmt_count(total))
+            self._last_error = ""
             return photos
         except Exception as exc:
-            log.warning("Mars: photos fetch failed: %s", exc)
+            self._last_error = _classify_mars_error(exc)
+            log.warning("Mars: photos fetch failed: %s — %s", exc, self._last_error)
             return []
 
     def _fetch_image(self, url: str) -> Optional[Image.Image]:
@@ -216,6 +261,7 @@ class MarsMode(DisplayMode):
                 raw = resp.read()
             return Image.open(io.BytesIO(raw)).convert("RGB")
         except Exception as exc:
+            self._last_error = f"Image: {_classify_mars_error(exc)}"
             log.warning("Mars: image fetch failed: %s", exc)
             return None
 
@@ -289,10 +335,33 @@ class MarsMode(DisplayMode):
     def _error_image(self, w: int, h: int) -> Image.Image:
         img  = Image.new("RGB", (w, h), (0, 0, 0))
         draw = ImageDraw.Draw(img)
-        draw.text((w // 2, h // 2 - 20), "MARS",
-                  font=self._font_title, fill=(160, 70, 30), anchor="mm")
-        draw.text((w // 2, h // 2 + 30), "signal lost",
-                  font=self._font_body, fill=(100, 50, 25), anchor="mm")
+        cx   = w // 2
+        ly   = 60
+
+        draw.text((cx, ly), "MARS",
+                  font=self._font_err_title, fill=(200, 90, 40), anchor="mm")
+        ly += 50
+
+        draw.text((cx, ly), "signal lost",
+                  font=self._font_err_body, fill=(140, 70, 35), anchor="mm")
+        ly += 50
+
+        reason = self._last_error
+        if reason:
+            draw.line([(cx - 180, ly), (cx + 180, ly)], fill=(90, 45, 20), width=1)
+            ly += 20
+            for line in _wrap_text(reason, draw, self._font_err_hint, w - 80):
+                draw.text((cx, ly), line,
+                          font=self._font_err_hint, fill=(170, 100, 55), anchor="mm")
+                ly += self._font_err_hint.size + 6
+
+        footer = f"API: JPL (no key)   |   timeout: {self._cfg.timeout}s"
+        draw.text((cx, h - 55), footer,
+                  font=self._font_err_hint, fill=(110, 55, 30), anchor="mm")
+        clock = f"{datetime.now().strftime('%H:%M')}  ·  {datetime.now().day} {datetime.now().strftime('%B %Y')}"
+        draw.text((cx, h - 33), clock,
+                  font=self._font_err_hint, fill=(110, 55, 30), anchor="mm")
+
         return img
 
     def get_state(self) -> ModeState:

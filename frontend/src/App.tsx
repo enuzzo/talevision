@@ -269,7 +269,7 @@ function FramePreview({ refreshKey, waiting, waitingMode }: { refreshKey: number
       {!waiting && !loaded && !errored && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-deep">
           <div className="w-px h-8 bg-accent/30 animate-pulse-accent" />
-          <span className="label tracking-[0.3em]">loading frame</span>
+          <span className="label tracking-[0.3em] whitespace-nowrap">loading frame</span>
         </div>
       )}
 
