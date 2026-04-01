@@ -1791,6 +1791,7 @@ export default function App() {
 
             <SettingsCard className="flex-1">
               <LanguageSelector current={pendingLanguage ?? status?.language ?? undefined} onChange={setPendingLanguage} />
+              <div className="mt-4" />
               <Divider />
               <div className="mt-3">
                 <h2 className="label mb-3">Archives</h2>
