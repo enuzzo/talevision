@@ -1669,35 +1669,75 @@ export default function App() {
         {/* ── Top row: Frame + Playlist (2-col on desktop) ── */}
         <div className="lg:grid lg:grid-cols-[1fr_380px] lg:gap-6 lg:items-stretch space-y-5 lg:space-y-0">
 
-          {/* Col 1: Frame + status */}
-          <div className="space-y-3">
+          {/* Col 1: Frame + Now Playing panel */}
+          <div className="space-y-0">
             <FramePreview refreshKey={refreshKey} waiting={waiting} waitingMode={pendingMode ?? currentMode} />
 
-            <div className="flex items-center gap-4 flex-wrap text-xs">
-              {/* Clock on mobile (hidden on sm+ where it's in header) */}
-              <span className="font-mono text-xs text-tertiary tabular-nums sm:hidden">{clock}</span>
-              <span className="text-tertiary">
-                <span className="font-mono text-muted">UP</span>{' '}
-                <span className="text-secondary font-mono">{formatUptime(status?.uptime_seconds ?? 0)}</span>
-              </span>
-              <span className="text-tertiary">
-                <span className="font-mono text-muted">LAST</span>{' '}
-                <span className="text-secondary font-mono">{formatLastRender(status?.last_update)}</span>
-              </span>
-              {status?.next_wake && (
-                <span className="text-tertiary">
-                  <span className="font-mono text-muted">WAKE</span>{' '}
-                  <span className="text-secondary font-mono">{formatTime(status.next_wake)}</span>
+            {/* Now Playing — rich status panel below frame */}
+            <div
+              className="rounded-b-xl px-5 py-4 -mt-1"
+              style={{ background: '#1A1A2E', color: '#FAF8F5' }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-lg">{currentModeInfo.icon}</span>
+                  <div>
+                    <span className="font-title text-xl" style={{ color: currentModeInfo.color }}>
+                      {currentModeInfo.label}
+                    </span>
+                    {isSuspended && (
+                      <span className="font-mono text-[10px] ml-2 px-2 py-0.5 rounded-full bg-white/10 text-white/50">paused</span>
+                    )}
+                  </div>
+                </div>
+                <span className="font-mono text-xs tabular-nums text-white/40">{clock}</span>
+              </div>
+
+              <div className="flex items-center gap-5 text-[12px] font-mono text-white/50">
+                <span>
+                  <span className="text-white/25 uppercase text-[10px]">up </span>
+                  <span className="text-white/70">{formatUptime(status?.uptime_seconds ?? 0)}</span>
                 </span>
-              )}
+                <span>
+                  <span className="text-white/25 uppercase text-[10px]">last </span>
+                  <span className="text-white/70">{formatLastRender(status?.last_update)}</span>
+                </span>
+                {status?.next_wake && (
+                  <span>
+                    <span className="text-white/25 uppercase text-[10px]">wake </span>
+                    <span className="text-white/70">{formatTime(status.next_wake)}</span>
+                  </span>
+                )}
+              </div>
+
               {isRotating && (
-                <span className="text-tertiary ml-auto">
-                  {playlist.map(id => getModeInfo(id).icon).join(' → ')}
-                  <span className="font-mono text-muted ml-1">{fmtInterval(rotationInterval)}</span>
-                </span>
+                <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                  <span className="text-[10px] uppercase font-mono text-white/30">rotation</span>
+                  <div className="flex items-center gap-1.5 ml-1">
+                    {playlist.map((id, i) => {
+                      const m = getModeInfo(id)
+                      const isCurrent = id === currentMode
+                      return (
+                        <span key={id} className="flex items-center gap-1">
+                          <span
+                            className={cx('text-xs', isCurrent ? 'opacity-100' : 'opacity-40')}
+                            title={m.label}
+                          >
+                            {m.icon}
+                          </span>
+                          {i < playlist.length - 1 && <span className="text-white/15 text-[10px]">→</span>}
+                        </span>
+                      )
+                    })}
+                  </div>
+                  <span className="font-mono text-[10px] text-white/30 ml-auto">{fmtInterval(rotationInterval)}/mode</span>
+                </div>
               )}
+
               {status?.video && (
-                <span style={{ color: '#D97706' }}>🎬 {status.video}</span>
+                <div className="mt-2 text-[12px] font-mono" style={{ color: '#D97706' }}>
+                  🎬 {status.video}
+                </div>
               )}
             </div>
           </div>
@@ -1715,59 +1755,56 @@ export default function App() {
 
         {/* ── Settings cards grid (below top row) ── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
-          {/* When rotating (no intervals card), use lg:contents so schedule+preferences
-              each occupy one grid column side-by-side. When not rotating, they stack in col-1. */}
-          <div className={cx('space-y-4', isRotating && 'lg:contents')}>
+          {/* Left column: Schedule + Weather + Language */}
+          <div className="space-y-4">
             <SettingsCard title="Active schedule">
               <SuspendForm initial={status?.suspend} onChange={setPendingSchedule} />
-            </SettingsCard>
-
-            <SettingsCard title="Preferences">
+              <Divider />
+              <div className="mt-3">
+                <LanguageSelector current={pendingLanguage ?? status?.language ?? undefined} onChange={setPendingLanguage} />
+              </div>
               {playlist.includes('weather') && (
-                <>
+                <div className="mt-3">
                   <WeatherSettings currentLocation={status?.weather_location ?? undefined} onChange={setPendingWeather} />
-                  <Divider />
-                  <div className="mt-3" />
-                </>
+                </div>
               )}
-              <LanguageSelector current={pendingLanguage ?? status?.language ?? undefined} onChange={setPendingLanguage} />
             </SettingsCard>
           </div>
 
-          {!isRotating && status?.intervals && Object.keys(status.intervals).length > 0 && (
-            <SettingsCard title="Refresh intervals">
-              <div className="space-y-0.5">
-                {ALL_MODES.filter(m => m.available && status.intervals![m.id]).map(m => (
-                  <IntervalRow
-                    key={m.id}
-                    modeName={m.id}
-                    icon={m.icon}
-                    color={m.color}
-                    value={localIntervals[m.id] ?? Math.round(status.intervals![m.id].effective / 60)}
-                    defaultVal={status.intervals![m.id].default}
-                    overridden={
-                      pendingIntervals[m.id] !== undefined
-                        ? true
-                        : status.intervals![m.id].overridden
-                    }
-                    onChange={(min) => handleIntervalChange(m.id, min)}
-                    onReset={() => handleIntervalReset(m.id)}
-                  />
-                ))}
-              </div>
-            </SettingsCard>
-          )}
-        </div>
+          {/* Right column: Intervals (when not rotating) OR Archives */}
+          <div className="space-y-4">
+            {!isRotating && status?.intervals && Object.keys(status.intervals).length > 0 && (
+              <SettingsCard title="Refresh intervals">
+                <div className="space-y-0.5">
+                  {ALL_MODES.filter(m => m.available && status.intervals![m.id]).map(m => (
+                    <IntervalRow
+                      key={m.id}
+                      modeName={m.id}
+                      icon={m.icon}
+                      color={m.color}
+                      value={localIntervals[m.id] ?? Math.round(status.intervals![m.id].effective / 60)}
+                      defaultVal={status.intervals![m.id].default}
+                      overridden={
+                        pendingIntervals[m.id] !== undefined
+                          ? true
+                          : status.intervals![m.id].overridden
+                      }
+                      onChange={(min) => handleIntervalChange(m.id, min)}
+                      onReset={() => handleIntervalReset(m.id)}
+                    />
+                  ))}
+                </div>
+              </SettingsCard>
+            )}
 
-        {/* ── Archives ── */}
-        <div className="mt-4">
-          <SettingsCard title="Archives">
-            <ArchivesSection
-              onViewKoan={() => navigateTo('archive')}
-              onViewFlora={() => navigateTo('flora-archive')}
-              onViewSheep={() => navigateTo('sheep-archive')}
-            />
-          </SettingsCard>
+            <SettingsCard title="Archives">
+              <ArchivesSection
+                onViewKoan={() => navigateTo('archive')}
+                onViewFlora={() => navigateTo('flora-archive')}
+                onViewSheep={() => navigateTo('sheep-archive')}
+              />
+            </SettingsCard>
+          </div>
         </div>
 
         {/* ── Footer ── */}
