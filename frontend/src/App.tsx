@@ -683,17 +683,20 @@ function SuspendForm({ initial }: { initial?: SuspendConfig }) {
               {d}
             </button>
           ))}
-          <button
-            onClick={() => mut.mutate()}
-            disabled={mut.isPending}
-            className="ml-auto font-display text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-xs bg-accent text-white hover:bg-accent-hover transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
-          >
-            {mut.isPending ? '…' : 'Save'}
-          </button>
-          {saved && (
-            <span className="label animate-fade-in" style={{ color: '#01B574' }}>✓</span>
-          )}
         </div>
+      </div>
+
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          onClick={() => mut.mutate()}
+          disabled={mut.isPending}
+          className="font-display text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-xs bg-accent text-white hover:bg-accent-hover transition-all duration-200 disabled:opacity-50 disabled:cursor-wait"
+        >
+          {mut.isPending ? '…' : 'Save'}
+        </button>
+        {saved && (
+          <span className="label animate-fade-in" style={{ color: '#01B574' }}>✓</span>
+        )}
       </div>
     </div>
   )
