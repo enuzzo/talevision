@@ -279,10 +279,10 @@ function FramePreview({ refreshKey, waiting, waitingMode }: { refreshKey: number
 
 // ─── Settings Card ───────────────────────────────────────────────────────────
 
-function SettingsCard({ title, children }: { title?: string; children: React.ReactNode }) {
+function SettingsCard({ title, children, className }: { title?: string; children: React.ReactNode; className?: string }) {
   return (
     <section
-      className="rounded-xl p-4 sm:p-5"
+      className={cx('rounded-xl p-4 sm:p-5', className)}
       style={{ background: '#FFFAF0', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
     >
       {title && <h2 className="label mb-3">{title}</h2>}
@@ -1747,10 +1747,10 @@ export default function App() {
         </div>
 
         {/* ── Settings cards grid (below top row) ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
-          {/* Left column: Schedule + Weather + Language */}
-          <div className="space-y-4">
-            <SettingsCard title="Active schedule">
+        <div className="grid grid-cols-1 lg:grid-cols-2 lg:items-stretch gap-4 mt-6">
+          {/* Left column: Schedule + Weather */}
+          <div className="flex flex-col gap-4">
+            <SettingsCard title="Active schedule" className="flex-1">
               <SuspendForm initial={status?.suspend} onChange={setPendingSchedule} />
               {playlist.includes('weather') && (
                 <>
@@ -1763,8 +1763,8 @@ export default function App() {
             </SettingsCard>
           </div>
 
-          {/* Right column: Intervals (when not rotating) OR Archives */}
-          <div className="space-y-4">
+          {/* Right column: Intervals (when not rotating) + Language/Archives */}
+          <div className="flex flex-col gap-4">
             {!isRotating && status?.intervals && Object.keys(status.intervals).length > 0 && (
               <SettingsCard title="Refresh intervals">
                 <div className="space-y-0.5">
@@ -1789,7 +1789,7 @@ export default function App() {
               </SettingsCard>
             )}
 
-            <SettingsCard>
+            <SettingsCard className="flex-1">
               <LanguageSelector current={pendingLanguage ?? status?.language ?? undefined} onChange={setPendingLanguage} />
               <Divider />
               <div className="mt-3">
