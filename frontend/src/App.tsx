@@ -947,7 +947,7 @@ function KoanArchivePage({ onBack }: { onBack: () => void }) {
     <div className="min-h-screen" style={{ background: '#FAF8F5' }}>
       {/* ── Header ── */}
       <header className="sticky top-0 z-10 backdrop-blur-md" style={{ background: 'rgba(250,248,245,0.94)', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <button
@@ -1010,7 +1010,7 @@ function KoanArchivePage({ onBack }: { onBack: () => void }) {
       </header>
 
       {/* ── Grid ── */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 py-6">
         {isLoading ? (
           <p className="font-mono text-sm text-center py-20" style={{ color: '#A09890' }}>loading…</p>
         ) : filtered.length === 0 ? (
@@ -1265,7 +1265,7 @@ function FloraArchivePage({ onBack }: { onBack: () => void }) {
       </header>
 
       {/* ── Grid ── */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 py-6">
         {isLoading ? (
           <p className="font-mono text-sm text-center py-20" style={{ color: '#A09890' }}>loading…</p>
         ) : all.length === 0 ? (
@@ -1491,25 +1491,25 @@ function SheepDreamCard({ dream, onSelect }: { dream: SheepDream; onSelect: () =
   return (
     <div
       onClick={onSelect}
-      className="cursor-pointer rounded-xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
-      style={{ background: '#0D0D1A', border: '1px solid rgba(168,85,247,0.15)' }}
+      className="cursor-pointer rounded-xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+      style={{ background: '#FFFAF0', border: '1px solid #E4DBD0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
     >
-      <div style={{ position: 'relative', paddingBottom: '60%', background: '#0a0a14' }}>
+      <div style={{ position: 'relative', paddingBottom: '60%', background: '#F5F0E8' }}>
         {dream.has_image && (
           <img
             src={`/api/electricsheep/archive/${dream.id}`}
             alt={dream.theme}
             loading="lazy"
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.92 }}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
           />
         )}
       </div>
       <div style={{ padding: '12px 14px' }}>
-        <div style={{ fontSize: 15, color: '#E2D9F3', lineHeight: 1.35, marginBottom: 5 }}>
+        <div style={{ fontSize: 15, color: '#1A1A2E', lineHeight: 1.35, marginBottom: 5 }}>
           {dream.theme}
         </div>
-        <div className="flex items-center justify-between" style={{ fontFamily: 'monospace', fontSize: 11, color: '#6B5A8A' }}>
-          <span style={{ fontStyle: 'italic', color: '#9F7DC4' }}>{dream.style}</span>
+        <div className="flex items-center justify-between" style={{ fontFamily: 'monospace', fontSize: 11, color: '#A09890' }}>
+          <span style={{ fontStyle: 'italic', color: '#A855F7' }}>{dream.style}</span>
           <span>#{dream.id} · {dateStr}</span>
         </div>
       </div>
@@ -1542,12 +1542,12 @@ function ElectricSheepPanel({ onViewAll }: { onViewAll: () => void }) {
         </button>
       </div>
       {latest && (
-        <div className="p-3 rounded-lg" style={{ background: '#0D0D1A', border: '1px solid rgba(168,85,247,0.2)' }}>
-          <div className="font-mono text-[10px] mb-1" style={{ color: '#6B5A8A' }}>
+        <div className="p-3 rounded-lg border border-border/50" style={{ background: '#FFFAF0' }}>
+          <div className="font-mono text-[10px] mb-1" style={{ color: '#A09890' }}>
             #{latest.id} · {new Date(latest.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
           </div>
-          <div style={{ fontSize: 14, color: '#E2D9F3', lineHeight: 1.4 }}>{latest.theme}</div>
-          <div className="text-xs italic mt-1" style={{ color: '#9F7DC4' }}>{latest.style}</div>
+          <div style={{ fontSize: 14, color: '#2A2A3E', lineHeight: 1.4 }}>{latest.theme}</div>
+          <div className="text-xs italic mt-1" style={{ color: '#A855F7' }}>{latest.style}</div>
         </div>
       )}
     </section>
@@ -1574,103 +1574,137 @@ function ElectricSheepArchivePage({ onBack }: { onBack: () => void }) {
   const visible = filtered.slice(0, visibleCount)
 
   return (
-    <div className="min-h-screen" style={{ background: '#060610', color: '#E2D9F3' }}>
-      <header className="sticky top-0 z-40 px-4 h-14 flex items-center justify-between" style={{ background: '#060610', borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
-        <div className="flex items-center gap-4">
-          <button onClick={onBack} className="font-mono text-xs hover:opacity-70 transition-opacity" style={{ color: '#A855F7' }}>
-            ← back
-          </button>
-          <span className="font-title text-xl" style={{ color: '#A855F7' }}>Electric Sheep</span>
-          <span className="font-mono text-xs" style={{ color: '#6B5A8A' }}>{data?.count ?? 0} dreams</span>
+    <div className="min-h-screen" style={{ background: '#FAF8F5' }}>
+      {/* ── Header ── */}
+      <header className="sticky top-0 z-10 backdrop-blur-md" style={{ background: 'rgba(250,248,245,0.94)', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={onBack}
+                className="font-mono text-xs transition-colors"
+                style={{ color: '#A09890' }}
+              >
+                ← dashboard
+              </button>
+              <h1 className="font-title text-2xl sm:text-3xl" style={{ color: '#1A1A2E' }}>Electric Sheep</h1>
+              <span
+                className="font-mono text-xs px-2 py-0.5 rounded-full"
+                style={{ background: 'rgba(168,85,247,0.10)', color: '#A855F7' }}
+              >
+                {data?.count ?? 0}
+              </span>
+            </div>
+            <a
+              href="/api/electricsheep/archive/export"
+              download
+              className="font-mono text-xs px-4 py-2 rounded-md transition-all duration-200 hover:shadow-lg"
+              style={{ background: '#A855F7', color: '#FFFFFF', fontWeight: 700 }}
+            >
+              Export ZIP ↓
+            </a>
+          </div>
+
+          {/* ── Search ── */}
+          <div className="mt-3">
+            <input
+              type="text"
+              value={search}
+              onChange={e => { setSearch(e.target.value); setVisibleCount(24) }}
+              placeholder="search dreams, styles…"
+              className="w-full sm:w-80 px-3 py-2 rounded-md font-mono text-xs outline-none transition-colors"
+              style={{
+                background: '#FFFFFF',
+                border: '1px solid rgba(0,0,0,0.12)',
+                color: '#1A1A2E',
+              }}
+            />
+          </div>
         </div>
-        <a
-          href="/api/electricsheep/archive/export"
-          download
-          className="font-mono text-xs px-4 py-2 rounded-md transition-all duration-200 hover:shadow-lg"
-          style={{ background: '#A855F7', color: '#FFFFFF', fontWeight: 700 }}
-        >
-          Export ZIP ↓
-        </a>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-        <div className="text-center">
-          <p className="font-mono text-xs italic" style={{ color: '#6B5A8A' }}>
-            do e-ink displays dream of electric sheep?
-          </p>
-        </div>
-
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search dreams…"
-          className="w-full rounded-lg px-4 py-2 font-mono text-sm outline-none"
-          style={{ background: '#0D0D1A', border: '1px solid rgba(168,85,247,0.2)', color: '#E2D9F3' }}
-        />
-
-        {isLoading && (
-          <p className="font-mono text-xs text-center" style={{ color: '#6B5A8A' }}>loading archive…</p>
-        )}
-
-        {selected && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{ background: 'rgba(0,0,0,0.88)' }}
-            onClick={() => setSelected(null)}
-          >
-            <div
-              className="rounded-2xl overflow-hidden max-w-2xl w-full"
-              style={{ background: '#0D0D1A', border: '1px solid rgba(168,85,247,0.3)' }}
-              onClick={e => e.stopPropagation()}
-            >
-              {selected.has_image && (
-                <img src={`/api/electricsheep/archive/${selected.id}`} alt={selected.theme} style={{ width: '100%', display: 'block' }} />
-              )}
-              <div style={{ padding: '20px 24px' }}>
-                <div style={{ fontSize: 16, color: '#E2D9F3', marginBottom: 6 }}>{selected.theme}</div>
-                <div className="italic text-sm mb-3" style={{ color: '#9F7DC4' }}>{selected.style}</div>
-                <div className="font-mono text-[10px] space-y-1" style={{ color: '#6B5A8A' }}>
-                  <div>dream #{selected.id} · seed {selected.seed}</div>
-                  <div>{new Date(selected.timestamp).toLocaleString('en-GB')}</div>
-                  <div>generated in {(selected.generation_time_ms / 1000).toFixed(1)}s</div>
-                </div>
-                <button
-                  onClick={() => setSelected(null)}
-                  className="mt-4 font-mono text-xs hover:opacity-70 transition-opacity"
-                  style={{ color: '#A855F7' }}
-                >
-                  close ×
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-3 gap-4">
-          {visible.map(dream => (
-            <SheepDreamCard key={dream.id} dream={dream} onSelect={() => setSelected(dream)} />
-          ))}
-        </div>
-
-        {visibleCount < filtered.length && (
-          <div className="text-center pt-2">
-            <button
-              onClick={() => setVisibleCount(v => v + 24)}
-              className="font-mono text-xs px-6 py-2 rounded-lg transition-all hover:opacity-80"
-              style={{ background: 'rgba(168,85,247,0.12)', color: '#A855F7', border: '1px solid rgba(168,85,247,0.2)' }}
-            >
-              load more ({filtered.length - visibleCount} remaining)
-            </button>
-          </div>
-        )}
-
-        {!isLoading && filtered.length === 0 && (
-          <p className="text-center font-mono text-xs" style={{ color: '#6B5A8A' }}>
+      {/* ── Grid ── */}
+      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 py-6">
+        {isLoading ? (
+          <p className="font-mono text-sm text-center py-20" style={{ color: '#A09890' }}>loading…</p>
+        ) : filtered.length === 0 ? (
+          <p className="font-mono text-sm text-center py-20" style={{ color: '#A09890' }}>
             {search ? 'no dreams match your search' : 'no dreams yet — the machine is dreaming…'}
           </p>
+        ) : (
+          <>
+            <div className="grid grid-cols-3 gap-4">
+              {visible.map(dream => (
+                <SheepDreamCard key={dream.id} dream={dream} onSelect={() => setSelected(dream)} />
+              ))}
+            </div>
+
+            {visibleCount < filtered.length && (
+              <div className="flex justify-center pt-8 pb-4">
+                <button
+                  onClick={() => setVisibleCount(v => v + 24)}
+                  className="font-mono text-xs px-6 py-2 rounded-md transition-all duration-200"
+                  style={{
+                    background: 'rgba(168,85,247,0.06)',
+                    border: '1px solid rgba(168,85,247,0.14)',
+                    color: '#A855F7',
+                  }}
+                >
+                  load more ({filtered.length - visibleCount} remaining)
+                </button>
+              </div>
+            )}
+          </>
         )}
       </main>
+
+      <footer className="text-center py-8">
+        <span className="font-mono text-[10px]" style={{ color: '#C0B8B0' }}>
+          TaleVision · Electric Sheep · {data?.count ?? 0} dream{(data?.count ?? 0) !== 1 ? 's' : ''} preserved
+        </span>
+      </footer>
+
+      {/* ── Lightbox ── */}
+      {selected && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(26,26,46,0.80)', backdropFilter: 'blur(6px)' }}
+          onClick={() => setSelected(null)}
+        >
+          <div
+            className="relative rounded-xl overflow-hidden shadow-2xl max-w-4xl w-full"
+            onClick={e => e.stopPropagation()}
+          >
+            {selected.has_image && (
+              <img
+                src={`/api/electricsheep/archive/${selected.id}`}
+                alt={selected.theme}
+                style={{ width: '100%', display: 'block' }}
+              />
+            )}
+            <div className="flex items-center justify-between px-5 py-3" style={{ background: '#1A1A2E' }}>
+              <div>
+                <span style={{ fontFamily: 'Lobster, cursive', fontSize: 18, color: '#FAF8F5' }}>
+                  {selected.theme}
+                </span>
+                <span className="italic ml-2 text-sm" style={{ color: '#A855F7' }}>
+                  {selected.style}
+                </span>
+                <span className="font-mono text-[10px] ml-3" style={{ color: '#6B6B8A' }}>
+                  #{selected.id} · seed {selected.seed} · {(selected.generation_time_ms / 1000).toFixed(1)}s
+                </span>
+              </div>
+              <button
+                onClick={() => setSelected(null)}
+                className="font-mono text-xs"
+                style={{ color: '#9E9EB5' }}
+              >
+                ✕ close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1760,7 +1794,7 @@ export default function App() {
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-40" style={{ backgroundColor: '#FAF8F5', borderBottom: '1px solid rgba(0,0,0,0.10)' }}>
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
+        <div className="max-w-[1440px] mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <span className="w-2 h-2 rounded-full bg-accent" style={{ boxShadow: '0 0 10px rgba(255,29,165,0.35)' }} />
             <span className="font-title text-2xl leading-tight text-primary">TaleVision</span>
@@ -1797,103 +1831,111 @@ export default function App() {
       </header>
 
       {/* ── Main content ───────────────────────────────────────────────── */}
-      <main className="max-w-2xl mx-auto px-4 py-5 space-y-5">
+      <main className="max-w-[1440px] mx-auto px-6 py-6">
 
-        <p className="text-xs text-tertiary italic text-center">{TAGLINE}</p>
+        <p className="text-xs text-tertiary italic text-center mb-5">{TAGLINE}</p>
 
-        <FramePreview refreshKey={refreshKey} waiting={waiting} waitingMode={pendingMode ?? currentMode} />
+        {/* 2-column on desktop: left = frame + archives, right = controls */}
+        <div className="lg:grid lg:grid-cols-[1fr_420px] lg:gap-10 lg:items-start space-y-5 lg:space-y-0">
 
-        {/* Info bar */}
-        <div className="flex items-center gap-4 flex-wrap text-xs">
-          <span className="text-tertiary">
-            <span className="font-mono text-muted">UP</span>{' '}
-            <span className="text-secondary font-mono">{formatUptime(status?.uptime_seconds ?? 0)}</span>
-          </span>
-          <span className="text-tertiary">
-            <span className="font-mono text-muted">LAST</span>{' '}
-            <span className="text-secondary font-mono">{formatLastRender(status?.last_update)}</span>
-          </span>
-          {status?.next_wake && (
-            <span className="text-tertiary">
-              <span className="font-mono text-muted">WAKE</span>{' '}
-              <span className="text-secondary font-mono">{formatTime(status.next_wake)}</span>
-            </span>
-          )}
-          {isRotating && (
-            <span className="text-tertiary ml-auto">
-              {playlist.map(id => getModeInfo(id).icon).join(' → ')}
-              <span className="font-mono text-muted ml-1">{fmtInterval(rotationInterval)}</span>
-            </span>
-          )}
-          {status?.video && (
-            <span style={{ color: '#D97706' }}>🎬 {status.video}</span>
-          )}
+          {/* ── Left column: frame preview + info + archive panels ── */}
+          <div className="space-y-5">
+            <FramePreview refreshKey={refreshKey} waiting={waiting} waitingMode={pendingMode ?? currentMode} />
+
+            {/* Info bar */}
+            <div className="flex items-center gap-4 flex-wrap text-xs">
+              <span className="text-tertiary">
+                <span className="font-mono text-muted">UP</span>{' '}
+                <span className="text-secondary font-mono">{formatUptime(status?.uptime_seconds ?? 0)}</span>
+              </span>
+              <span className="text-tertiary">
+                <span className="font-mono text-muted">LAST</span>{' '}
+                <span className="text-secondary font-mono">{formatLastRender(status?.last_update)}</span>
+              </span>
+              {status?.next_wake && (
+                <span className="text-tertiary">
+                  <span className="font-mono text-muted">WAKE</span>{' '}
+                  <span className="text-secondary font-mono">{formatTime(status.next_wake)}</span>
+                </span>
+              )}
+              {isRotating && (
+                <span className="text-tertiary ml-auto">
+                  {playlist.map(id => getModeInfo(id).icon).join(' → ')}
+                  <span className="font-mono text-muted ml-1">{fmtInterval(rotationInterval)}</span>
+                </span>
+              )}
+              {status?.video && (
+                <span style={{ color: '#D97706' }}>🎬 {status.video}</span>
+              )}
+            </div>
+
+            <Divider />
+            <KoanArchivePanel onViewAll={() => setView('archive')} />
+
+            <Divider />
+            <FloraArchivePanel onViewAll={() => setView('flora-archive')} />
+
+            <Divider />
+            <ElectricSheepPanel onViewAll={() => setView('sheep-archive')} />
+          </div>
+
+          {/* ── Right column: controls ── */}
+          <div className="space-y-5 mt-5 lg:mt-0">
+            <LanguageSelector current={status?.language ?? undefined} />
+
+            <Divider />
+
+            <section>
+              <h2 className="label mb-3">Playlist</h2>
+              <PlaylistEditor
+                playlist={playlist}
+                rotationInterval={rotationInterval}
+                currentMode={currentMode}
+                onSave={(modes, interval) => playlistMut.mutate({ modes, interval })}
+                saving={playlistMut.isPending}
+                onRefresh={handleRefresh}
+                refreshing={refreshMut.isPending}
+              />
+            </section>
+
+            <Divider />
+
+            <section>
+              <h2 className="label mb-3">Active schedule</h2>
+              <SuspendForm initial={status?.suspend} />
+            </section>
+
+            {!isRotating && status?.intervals && Object.keys(status.intervals).length > 0 && (
+              <>
+                <Divider />
+                <section>
+                  <h2 className="label mb-3">Refresh intervals</h2>
+                  {ALL_MODES.filter(m => m.available && status.intervals![m.id]).map(m => (
+                    <IntervalRow
+                      key={m.id}
+                      modeName={m.id}
+                      data={status.intervals![m.id]}
+                      color={m.color}
+                      icon={m.icon}
+                    />
+                  ))}
+                </section>
+              </>
+            )}
+
+            {playlist.includes('weather') && (
+              <>
+                <Divider />
+                <section className="animate-fade-in">
+                  <h2 className="label mb-3">Weather location</h2>
+                  <WeatherSettings currentLocation={status?.weather_location ?? undefined} />
+                </section>
+              </>
+            )}
+          </div>
         </div>
 
-        <Divider />
-
-        <LanguageSelector current={status?.language ?? undefined} />
-
-        <Divider />
-
-        <section>
-          <h2 className="label mb-3">Playlist</h2>
-          <PlaylistEditor
-            playlist={playlist}
-            rotationInterval={rotationInterval}
-            currentMode={currentMode}
-            onSave={(modes, interval) => playlistMut.mutate({ modes, interval })}
-            saving={playlistMut.isPending}
-            onRefresh={handleRefresh}
-            refreshing={refreshMut.isPending}
-          />
-        </section>
-
-        <Divider />
-
-        <section>
-          <h2 className="label mb-3">Active schedule</h2>
-          <SuspendForm initial={status?.suspend} />
-        </section>
-
-        {!isRotating && status?.intervals && Object.keys(status.intervals).length > 0 && (
-          <>
-            <Divider />
-            <section>
-              <h2 className="label mb-3">Refresh intervals</h2>
-              {ALL_MODES.filter(m => m.available && status.intervals![m.id]).map(m => (
-                <IntervalRow
-                  key={m.id}
-                  modeName={m.id}
-                  data={status.intervals![m.id]}
-                  color={m.color}
-                  icon={m.icon}
-                />
-              ))}
-            </section>
-          </>
-        )}
-
-        {playlist.includes('weather') && (
-          <>
-            <Divider />
-            <section className="animate-fade-in">
-              <h2 className="label mb-3">Weather location</h2>
-              <WeatherSettings currentLocation={status?.weather_location ?? undefined} />
-            </section>
-          </>
-        )}
-
-        <Divider />
-        <KoanArchivePanel onViewAll={() => setView('archive')} />
-
-        <Divider />
-        <FloraArchivePanel onViewAll={() => setView('flora-archive')} />
-
-        <Divider />
-        <ElectricSheepPanel onViewAll={() => setView('sheep-archive')} />
-
-        <footer className="pt-6 pb-4">
+        <footer className="pt-8 pb-4">
           <Divider />
           <div className="flex items-center justify-between pt-4">
             <span className="font-mono text-[10px] text-secondary">TaleVision · Pi Zero W · 800×480 · e‑ink</span>
