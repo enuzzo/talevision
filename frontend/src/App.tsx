@@ -1673,69 +1673,62 @@ export default function App() {
           <div className="space-y-0">
             <FramePreview refreshKey={refreshKey} waiting={waiting} waitingMode={pendingMode ?? currentMode} />
 
-            {/* Now Playing — rich status panel below frame */}
+            {/* Now Playing — status panel below frame */}
             <div
               className="rounded-b-xl px-5 py-4 -mt-1"
-              style={{ background: '#1A1A2E', color: '#FAF8F5' }}
+              style={{ background: '#FFFAF0', border: '1px solid rgba(0,0,0,0.08)', borderTop: 'none' }}
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <span className="text-lg">{currentModeInfo.icon}</span>
-                  <div>
-                    <span className="font-title text-xl" style={{ color: currentModeInfo.color }}>
-                      {currentModeInfo.label}
-                    </span>
-                    {isSuspended && (
-                      <span className="font-mono text-[10px] ml-2 px-2 py-0.5 rounded-full bg-white/10 text-white/50">paused</span>
-                    )}
-                  </div>
+                  <span className="text-xl">{currentModeInfo.icon}</span>
+                  <span className="font-title text-2xl" style={{ color: currentModeInfo.color }}>
+                    {currentModeInfo.label}
+                  </span>
+                  {isSuspended && (
+                    <span className="font-mono text-xs px-2 py-0.5 rounded-full bg-muted/10 text-muted">paused</span>
+                  )}
                 </div>
-                <span className="font-mono text-xs tabular-nums text-white/40">{clock}</span>
+                <span className="font-mono text-sm tabular-nums text-tertiary">{clock}</span>
               </div>
 
-              <div className="flex items-center gap-5 text-[12px] font-mono text-white/50">
+              <div className="flex items-center gap-5 font-mono text-sm text-secondary">
                 <span>
-                  <span className="text-white/25 uppercase text-[10px]">up </span>
-                  <span className="text-white/70">{formatUptime(status?.uptime_seconds ?? 0)}</span>
+                  <span className="text-muted text-xs uppercase">up </span>
+                  <span>{formatUptime(status?.uptime_seconds ?? 0)}</span>
                 </span>
                 <span>
-                  <span className="text-white/25 uppercase text-[10px]">last </span>
-                  <span className="text-white/70">{formatLastRender(status?.last_update)}</span>
+                  <span className="text-muted text-xs uppercase">last </span>
+                  <span>{formatLastRender(status?.last_update)}</span>
                 </span>
                 {status?.next_wake && (
                   <span>
-                    <span className="text-white/25 uppercase text-[10px]">wake </span>
-                    <span className="text-white/70">{formatTime(status.next_wake)}</span>
+                    <span className="text-muted text-xs uppercase">wake </span>
+                    <span>{formatTime(status.next_wake)}</span>
                   </span>
                 )}
               </div>
 
               {isRotating && (
-                <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                  <span className="text-[10px] uppercase font-mono text-white/30">rotation</span>
+                <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                  <span className="text-xs uppercase font-mono text-muted">rotation</span>
                   <div className="flex items-center gap-1.5 ml-1">
                     {playlist.map((id, i) => {
                       const m = getModeInfo(id)
-                      const isCurrent = id === currentMode
+                      const isCur = id === currentMode
                       return (
                         <span key={id} className="flex items-center gap-1">
-                          <span
-                            className={cx('text-xs', isCurrent ? 'opacity-100' : 'opacity-40')}
-                            title={m.label}
-                          >
-                            {m.icon}
-                          </span>
-                          {i < playlist.length - 1 && <span className="text-white/15 text-[10px]">→</span>}
+                          <span className={cx('text-base', isCur ? 'opacity-100' : 'opacity-35')} title={m.label}>{m.icon}</span>
+                          {i < playlist.length - 1 && <span className="text-muted text-xs">→</span>}
                         </span>
                       )
                     })}
                   </div>
-                  <span className="font-mono text-[10px] text-white/30 ml-auto">{fmtInterval(rotationInterval)}/mode</span>
+                  <span className="font-mono text-xs text-muted ml-auto">{fmtInterval(rotationInterval)}/mode</span>
                 </div>
               )}
 
               {status?.video && (
-                <div className="mt-2 text-[12px] font-mono" style={{ color: '#D97706' }}>
+                <div className="mt-2 font-mono text-sm" style={{ color: '#D97706' }}>
                   🎬 {status.video}
                 </div>
               )}
