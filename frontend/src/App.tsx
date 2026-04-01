@@ -1019,7 +1019,7 @@ function KoanArchivePage({ onBack }: { onBack: () => void }) {
           </p>
         ) : (
           <>
-            <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+            <div className="grid grid-cols-3 gap-4">
               {visible.map((h, idx) => (
                 <HaikuCard key={h.id} haiku={h} index={idx} />
               ))}
@@ -1076,11 +1076,11 @@ function HaikuCard({ haiku: h }: { haiku: KoanHaiku; index?: number }) {
       <div className="px-4 pt-4 pb-2 flex items-start justify-between">
         <span
           className="font-title leading-tight"
-          style={{ fontSize: 20, color: '#FF1DA5' }}
+          style={{ fontSize: 22, color: '#FF1DA5' }}
         >
           {h.seed_word}
         </span>
-        <span className="font-mono text-[10px] shrink-0 ml-3 mt-1" style={{ color: '#C0B8B0' }}>
+        <span className="font-mono text-xs shrink-0 ml-3 mt-1" style={{ color: '#C0B8B0' }}>
           №{h.id}
         </span>
       </div>
@@ -1092,7 +1092,7 @@ function HaikuCard({ haiku: h }: { haiku: KoanHaiku; index?: number }) {
           style={{
             fontFamily: 'Georgia, "Crimson Text", "Times New Roman", serif',
             fontStyle: 'italic',
-            fontSize: (h.type ?? 'haiku') === 'koan' ? '16px' : '14px',
+            fontSize: (h.type ?? 'haiku') === 'koan' ? '17px' : '15px',
             lineHeight: '1.8',
             color: '#2A2A3E',
           }}
@@ -1114,10 +1114,10 @@ function HaikuCard({ haiku: h }: { haiku: KoanHaiku; index?: number }) {
           className="flex items-center justify-between pt-2"
           style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}
         >
-          <span className="font-mono text-[9px]" style={{ color: '#C0B8B0' }}>
+          <span className="font-mono text-[11px]" style={{ color: '#C0B8B0' }}>
             {modelShort} · {genSec}s · {h.total_tokens ?? '?'}tok
           </span>
-          <span className="font-mono text-[9px]" style={{ color: '#C0B8B0' }}>
+          <span className="font-mono text-[11px]" style={{ color: '#C0B8B0' }}>
             {dateStr}
           </span>
         </div>
@@ -1150,13 +1150,13 @@ function FloraSpecimenCard({ entry, onSelect }: { entry: FloraEntry; onSelect: (
         )}
       </div>
       <div style={{ padding: '12px 16px' }}>
-        <div style={{ fontFamily: 'Lobster, cursive', fontSize: 18, color: '#1A1A2E', lineHeight: 1.2 }}>
+        <div style={{ fontFamily: 'Lobster, cursive', fontSize: 21, color: '#1A1A2E', lineHeight: 1.2 }}>
           {entry.genus}
         </div>
-        <div style={{ fontStyle: 'italic', fontSize: 13, color: '#6B6560', marginTop: 2 }}>
+        <div style={{ fontStyle: 'italic', fontSize: 15, color: '#6B6560', marginTop: 3 }}>
           {entry.epithet}
         </div>
-        <div className="flex items-center justify-between mt-2" style={{ fontFamily: 'monospace', fontSize: 10, color: '#A09890' }}>
+        <div className="flex items-center justify-between mt-2" style={{ fontFamily: 'monospace', fontSize: 11, color: '#A09890' }}>
           <span>#{String(entry.specimen_num).padStart(4, '0')}</span>
           <span>{dateStr}</span>
         </div>
@@ -1235,21 +1235,31 @@ function FloraArchivePage({ onBack }: { onBack: () => void }) {
       {/* ── Header ── */}
       <header className="sticky top-0 z-10 backdrop-blur-md" style={{ background: 'rgba(250,248,245,0.94)', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={onBack}
-              className="font-mono text-xs transition-colors"
-              style={{ color: '#A09890' }}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={onBack}
+                className="font-mono text-xs transition-colors"
+                style={{ color: '#A09890' }}
+              >
+                ← dashboard
+              </button>
+              <h1 className="font-title text-2xl sm:text-3xl" style={{ color: '#1A1A2E' }}>Flora Archive</h1>
+              <span
+                className="font-mono text-xs px-2 py-0.5 rounded-full"
+                style={{ background: 'rgba(22,163,74,0.10)', color: '#16A34A' }}
+              >
+                {count}
+              </span>
+            </div>
+            <a
+              href="/api/flora/archive/export"
+              download
+              className="font-mono text-xs px-4 py-2 rounded-md transition-all duration-200 hover:shadow-lg"
+              style={{ background: '#16A34A', color: '#FFFFFF', fontWeight: 700 }}
             >
-              ← dashboard
-            </button>
-            <h1 className="font-title text-2xl sm:text-3xl" style={{ color: '#1A1A2E' }}>Flora Archive</h1>
-            <span
-              className="font-mono text-xs px-2 py-0.5 rounded-full"
-              style={{ background: 'rgba(22,163,74,0.10)', color: '#16A34A' }}
-            >
-              {count}
-            </span>
+              Export ZIP ↓
+            </a>
           </div>
         </div>
       </header>
@@ -1264,7 +1274,7 @@ function FloraArchivePage({ onBack }: { onBack: () => void }) {
           </p>
         ) : (
           <>
-            <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
+            <div className="grid grid-cols-3 gap-4">
               {visible.map(entry => (
                 <FloraSpecimenCard key={entry.date} entry={entry} onSelect={() => setSelected(entry)} />
               ))}
@@ -1494,11 +1504,11 @@ function SheepDreamCard({ dream, onSelect }: { dream: SheepDream; onSelect: () =
           />
         )}
       </div>
-      <div style={{ padding: '10px 14px' }}>
-        <div style={{ fontSize: 13, color: '#E2D9F3', lineHeight: 1.3, marginBottom: 4 }}>
+      <div style={{ padding: '12px 14px' }}>
+        <div style={{ fontSize: 15, color: '#E2D9F3', lineHeight: 1.35, marginBottom: 5 }}>
           {dream.theme}
         </div>
-        <div className="flex items-center justify-between" style={{ fontFamily: 'monospace', fontSize: 10, color: '#6B5A8A' }}>
+        <div className="flex items-center justify-between" style={{ fontFamily: 'monospace', fontSize: 11, color: '#6B5A8A' }}>
           <span style={{ fontStyle: 'italic', color: '#9F7DC4' }}>{dream.style}</span>
           <span>#{dream.id} · {dateStr}</span>
         </div>
@@ -1566,11 +1576,21 @@ function ElectricSheepArchivePage({ onBack }: { onBack: () => void }) {
   return (
     <div className="min-h-screen" style={{ background: '#060610', color: '#E2D9F3' }}>
       <header className="sticky top-0 z-40 px-4 h-14 flex items-center justify-between" style={{ background: '#060610', borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
-        <button onClick={onBack} className="font-mono text-xs hover:opacity-70 transition-opacity" style={{ color: '#A855F7' }}>
-          ← back
-        </button>
-        <span className="font-title text-xl" style={{ color: '#A855F7' }}>Electric Sheep</span>
-        <span className="font-mono text-xs" style={{ color: '#6B5A8A' }}>{data?.count ?? 0} dreams</span>
+        <div className="flex items-center gap-4">
+          <button onClick={onBack} className="font-mono text-xs hover:opacity-70 transition-opacity" style={{ color: '#A855F7' }}>
+            ← back
+          </button>
+          <span className="font-title text-xl" style={{ color: '#A855F7' }}>Electric Sheep</span>
+          <span className="font-mono text-xs" style={{ color: '#6B5A8A' }}>{data?.count ?? 0} dreams</span>
+        </div>
+        <a
+          href="/api/electricsheep/archive/export"
+          download
+          className="font-mono text-xs px-4 py-2 rounded-md transition-all duration-200 hover:shadow-lg"
+          style={{ background: '#A855F7', color: '#FFFFFF', fontWeight: 700 }}
+        >
+          Export ZIP ↓
+        </a>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
@@ -1627,7 +1647,7 @@ function ElectricSheepArchivePage({ onBack }: { onBack: () => void }) {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-3 gap-4">
           {visible.map(dream => (
             <SheepDreamCard key={dream.id} dream={dream} onSelect={() => setSelected(dream)} />
           ))}

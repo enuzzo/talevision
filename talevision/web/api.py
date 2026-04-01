@@ -320,6 +320,32 @@ def flora_archive():
     return jsonify({"specimens": entries, "count": len(entries)})
 
 
+@api_bp.get("/flora/archive/export")
+def flora_archive_export():
+    """GET /api/flora/archive/export — download all specimens as a ZIP."""
+    import io
+    import zipfile
+
+    flora = _orchestrator()._modes.get("flora")
+    if not flora:
+        return jsonify({"error": "Flora mode not available"}), 404
+    archive_dir = flora._archive_dir
+    files = sorted(archive_dir.glob("*.json"))
+    if not files:
+        return jsonify({"error": "No specimens in archive"}), 404
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for jf in files:
+            zf.write(str(jf), jf.name)
+            png = jf.with_suffix(".png")
+            if png.exists():
+                zf.write(str(png), png.name)
+    buf.seek(0)
+    return send_file(buf, mimetype="application/zip",
+                     as_attachment=True, download_name="flora_archive.zip")
+
+
 @api_bp.get("/flora/archive/<date_str>")
 def flora_archive_image(date_str: str):
     """GET /api/flora/archive/<YYYY-MM-DD> — serve the PNG for that day."""
@@ -350,6 +376,35 @@ def electricsheep_archive():
         except Exception:
             pass
     return jsonify({"dreams": entries, "count": len(entries)})
+
+
+@api_bp.get("/electricsheep/archive/export")
+def electricsheep_archive_export():
+    """GET /api/electricsheep/archive/export — download all dreams as a ZIP."""
+    import io
+    import zipfile
+
+    sheep = _orchestrator()._modes.get("electricsheep")
+    if not sheep:
+        return jsonify({"error": "Electric Sheep mode not available"}), 404
+    files = sorted(sheep._archive_dir.glob("*.json"))
+    if not files:
+        return jsonify({"error": "No dreams in archive"}), 404
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for jf in files:
+            zf.write(str(jf), jf.name)
+            try:
+                meta = json.loads(jf.read_text(encoding="utf-8"))
+                img = sheep._archive_dir / meta.get("image_file", "")
+                if img.exists():
+                    zf.write(str(img), img.name)
+            except Exception:
+                pass
+    buf.seek(0)
+    return send_file(buf, mimetype="application/zip",
+                     as_attachment=True, download_name="electricsheep_archive.zip")
 
 
 @api_bp.get("/electricsheep/archive/<int:dream_id>")
