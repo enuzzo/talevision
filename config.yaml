@@ -133,7 +133,7 @@ mars:
 electricsheep:
   refresh_interval: 300    # display refresh — picks a new random dream from archive
   generation_interval: 3600 # generate one new dream per hour (24/day)
-  timeout: 120             # generous timeout for Pi's slow connection
+  timeout: 180             # generous timeout for Pi's slow connection
   max_archive: 1000
 
 buttons:

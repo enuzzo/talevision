@@ -250,16 +250,26 @@ class ElectricSheepMode(DisplayMode):
 
     # ── Background generator ─────────────────────────────────────────────────
 
+    _RETRY_INTERVAL = 300  # 5 min retry after failure
+
     def _generator_loop(self) -> None:
-        # Generate immediately if archive has < 3 dreams (bootstrap)
-        if len(self._list_archive_files()) < 3:
+        # Bootstrap: keep trying until we have at least 3 dreams
+        while not self._stop_event.is_set() and len(self._list_archive_files()) < 3:
             self._generate_dream()
+            if len(self._list_archive_files()) < 3:
+                # Failed — wait 5 min before retry
+                self._stop_event.wait(timeout=self._RETRY_INTERVAL)
 
         while not self._stop_event.is_set():
             self._stop_event.wait(timeout=self._cfg.generation_interval)
             if self._stop_event.is_set():
                 break
             self._generate_dream()
+            if self._last_error:
+                # Failed mid-cycle — retry in 5 min
+                self._stop_event.wait(timeout=self._RETRY_INTERVAL)
+                if not self._stop_event.is_set():
+                    self._generate_dream()
             self._prune_archive()
 
     def _generate_dream(self) -> None:
@@ -398,23 +408,23 @@ class ElectricSheepMode(DisplayMode):
         return img_rgba.convert("RGB")
 
     def _dreaming_screen(self) -> Image.Image:
-        img = Image.new("RGB", (self._w, self._h), (8, 8, 20))
+        img = Image.new("RGB", (self._w, self._h), (0, 0, 0))
         draw = ImageDraw.Draw(img)
         cx = self._w // 2
 
         draw.text((cx, 180), "electric sheep", font=self._font_dream,
-                  fill=(120, 60, 200), anchor="mm")
-        draw.text((cx, 250), "do e-ink displays dream of electric sheep?",
-                  font=self._font_style, fill=(70, 70, 100), anchor="mm")
+                  fill=(255, 255, 255), anchor="mm")
+        draw.text((cx, 252), "do e-ink displays dream of electric sheep?",
+                  font=self._font_style, fill=(180, 180, 180), anchor="mm")
 
         if self._last_error:
-            draw.text((cx, 320), f"last error: {self._last_error[:80]}",
-                      font=self._font_mono, fill=(80, 40, 40), anchor="mm")
+            draw.text((cx, 330), f"error: {self._last_error[:80]}",
+                      font=self._font_mono, fill=(160, 160, 160), anchor="mm")
         else:
-            draw.text((cx, 320), "generating first dream…",
-                      font=self._font_mono, fill=(60, 60, 80), anchor="mm")
+            draw.text((cx, 330), "generating first dream…",
+                      font=self._font_mono, fill=(160, 160, 160), anchor="mm")
 
         clock_str = datetime.now().strftime("%H:%M")
         draw.text((self._w - 20, self._h - 24), clock_str,
-                  font=self._font_mono, fill=(60, 60, 80), anchor="rm")
+                  font=self._font_mono, fill=(120, 120, 120), anchor="rm")
         return img

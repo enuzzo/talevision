@@ -212,7 +212,7 @@ class MarsConfig:
 class ElectricSheepConfig:
     refresh_interval: int = 300
     generation_interval: int = 3600
-    timeout: int = 120
+    timeout: int = 180
     max_archive: int = 1000
     brightness: float = 1.0
     contrast: float = 1.1
