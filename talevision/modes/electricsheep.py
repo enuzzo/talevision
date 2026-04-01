@@ -161,10 +161,10 @@ class ElectricSheepMode(DisplayMode):
         self._h = config.display.height
 
         fonts_dir = base_dir / "assets" / "fonts"
-        self._font_theme = _load_font(fonts_dir / "Signika-Bold.ttf", 22)
-        self._font_style  = _load_font(fonts_dir / "Taviraj-Italic.ttf", 17)
-        self._font_mono   = _load_font(fonts_dir / "InconsolataNerdFontMono-Regular.ttf", 16)
-        self._font_dream  = _load_font(fonts_dir / "Lobster-Regular.ttf", 52)
+        self._font_theme = _load_font(fonts_dir / "Signika-Bold.ttf", 24)
+        self._font_style  = _load_font(fonts_dir / "Taviraj-Italic.ttf", 19)
+        self._font_mono   = _load_font(fonts_dir / "InconsolataNerdFontMono-Regular.ttf", 18)
+        self._font_dream  = _load_font(fonts_dir / "Lobster-Regular.ttf", 64)
         self._font_err    = _load_font(fonts_dir / "Signika-Bold.ttf", 26)
 
         self._archive_dir = base_dir / "cache" / "electricsheep_archive"
