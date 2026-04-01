@@ -1819,13 +1819,18 @@ export default function App() {
         <p className="text-xs text-tertiary italic text-center mb-5">{TAGLINE}</p>
 
         {/*
-          3-section responsive layout:
-          Mobile (1-col):  1. frame+info  2. controls  3. archives
-          Desktop (2-col): col-1/row-1=frame+info  col-2/row-1=controls  col-1/row-2=archives
+          Responsive 3-section grid:
+          Mobile:      1. frame+info  2. language+playlist  3. schedule+archives
+          lg (2-col):  col1/row1=frame  col2/row1=language+playlist  col1/row2=schedule+archives
+          xl (3-col):  col1=frame  col2=language+playlist  col3=schedule+archives
         */}
-        <div className="space-y-5 lg:grid lg:grid-cols-[1fr_420px] lg:gap-10 lg:space-y-0 lg:items-start">
+        <div className={cx(
+          'space-y-5',
+          'lg:grid lg:grid-cols-[1fr_420px] lg:gap-8 lg:space-y-0 lg:items-start',
+          'xl:grid-cols-[1fr_420px_360px]',
+        )}>
 
-          {/* ── 1: Frame + info ── col-1 row-1 on desktop */}
+          {/* ── 1: Frame + info ── always col-1/row-1 */}
           <div className="space-y-4 lg:col-start-1 lg:row-start-1">
             <FramePreview refreshKey={refreshKey} waiting={waiting} waitingMode={pendingMode ?? currentMode} />
 
@@ -1856,7 +1861,7 @@ export default function App() {
             </div>
           </div>
 
-          {/* ── 2: Controls ── col-2 row-1 on desktop (DOM order = after frame on mobile) */}
+          {/* ── 2: Language + Playlist ── col-2/row-1 on lg and xl */}
           <div className="space-y-5 lg:col-start-2 lg:row-start-1">
             <LanguageSelector current={status?.language ?? undefined} />
 
@@ -1874,9 +1879,13 @@ export default function App() {
                 refreshing={refreshMut.isPending}
               />
             </section>
+          </div>
 
-            <Divider />
-
+          {/* ── 3: Schedule + Intervals + Weather + Archives ──
+               Mobile: DOM order 3 (after playlist)
+               lg:     col-1/row-2 (below frame)
+               xl:     col-3/row-1 (third column) */}
+          <div className="space-y-5 lg:col-start-1 lg:row-start-2 xl:col-start-3 xl:row-start-1">
             <section>
               <h2 className="label mb-3">Active schedule</h2>
               <SuspendForm initial={status?.suspend} />
@@ -1909,18 +1918,13 @@ export default function App() {
                 </section>
               </>
             )}
-          </div>
 
-          {/* ── 3: Archives ── col-1 row-2 on desktop (DOM order = last, i.e. after controls on mobile) */}
-          <div className="lg:col-start-1 lg:row-start-2">
             <Divider />
-            <div className="mt-5">
-              <ArchivesSection
-                onViewKoan={() => setView('archive')}
-                onViewFlora={() => setView('flora-archive')}
-                onViewSheep={() => setView('sheep-archive')}
-              />
-            </div>
+            <ArchivesSection
+              onViewKoan={() => setView('archive')}
+              onViewFlora={() => setView('flora-archive')}
+              onViewSheep={() => setView('sheep-archive')}
+            />
           </div>
         </div>
 
