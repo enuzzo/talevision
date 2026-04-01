@@ -1667,7 +1667,7 @@ export default function App() {
       <main className="max-w-[1200px] mx-auto px-4 sm:px-6 py-6">
 
         {/* ── Top row: Frame + Playlist (2-col on desktop) ── */}
-        <div className="lg:grid lg:grid-cols-[1fr_380px] lg:gap-6 space-y-5 lg:space-y-0">
+        <div className="lg:grid lg:grid-cols-[1fr_380px] lg:gap-6 lg:items-stretch space-y-5 lg:space-y-0">
 
           {/* Col 1: Frame + status */}
           <div className="space-y-3">
@@ -1715,7 +1715,9 @@ export default function App() {
 
         {/* ── Settings cards grid (below top row) ── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
-          <div className="space-y-4">
+          {/* When rotating (no intervals card), use lg:contents so schedule+preferences
+              each occupy one grid column side-by-side. When not rotating, they stack in col-1. */}
+          <div className={cx('space-y-4', isRotating && 'lg:contents')}>
             <SettingsCard title="Active schedule">
               <SuspendForm initial={status?.suspend} onChange={setPendingSchedule} />
             </SettingsCard>
