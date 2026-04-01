@@ -335,6 +335,42 @@ def flora_archive_image(date_str: str):
     return send_file(str(png_path), mimetype="image/png")
 
 
+@api_bp.get("/electricsheep/archive")
+def electricsheep_archive():
+    """GET /api/electricsheep/archive — list all generated dreams (newest first)."""
+    sheep = _orchestrator()._modes.get("electricsheep")
+    if not sheep:
+        return jsonify({"dreams": [], "count": 0})
+    entries = []
+    for jf in sorted(sheep._archive_dir.glob("*.json"), reverse=True):
+        try:
+            entry = json.loads(jf.read_text(encoding="utf-8"))
+            entry["has_image"] = (sheep._archive_dir / entry.get("image_file", "")).exists()
+            entries.append(entry)
+        except Exception:
+            pass
+    return jsonify({"dreams": entries, "count": len(entries)})
+
+
+@api_bp.get("/electricsheep/archive/<int:dream_id>")
+def electricsheep_archive_image(dream_id: int):
+    """GET /api/electricsheep/archive/<id> — serve the JPEG for a dream by id."""
+    sheep = _orchestrator()._modes.get("electricsheep")
+    if not sheep:
+        return jsonify({"error": "Electric Sheep mode not available"}), 404
+    for jf in sheep._archive_dir.glob("*.json"):
+        try:
+            meta = json.loads(jf.read_text(encoding="utf-8"))
+            if meta.get("id") == dream_id:
+                img_path = sheep._archive_dir / meta["image_file"]
+                if img_path.exists():
+                    return send_file(str(img_path), mimetype="image/jpeg")
+                return jsonify({"error": "Image file missing"}), 404
+        except Exception:
+            pass
+    return jsonify({"error": "Dream not found"}), 404
+
+
 @api_bp.get("/frame")
 def get_frame():
     """GET /api/frame — serve last rendered frame for current mode."""

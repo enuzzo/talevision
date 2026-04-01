@@ -56,8 +56,9 @@ class Orchestrator:
             "cucina":    base_dir / "cache" / "cucina_frame.png",
             "flora":     base_dir / "cache" / "flora_frame.png",
             "apod":      base_dir / "cache" / "apod_frame.png",
-            "mars":      base_dir / "cache" / "mars_frame.png",
-            "welcome":   base_dir / "cache" / "welcome_frame.png",
+            "mars":          base_dir / "cache" / "mars_frame.png",
+            "electricsheep": base_dir / "cache" / "electricsheep_frame.png",
+            "welcome":       base_dir / "cache" / "welcome_frame.png",
         }
         for p in self._frame_paths.values():
             p.parent.mkdir(parents=True, exist_ok=True)

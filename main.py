@@ -119,6 +119,7 @@ def main():
     from talevision.modes.flora import FloraMode
     from talevision.modes.apod import APODMode
     from talevision.modes.mars import MarsMode
+    from talevision.modes.electricsheep import ElectricSheepMode
 
     modes = {
         "litclock":  LitClockMode(config, base_dir=BASE_DIR),
@@ -131,6 +132,7 @@ def main():
         "flora":     FloraMode(config, base_dir=BASE_DIR),
         "apod":      APODMode(config, base_dir=BASE_DIR, api_key=_secrets.get("apod_api_key", "DEMO_KEY")),
         "mars":      MarsMode(config, base_dir=BASE_DIR, api_key=_secrets.get("apod_api_key", "DEMO_KEY")),
+        "electricsheep": ElectricSheepMode(config, base_dir=BASE_DIR),
     }
 
     # ── Render-only mode (dev/CI) ─────────────────────────────────────────────

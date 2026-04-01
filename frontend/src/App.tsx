@@ -90,8 +90,9 @@ const ALL_MODES: ModeInfo[] = [
   { id: 'koan',      label: 'Koan',      icon: '禅', color: '#4F46E5', available: true },
   { id: 'cucina',    label: 'Cucina',    icon: '🍽', color: '#EA580C', available: true },
   { id: 'flora',     label: 'Flora',     icon: '🌿', color: '#16A34A', available: true },
-  { id: 'apod',      label: 'APOD',      icon: '🔭', color: '#0EA5E9', available: true },
-  { id: 'mars',      label: 'Mars',      icon: '🔴', color: '#C2410C', available: true },
+  { id: 'apod',          label: 'APOD',           icon: '🔭', color: '#0EA5E9', available: true },
+  { id: 'mars',          label: 'Mars',           icon: '🔴', color: '#C2410C', available: true },
+  { id: 'electricsheep', label: 'Electric Sheep', icon: '🐑', color: '#A855F7', available: true },
 ]
 
 const MODE_MAP = Object.fromEntries(ALL_MODES.map(m => [m.id, m]))
@@ -494,7 +495,7 @@ function PlaylistEditor({
                 </span>
                 <span
                   className={cx(
-                    'font-display text-[15px] flex-1',
+                    'font-display text-[15px] flex-1 ml-1',
                     isEnabled && !isComingSoon ? 'font-semibold' : '',
                     isComingSoon ? 'text-muted' : 'text-primary',
                   )}
@@ -1460,6 +1461,201 @@ function WeatherSettings({ currentLocation }: { currentLocation?: string }) {
   )
 }
 
+// ─── Electric Sheep Archive ──────────────────────────────────────────────────
+
+interface SheepDream {
+  id: number
+  timestamp: string
+  theme: string
+  style: string
+  prompt: string
+  seed: number
+  generation_time_ms: number
+  image_file: string
+  has_image: boolean
+}
+
+function SheepDreamCard({ dream, onSelect }: { dream: SheepDream; onSelect: () => void }) {
+  const d = new Date(dream.timestamp)
+  const dateStr = isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  return (
+    <div
+      onClick={onSelect}
+      className="cursor-pointer rounded-xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+      style={{ background: '#0D0D1A', border: '1px solid rgba(168,85,247,0.15)' }}
+    >
+      <div style={{ position: 'relative', paddingBottom: '60%', background: '#0a0a14' }}>
+        {dream.has_image && (
+          <img
+            src={`/api/electricsheep/archive/${dream.id}`}
+            alt={dream.theme}
+            loading="lazy"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.92 }}
+          />
+        )}
+      </div>
+      <div style={{ padding: '10px 14px' }}>
+        <div style={{ fontSize: 13, color: '#E2D9F3', lineHeight: 1.3, marginBottom: 4 }}>
+          {dream.theme}
+        </div>
+        <div className="flex items-center justify-between" style={{ fontFamily: 'monospace', fontSize: 10, color: '#6B5A8A' }}>
+          <span style={{ fontStyle: 'italic', color: '#9F7DC4' }}>{dream.style}</span>
+          <span>#{dream.id} · {dateStr}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ElectricSheepPanel({ onViewAll }: { onViewAll: () => void }) {
+  const { data } = useQuery({
+    queryKey: ['sheep-archive'],
+    queryFn: async () => {
+      const r = await fetch('/api/electricsheep/archive')
+      return r.json() as Promise<{ dreams: SheepDream[]; count: number }>
+    },
+    refetchInterval: 60_000,
+  })
+  const count = data?.count ?? 0
+  if (count === 0) return null
+  const latest = data?.dreams?.[0]
+  return (
+    <section>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="label">Electric Sheep archive</h2>
+        <button
+          onClick={onViewAll}
+          className="font-mono text-xs hover:opacity-80 transition-opacity"
+          style={{ color: '#A855F7' }}
+        >
+          {count} dream{count !== 1 ? 's' : ''} — view all →
+        </button>
+      </div>
+      {latest && (
+        <div className="p-3 rounded-lg" style={{ background: '#0D0D1A', border: '1px solid rgba(168,85,247,0.2)' }}>
+          <div className="font-mono text-[10px] mb-1" style={{ color: '#6B5A8A' }}>
+            #{latest.id} · {new Date(latest.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+          </div>
+          <div style={{ fontSize: 14, color: '#E2D9F3', lineHeight: 1.4 }}>{latest.theme}</div>
+          <div className="text-xs italic mt-1" style={{ color: '#9F7DC4' }}>{latest.style}</div>
+        </div>
+      )}
+    </section>
+  )
+}
+
+function ElectricSheepArchivePage({ onBack }: { onBack: () => void }) {
+  const [visibleCount, setVisibleCount] = useState(24)
+  const [selected, setSelected] = useState<SheepDream | null>(null)
+  const [search, setSearch] = useState('')
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['sheep-archive'],
+    queryFn: async () => {
+      const r = await fetch('/api/electricsheep/archive')
+      return r.json() as Promise<{ dreams: SheepDream[]; count: number }>
+    },
+  })
+
+  const all = data?.dreams ?? []
+  const filtered = search.trim()
+    ? all.filter(d => d.theme.toLowerCase().includes(search.toLowerCase()) || d.style.toLowerCase().includes(search.toLowerCase()))
+    : all
+  const visible = filtered.slice(0, visibleCount)
+
+  return (
+    <div className="min-h-screen" style={{ background: '#060610', color: '#E2D9F3' }}>
+      <header className="sticky top-0 z-40 px-4 h-14 flex items-center justify-between" style={{ background: '#060610', borderBottom: '1px solid rgba(168,85,247,0.15)' }}>
+        <button onClick={onBack} className="font-mono text-xs hover:opacity-70 transition-opacity" style={{ color: '#A855F7' }}>
+          ← back
+        </button>
+        <span className="font-title text-xl" style={{ color: '#A855F7' }}>Electric Sheep</span>
+        <span className="font-mono text-xs" style={{ color: '#6B5A8A' }}>{data?.count ?? 0} dreams</span>
+      </header>
+
+      <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+        <div className="text-center">
+          <p className="font-mono text-xs italic" style={{ color: '#6B5A8A' }}>
+            do e-ink displays dream of electric sheep?
+          </p>
+        </div>
+
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search dreams…"
+          className="w-full rounded-lg px-4 py-2 font-mono text-sm outline-none"
+          style={{ background: '#0D0D1A', border: '1px solid rgba(168,85,247,0.2)', color: '#E2D9F3' }}
+        />
+
+        {isLoading && (
+          <p className="font-mono text-xs text-center" style={{ color: '#6B5A8A' }}>loading archive…</p>
+        )}
+
+        {selected && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.88)' }}
+            onClick={() => setSelected(null)}
+          >
+            <div
+              className="rounded-2xl overflow-hidden max-w-2xl w-full"
+              style={{ background: '#0D0D1A', border: '1px solid rgba(168,85,247,0.3)' }}
+              onClick={e => e.stopPropagation()}
+            >
+              {selected.has_image && (
+                <img src={`/api/electricsheep/archive/${selected.id}`} alt={selected.theme} style={{ width: '100%', display: 'block' }} />
+              )}
+              <div style={{ padding: '20px 24px' }}>
+                <div style={{ fontSize: 16, color: '#E2D9F3', marginBottom: 6 }}>{selected.theme}</div>
+                <div className="italic text-sm mb-3" style={{ color: '#9F7DC4' }}>{selected.style}</div>
+                <div className="font-mono text-[10px] space-y-1" style={{ color: '#6B5A8A' }}>
+                  <div>dream #{selected.id} · seed {selected.seed}</div>
+                  <div>{new Date(selected.timestamp).toLocaleString('en-GB')}</div>
+                  <div>generated in {(selected.generation_time_ms / 1000).toFixed(1)}s</div>
+                </div>
+                <button
+                  onClick={() => setSelected(null)}
+                  className="mt-4 font-mono text-xs hover:opacity-70 transition-opacity"
+                  style={{ color: '#A855F7' }}
+                >
+                  close ×
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {visible.map(dream => (
+            <SheepDreamCard key={dream.id} dream={dream} onSelect={() => setSelected(dream)} />
+          ))}
+        </div>
+
+        {visibleCount < filtered.length && (
+          <div className="text-center pt-2">
+            <button
+              onClick={() => setVisibleCount(v => v + 24)}
+              className="font-mono text-xs px-6 py-2 rounded-lg transition-all hover:opacity-80"
+              style={{ background: 'rgba(168,85,247,0.12)', color: '#A855F7', border: '1px solid rgba(168,85,247,0.2)' }}
+            >
+              load more ({filtered.length - visibleCount} remaining)
+            </button>
+          </div>
+        )}
+
+        {!isLoading && filtered.length === 0 && (
+          <p className="text-center font-mono text-xs" style={{ color: '#6B5A8A' }}>
+            {search ? 'no dreams match your search' : 'no dreams yet — the machine is dreaming…'}
+          </p>
+        )}
+      </main>
+    </div>
+  )
+}
+
+
 // ─── Divider ────────────────────────────────────────────────────────────────
 
 function Divider() {
@@ -1474,7 +1670,7 @@ export default function App() {
   const [refreshKey, setRefreshKey] = useState(Date.now())
   const [waitingSince, setWaitingSince] = useState<number | null>(null)
   const [pendingMode, setPendingMode] = useState<string | null>(null)
-  const [view, setView] = useState<'dashboard' | 'archive' | 'flora-archive'>('dashboard')
+  const [view, setView] = useState<'dashboard' | 'archive' | 'flora-archive' | 'sheep-archive'>('dashboard')
   const waiting = waitingSince !== null
 
   const { data: status, isError } = useQuery({
@@ -1533,6 +1729,10 @@ export default function App() {
 
   if (view === 'flora-archive') {
     return <FloraArchivePage onBack={() => setView('dashboard')} />
+  }
+
+  if (view === 'sheep-archive') {
+    return <ElectricSheepArchivePage onBack={() => setView('dashboard')} />
   }
 
   return (
@@ -1669,6 +1869,9 @@ export default function App() {
 
         <Divider />
         <FloraArchivePanel onViewAll={() => setView('flora-archive')} />
+
+        <Divider />
+        <ElectricSheepPanel onViewAll={() => setView('sheep-archive')} />
 
         <footer className="pt-6 pb-4">
           <Divider />

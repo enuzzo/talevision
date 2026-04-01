@@ -209,6 +209,17 @@ class MarsConfig:
 
 
 @dataclass
+class ElectricSheepConfig:
+    refresh_interval: int = 300
+    generation_interval: int = 3600
+    timeout: int = 120
+    max_archive: int = 1000
+    brightness: float = 1.0
+    contrast: float = 1.1
+    color: float = 1.15
+
+
+@dataclass
 class ButtonsConfig:
     enabled: bool = True
     gpio_map: dict = field(default_factory=lambda: {"a": 5, "b": 6, "c": 16, "d": 24})
@@ -237,4 +248,5 @@ class AppConfig:
     flora: FloraConfig = field(default_factory=FloraConfig)
     apod: ApodConfig = field(default_factory=ApodConfig)
     mars: MarsConfig = field(default_factory=MarsConfig)
+    electricsheep: ElectricSheepConfig = field(default_factory=ElectricSheepConfig)
     buttons: ButtonsConfig = field(default_factory=ButtonsConfig)
