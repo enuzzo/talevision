@@ -30,3 +30,10 @@ Do not duplicate their content here.
 - Pi Zero W lean: no headless browsers, no heavy ML deps. PIL + Flask + inky only.
 - Write all files in English. Conversation with the user is in Italian.
 - Prefer editing existing files over creating new ones. Do not add comments or docstrings to code you didn't change.
+
+## Frontend Gotchas
+
+- `animate-fade-in` applies `transform: translateY(0)` — breaks `position: fixed` on descendants. Fixed elements (ActionBar, modals) must be siblings outside the animated container.
+- Frontend is a monolithic `frontend/src/App.tsx`. All dashboard components live there.
+- Global Save with dirty state: components are controlled (emit `onChange`), App tracks pending changes and fires all API calls on Save.
+- Max-width 1200px, 2-column desktop (lg+), 1-column mobile with fixed bottom ActionBar.

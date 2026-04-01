@@ -176,6 +176,20 @@ class ElectricSheepMode(DisplayMode):
         self._current_dream: Optional[dict] = None
         self._last_error: str = ""
 
+        self._start_generator()
+
+    def _start_generator(self) -> None:
+        if self._gen_thread and self._gen_thread.is_alive():
+            return
+        self._stop_event.clear()
+        self._gen_thread = threading.Thread(
+            target=self._generator_loop,
+            daemon=True,
+            name="sheep-gen",
+        )
+        self._gen_thread.start()
+        log.info("Electric Sheep: generator thread started (always-on)")
+
     # ── DisplayMode interface ────────────────────────────────────────────────
 
     @property
@@ -187,20 +201,10 @@ class ElectricSheepMode(DisplayMode):
         return self._cfg.refresh_interval
 
     def on_activate(self) -> None:
-        self._stop_event.clear()
-        self._gen_thread = threading.Thread(
-            target=self._generator_loop,
-            daemon=True,
-            name="sheep-gen",
-        )
-        self._gen_thread.start()
-        log.info("Electric Sheep: generator thread started")
+        self._start_generator()
 
     def on_deactivate(self) -> None:
-        self._stop_event.set()
-        if self._gen_thread and self._gen_thread.is_alive():
-            self._gen_thread.join(timeout=5)
-        log.info("Electric Sheep: generator thread stopped")
+        pass
 
     def render(self) -> Image.Image:
         dream = self._pick_dream()
