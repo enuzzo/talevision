@@ -1594,6 +1594,16 @@ export default function App() {
   if (view === 'sheep-archive') return <ElectricSheepArchivePage onBack={() => setView('dashboard')} />
 
   return (
+    <>
+    {/* ActionBar must be outside the animated container to avoid transform breaking position:fixed */}
+    <ActionBar
+      dirty={isDirty}
+      saveState={saveState}
+      onSave={handleGlobalSave}
+      onRefresh={handleRefresh}
+      refreshing={refreshMut.isPending}
+    />
+
     <div className="min-h-screen text-primary font-display animate-fade-in">
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
@@ -1770,14 +1780,7 @@ export default function App() {
         <div className="h-16 lg:hidden" />
       </main>
 
-      {/* ── Mobile action bar ── */}
-      <ActionBar
-        dirty={isDirty}
-        saveState={saveState}
-        onSave={handleGlobalSave}
-        onRefresh={handleRefresh}
-        refreshing={refreshMut.isPending}
-      />
     </div>
+    </>
   )
 }
