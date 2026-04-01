@@ -545,7 +545,15 @@ function PlaylistEditor({
         </div>
       )}
 
-      <div className="flex items-center gap-2 pt-1 flex-wrap">
+      <div
+        className={cx(
+          'flex items-center gap-2 flex-wrap',
+          'sticky bottom-0 z-10 -mx-4 px-4 py-3',
+          'border-t border-border/60',
+          'sm:static sm:bottom-auto sm:z-auto sm:mx-0 sm:px-0 sm:py-1 sm:border-0',
+        )}
+        style={{ backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', background: 'rgba(250,248,245,0.95)' }}
+      >
         <button
           onClick={handleSave}
           disabled={saving}
@@ -869,44 +877,97 @@ interface KoanHaiku {
   type?: 'haiku' | 'koan'
 }
 
-function KoanArchivePanel({ onViewAll }: { onViewAll: () => void }) {
-  const { data } = useQuery({
+function ArchiveCard({
+  icon, label, color, count, lastLabel, onClick,
+}: {
+  icon: string; label: string; color: string
+  count: number; lastLabel: string | null; onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left rounded-lg transition-all duration-200 hover:-translate-y-px hover:shadow-md group"
+      style={{ background: '#FFFAF0', border: '1px solid #E4DBD0', padding: '12px 14px' }}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span style={{ fontSize: 13, lineHeight: 1 }}>{icon}</span>
+          <span className="font-display text-sm font-semibold" style={{ color: '#1A1A2E' }}>{label}</span>
+        </div>
+        <span
+          className="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded"
+          style={{ background: `color-mix(in srgb, ${color} 12%, transparent)`, color }}
+        >
+          {count}
+        </span>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="font-mono text-[10px]" style={{ color: '#A09890' }}>
+          {lastLabel ?? '—'}
+        </span>
+        <span
+          className="font-mono text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity"
+          style={{ color }}
+        >
+          view →
+        </span>
+      </div>
+    </button>
+  )
+}
+
+function ArchivesSection({
+  onViewKoan, onViewFlora, onViewSheep,
+}: {
+  onViewKoan: () => void; onViewFlora: () => void; onViewSheep: () => void
+}) {
+  const { data: koanData } = useQuery({
     queryKey: ['koan-archive'],
-    queryFn: async () => {
-      const r = await fetch(`/api/koan/archive`)
-      return r.json() as Promise<{ haiku: KoanHaiku[]; count: number }>
-    },
+    queryFn: async () => (await fetch('/api/koan/archive')).json() as Promise<{ haiku: KoanHaiku[]; count: number }>,
+    refetchInterval: 60_000,
+  })
+  const { data: floraData } = useQuery({
+    queryKey: ['flora-archive'],
+    queryFn: async () => (await fetch('/api/flora/archive')).json() as Promise<{ specimens: FloraEntry[]; count: number }>,
+    refetchInterval: 60_000,
+  })
+  const { data: sheepData } = useQuery({
+    queryKey: ['sheep-archive'],
+    queryFn: async () => (await fetch('/api/electricsheep/archive')).json() as Promise<{ dreams: SheepDream[]; count: number }>,
     refetchInterval: 60_000,
   })
 
-  const count = data?.count ?? 0
-  if (count === 0) return null
+  const koanCount = koanData?.count ?? 0
+  const floraCount = floraData?.count ?? 0
+  const sheepCount = sheepData?.count ?? 0
 
-  const latest = data?.haiku?.[0]
+  if (koanCount === 0 && floraCount === 0 && sheepCount === 0) return null
+
+  const fmtTs = (ts: string) => {
+    const d = new Date(ts)
+    return isNaN(d.getTime()) ? null : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  }
+
+  const koanLast = koanData?.haiku?.[0] ? fmtTs(koanData.haiku[0].timestamp) : null
+  const floraLast = floraData?.specimens?.[0]?.date
+    ? new Date(floraData.specimens[0].date + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    : null
+  const sheepLast = sheepData?.dreams?.[0] ? fmtTs(sheepData.dreams[0].timestamp) : null
 
   return (
     <section>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="label">Koan archive</h2>
-        <button
-          onClick={onViewAll}
-          className="font-mono text-xs text-accent hover:text-accent-hover transition-colors"
-        >
-          {count} entries — view all →
-        </button>
+      <h2 className="label mb-3">Archives</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        {koanCount > 0 && (
+          <ArchiveCard icon="禅" label="Koan" color="#4F46E5" count={koanCount} lastLabel={koanLast} onClick={onViewKoan} />
+        )}
+        {floraCount > 0 && (
+          <ArchiveCard icon="🌿" label="Flora" color="#16A34A" count={floraCount} lastLabel={floraLast} onClick={onViewFlora} />
+        )}
+        {sheepCount > 0 && (
+          <ArchiveCard icon="🐑" label="Electric Sheep" color="#A855F7" count={sheepCount} lastLabel={sheepLast} onClick={onViewSheep} />
+        )}
       </div>
-
-      {latest && (
-        <div className="p-3 rounded-lg border border-border/50 bg-surface/50">
-          <div className="font-mono text-[10px] text-muted mb-2">{latest.seed_word} · №{latest.id}</div>
-          <div style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontStyle: 'italic' }} className="text-sm text-primary leading-relaxed">
-            {latest.lines.map((line, i) => <div key={i}>{line}</div>)}
-          </div>
-          {latest.author_name && (
-            <div className="mt-2 font-mono text-xs text-muted/80">— {latest.author_name}</div>
-          )}
-        </div>
-      )}
     </section>
   )
 }
@@ -1166,51 +1227,6 @@ function FloraSpecimenCard({ entry, onSelect }: { entry: FloraEntry; onSelect: (
 }
 
 
-function FloraArchivePanel({ onViewAll }: { onViewAll: () => void }) {
-  const { data } = useQuery({
-    queryKey: ['flora-archive'],
-    queryFn: async () => {
-      const r = await fetch('/api/flora/archive')
-      return r.json() as Promise<{ specimens: FloraEntry[]; count: number }>
-    },
-    refetchInterval: 60_000,
-  })
-
-  const count = data?.count ?? 0
-  if (count === 0) return null
-
-  const latest = data?.specimens?.[0]
-
-  return (
-    <section>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="label">Flora archive</h2>
-        <button
-          onClick={onViewAll}
-          className="font-mono text-xs text-accent hover:text-accent-hover transition-colors"
-        >
-          {count} specimen{count !== 1 ? 's' : ''} — view all →
-        </button>
-      </div>
-      {latest && (
-        <div className="p-3 rounded-lg border border-border/50" style={{ background: '#FFFAF0' }}>
-          <div className="font-mono text-[10px] text-muted mb-1">
-            #{String(latest.specimen_num).padStart(4, '0')} · {latest.date}
-          </div>
-          <div style={{ fontFamily: 'Lobster, cursive', fontSize: 17, color: '#1A1A2E' }}>
-            {latest.genus}
-          </div>
-          <div className="text-sm italic" style={{ color: '#6B6560' }}>
-            {latest.epithet}
-          </div>
-          <div className="mt-1 font-mono text-[10px]" style={{ color: '#A09890' }}>
-            {latest.family} · {latest.location}
-          </div>
-        </div>
-      )}
-    </section>
-  )
-}
 
 
 function FloraArchivePage({ onBack }: { onBack: () => void }) {
@@ -1517,42 +1533,6 @@ function SheepDreamCard({ dream, onSelect }: { dream: SheepDream; onSelect: () =
   )
 }
 
-function ElectricSheepPanel({ onViewAll }: { onViewAll: () => void }) {
-  const { data } = useQuery({
-    queryKey: ['sheep-archive'],
-    queryFn: async () => {
-      const r = await fetch('/api/electricsheep/archive')
-      return r.json() as Promise<{ dreams: SheepDream[]; count: number }>
-    },
-    refetchInterval: 60_000,
-  })
-  const count = data?.count ?? 0
-  if (count === 0) return null
-  const latest = data?.dreams?.[0]
-  return (
-    <section>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="label">Electric Sheep archive</h2>
-        <button
-          onClick={onViewAll}
-          className="font-mono text-xs hover:opacity-80 transition-opacity"
-          style={{ color: '#A855F7' }}
-        >
-          {count} dream{count !== 1 ? 's' : ''} — view all →
-        </button>
-      </div>
-      {latest && (
-        <div className="p-3 rounded-lg border border-border/50" style={{ background: '#FFFAF0' }}>
-          <div className="font-mono text-[10px] mb-1" style={{ color: '#A09890' }}>
-            #{latest.id} · {new Date(latest.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-          </div>
-          <div style={{ fontSize: 14, color: '#2A2A3E', lineHeight: 1.4 }}>{latest.theme}</div>
-          <div className="text-xs italic mt-1" style={{ color: '#A855F7' }}>{latest.style}</div>
-        </div>
-      )}
-    </section>
-  )
-}
 
 function ElectricSheepArchivePage({ onBack }: { onBack: () => void }) {
   const [visibleCount, setVisibleCount] = useState(24)
@@ -1835,14 +1815,17 @@ export default function App() {
 
         <p className="text-xs text-tertiary italic text-center mb-5">{TAGLINE}</p>
 
-        {/* 2-column on desktop: left = frame + archives, right = controls */}
-        <div className="lg:grid lg:grid-cols-[1fr_420px] lg:gap-10 lg:items-start space-y-5 lg:space-y-0">
+        {/*
+          3-section responsive layout:
+          Mobile (1-col):  1. frame+info  2. controls  3. archives
+          Desktop (2-col): col-1/row-1=frame+info  col-2/row-1=controls  col-1/row-2=archives
+        */}
+        <div className="space-y-5 lg:grid lg:grid-cols-[1fr_420px] lg:gap-10 lg:space-y-0 lg:items-start">
 
-          {/* ── Left column: frame preview + info + archive panels ── */}
-          <div className="space-y-5">
+          {/* ── 1: Frame + info ── col-1 row-1 on desktop */}
+          <div className="space-y-4 lg:col-start-1 lg:row-start-1">
             <FramePreview refreshKey={refreshKey} waiting={waiting} waitingMode={pendingMode ?? currentMode} />
 
-            {/* Info bar */}
             <div className="flex items-center gap-4 flex-wrap text-xs">
               <span className="text-tertiary">
                 <span className="font-mono text-muted">UP</span>{' '}
@@ -1868,19 +1851,10 @@ export default function App() {
                 <span style={{ color: '#D97706' }}>🎬 {status.video}</span>
               )}
             </div>
-
-            <Divider />
-            <KoanArchivePanel onViewAll={() => setView('archive')} />
-
-            <Divider />
-            <FloraArchivePanel onViewAll={() => setView('flora-archive')} />
-
-            <Divider />
-            <ElectricSheepPanel onViewAll={() => setView('sheep-archive')} />
           </div>
 
-          {/* ── Right column: controls ── */}
-          <div className="space-y-5 mt-5 lg:mt-0">
+          {/* ── 2: Controls ── col-2 row-1 on desktop (DOM order = after frame on mobile) */}
+          <div className="space-y-5 lg:col-start-2 lg:row-start-1">
             <LanguageSelector current={status?.language ?? undefined} />
 
             <Divider />
@@ -1932,6 +1906,18 @@ export default function App() {
                 </section>
               </>
             )}
+          </div>
+
+          {/* ── 3: Archives ── col-1 row-2 on desktop (DOM order = last, i.e. after controls on mobile) */}
+          <div className="lg:col-start-1 lg:row-start-2">
+            <Divider />
+            <div className="mt-5">
+              <ArchivesSection
+                onViewKoan={() => setView('archive')}
+                onViewFlora={() => setView('flora-archive')}
+                onViewSheep={() => setView('sheep-archive')}
+              />
+            </div>
           </div>
         </div>
 
