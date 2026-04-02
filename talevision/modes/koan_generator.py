@@ -66,7 +66,7 @@ _GEMINI_MODEL = "gemini-2.0-flash-lite"
 
 
 def _call_groq(api_key: str, user_msg: str, timeout: int, lang: str = "en",
-                system_prompt: str = "", max_tokens: int = 60) -> dict:
+                system_prompt: str = "", max_tokens: int = 100) -> dict:
     """Returns {raw, model, prompt_tokens, completion_tokens, total_tokens}."""
     sys_prompt = system_prompt or _system_prompt(lang)
     payload = json.dumps({
@@ -101,7 +101,7 @@ def _call_groq(api_key: str, user_msg: str, timeout: int, lang: str = "en",
 
 
 def _call_gemini(api_key: str, user_msg: str, timeout: int, lang: str = "en",
-                  system_prompt: str = "", max_tokens: int = 60) -> dict:
+                  system_prompt: str = "", max_tokens: int = 100) -> dict:
     """Returns {raw, model, prompt_tokens, completion_tokens, total_tokens}."""
     sys_prompt = system_prompt or _system_prompt(lang)
     payload = json.dumps({

@@ -26,7 +26,7 @@ class KoanMode(DisplayMode):
         base_dir = Path(base_dir)
 
         fonts_dir = base_dir / "assets" / "fonts"
-        self._font_haiku = _load_font(fonts_dir / "CrimsonText-Regular.ttf", 46)
+        self._font_haiku = _load_font(fonts_dir / "CrimsonText-Regular.ttf", 40)
         self._font_mono = _load_font(fonts_dir / "InconsolataNerdFontMono-Bold.ttf", 18)
         self._font_tech = _load_font(fonts_dir / "InconsolataNerdFontMono-Bold.ttf", 16)
         self._font_koan = _load_font(fonts_dir / "CrimsonText-Regular.ttf", 38)
@@ -215,16 +215,30 @@ class KoanMode(DisplayMode):
         draw.text((RIGHT_EDGE - hw, TOP_MARGIN), header_text,
                   font=self._font_mono, fill=FILL)
 
-        # --- Haiku: right-aligned, optical center ---
-        line_spacing = 54
-        line_widths = [draw.textbbox((0, 0), l, font=self._font_haiku)[2]
-                       for l in lines]
-        total_block_h = len(lines) * line_spacing
+        # --- Haiku: word-wrapped, right-aligned, optical center ---
+        max_text_w = w - 300
+        line_spacing = 48
+        wrapped_lines: list[str] = []
+        for raw_line in lines:
+            words = raw_line.split()
+            current = ""
+            for word in words:
+                test = f"{current} {word}".strip()
+                tw = draw.textbbox((0, 0), test, font=self._font_haiku)[2]
+                if tw > max_text_w and current:
+                    wrapped_lines.append(current)
+                    current = word
+                else:
+                    current = test
+            if current:
+                wrapped_lines.append(current)
+
+        total_block_h = len(wrapped_lines) * line_spacing
         optical_y = int(h * 0.38)
         top_y = optical_y - total_block_h // 2
 
-        for i, line in enumerate(lines):
-            lw = line_widths[i] if i < len(line_widths) else 0
+        for i, line in enumerate(wrapped_lines):
+            lw = draw.textbbox((0, 0), line, font=self._font_haiku)[2]
             draw.text((RIGHT_EDGE - lw, top_y + i * line_spacing), line,
                       font=self._font_haiku, fill=HAIKU_FILL)
 
